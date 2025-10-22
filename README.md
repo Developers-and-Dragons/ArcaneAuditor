@@ -210,6 +210,7 @@ python web/server.py --port 8080
 
 - **📁 Drag & Drop Upload**: Easy file selection with ZIP or individual files
 - **⚙️ Configuration Presets**: Choose from `development` or `production-ready` modes
+- **✏️ Configuration Editor**: Visual editor to customize validation rules, enable/disable rules, and edit settings ([see documentation](docs/CONFIG_EDITOR_FEATURE.md))
 - **📊 Real-time Results**: Quick analysis with detailed violation reports
 - **📥 Excel Export**: Comprehensive reports with context information
 - **🌙 Theme Support**: Dark and light modes
