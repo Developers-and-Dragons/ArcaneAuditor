@@ -77,6 +77,7 @@ export class ConfigManager {
                 }
                 
                 const isSelected = config.id === this.selectedConfig;
+                const canEdit = config.source === 'personal' || config.source === 'teams';
                 configElement.innerHTML = `
                     <div class="config-type ${config.type?.toLowerCase() || 'built-in'}">${config.type || 'Built-in'}</div>
                     <div class="config-name">${config.name}</div>
@@ -90,6 +91,11 @@ export class ConfigManager {
                             <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
                                 📋 View Details
                             </button>
+                            ${canEdit ? `
+                                <button class="btn btn-primary config-edit-btn" onclick="showConfigEditor()">
+                                    ✏️ Edit
+                                </button>
+                            ` : ''}
                         </div>
                     ` : ''}
                 `;
@@ -138,10 +144,16 @@ export class ConfigManager {
             if (selectedConfig) {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'config-actions';
+                const canEdit = selectedConfig.source === 'personal' || selectedConfig.source === 'teams';
                 actionsDiv.innerHTML = `
                     <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
                         📋 View Details
                     </button>
+                    ${canEdit ? `
+                        <button class="btn btn-primary config-edit-btn" onclick="showConfigEditor()">
+                            ✏️ Edit
+                        </button>
+                    ` : ''}
                 `;
                 selectedElement.appendChild(actionsDiv);
             }
@@ -284,6 +296,231 @@ export class ConfigManager {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
     }
+
+    showConfigEditor() {
+        const modal = document.getElementById('config-editor-modal');
+        const content = document.getElementById('config-editor-content');
+
+        if (!this.selectedConfig) {
+            alert('Please select a configuration first');
+            return;
+        }
+
+        const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
+        if (!config) {
+            alert('Configuration not found');
+            return;
+        }
+
+        // Check if config is editable
+        if (config.source !== 'personal' && config.source !== 'teams') {
+            alert('Built-in preset configurations cannot be edited. Create a personal or team configuration instead.');
+            return;
+        }
+
+        const rules = config.rules || {};
+
+        // Create editor UI with search and filter
+        let html = `
+            <div class="config-editor-header">
+                <h4>Editing: ${config.name}</h4>
+                <div class="editor-controls">
+                    <input type="text" id="rule-search" class="search-input" placeholder="🔍 Search rules..." />
+                    <select id="rule-filter" class="filter-select">
+                        <option value="all">All Rules</option>
+                        <option value="enabled">Enabled Only</option>
+                        <option value="disabled">Disabled Only</option>
+                        <option value="custom">Has Custom Settings</option>
+                    </select>
+                </div>
+            </div>
+            <div class="rules-editor-container" id="rules-editor-container">
+        `;
+
+        // Sort rules alphabetically
+        const sortedRules = Object.entries(rules).sort((a, b) => a[0].localeCompare(b[0]));
+
+        sortedRules.forEach(([ruleName, ruleConfig]) => {
+            const enabled = ruleConfig.enabled;
+            const severity = ruleConfig.severity_override || 'ADVICE';
+            const customSettings = ruleConfig.custom_settings || {};
+            const hasCustomSettings = Object.keys(customSettings).length > 0;
+
+            html += `
+                <div class="rule-editor-item" data-rule-name="${ruleName}" data-enabled="${enabled}" data-has-custom="${hasCustomSettings}">
+                    <div class="rule-editor-header">
+                        <div class="rule-toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox"
+                                    class="rule-toggle"
+                                    data-rule="${ruleName}"
+                                    ${enabled ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <div class="rule-info">
+                                <div class="rule-name-editor">${ruleName}</div>
+                                <div class="rule-status-text ${enabled ? 'enabled' : 'disabled'}">
+                                    ${enabled ? '✓ Enabled' : '✗ Disabled'}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-small expand-settings-btn" onclick="toggleRuleSettings('${ruleName}')">
+                            ${hasCustomSettings ? '⚙️' : '+'} Settings
+                        </button>
+                    </div>
+                    <div class="rule-settings-panel" id="settings-${ruleName}" style="display: none;">
+                        <div class="setting-group">
+                            <label>Severity Override:</label>
+                            <select class="severity-select" data-rule="${ruleName}">
+                                <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
+                                <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Custom Settings (JSON):</label>
+                            <textarea
+                                class="custom-settings-input"
+                                data-rule="${ruleName}"
+                                rows="4"
+                                placeholder="{}">${JSON.stringify(customSettings, null, 2)}</textarea>
+                            <small class="setting-hint">Enter valid JSON for rule-specific settings</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+
+        content.innerHTML = html;
+        modal.style.display = 'flex';
+
+        // Add event listeners for search and filter
+        document.getElementById('rule-search').addEventListener('input', this.filterRules.bind(this));
+        document.getElementById('rule-filter').addEventListener('change', this.filterRules.bind(this));
+
+        // Add event listeners for rule toggles to update status text
+        document.querySelectorAll('.rule-toggle').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                const ruleItem = e.target.closest('.rule-editor-item');
+                const statusText = ruleItem.querySelector('.rule-status-text');
+                if (e.target.checked) {
+                    statusText.textContent = '✓ Enabled';
+                    statusText.className = 'rule-status-text enabled';
+                    ruleItem.dataset.enabled = 'true';
+                } else {
+                    statusText.textContent = '✗ Disabled';
+                    statusText.className = 'rule-status-text disabled';
+                    ruleItem.dataset.enabled = 'false';
+                }
+            });
+        });
+    }
+
+    filterRules() {
+        const searchTerm = document.getElementById('rule-search').value.toLowerCase();
+        const filterValue = document.getElementById('rule-filter').value;
+        const ruleItems = document.querySelectorAll('.rule-editor-item');
+
+        ruleItems.forEach(item => {
+            const ruleName = item.dataset.ruleName.toLowerCase();
+            const isEnabled = item.dataset.enabled === 'true';
+            const hasCustomSettings = item.dataset.hasCustom === 'true';
+
+            let matchesSearch = ruleName.includes(searchTerm);
+            let matchesFilter = true;
+
+            switch(filterValue) {
+                case 'enabled':
+                    matchesFilter = isEnabled;
+                    break;
+                case 'disabled':
+                    matchesFilter = !isEnabled;
+                    break;
+                case 'custom':
+                    matchesFilter = hasCustomSettings;
+                    break;
+            }
+
+            if (matchesSearch && matchesFilter) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    async saveConfigChanges() {
+        const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
+        if (!config) {
+            alert('Configuration not found');
+            return;
+        }
+
+        // Collect updated rule settings
+        const updatedRules = {};
+        document.querySelectorAll('.rule-editor-item').forEach(item => {
+            const ruleName = item.dataset.ruleName;
+            const toggle = item.querySelector('.rule-toggle');
+            const severitySelect = item.querySelector('.severity-select');
+            const customSettingsInput = item.querySelector('.custom-settings-input');
+
+            let customSettings = {};
+            try {
+                const settingsText = customSettingsInput.value.trim();
+                if (settingsText) {
+                    customSettings = JSON.parse(settingsText);
+                }
+            } catch (e) {
+                alert(`Invalid JSON in custom settings for ${ruleName}: ${e.message}`);
+                throw e;
+            }
+
+            updatedRules[ruleName] = {
+                enabled: toggle.checked,
+                severity_override: severitySelect.value,
+                custom_settings: customSettings
+            };
+        });
+
+        // Build the complete config object
+        const updatedConfig = {
+            rules: updatedRules,
+            file_processing: config.file_processing || {},
+            output: config.output || {},
+            fail_on_error: config.fail_on_error || false,
+            fail_on_warning: config.fail_on_warning || false,
+            quiet: config.quiet || false
+        };
+
+        try {
+            const response = await fetch(`/api/configs/${config.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedConfig)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to save configuration');
+            }
+
+            const result = await response.json();
+            alert('Configuration saved successfully!');
+
+            // Hide the editor modal
+            window.hideConfigEditor();
+
+            // Reload configurations to reflect changes
+            await this.loadConfigurations();
+
+        } catch (error) {
+            console.error('Error saving configuration:', error);
+            alert(`Failed to save configuration: ${error.message}`);
+        }
+    }
 }
 
 // Global function for HTML onclick handlers
@@ -300,17 +537,49 @@ window.hideConfigBreakdown = function() {
     }
 };
 
-// Close modal when clicking outside
+window.showConfigEditor = function() {
+    if (window.app && window.app.configManager) {
+        window.app.configManager.showConfigEditor();
+    }
+};
+
+window.hideConfigEditor = function() {
+    const modal = document.getElementById('config-editor-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+window.toggleRuleSettings = function(ruleName) {
+    const panel = document.getElementById(`settings-${ruleName}`);
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.saveConfigChanges = function() {
+    if (window.app && window.app.configManager) {
+        window.app.configManager.saveConfigChanges();
+    }
+};
+
+// Close modals when clicking outside
 document.addEventListener('click', function(event) {
-    const modal = document.getElementById('config-breakdown-modal');
-    if (event.target === modal) {
+    const breakdownModal = document.getElementById('config-breakdown-modal');
+    const editorModal = document.getElementById('config-editor-modal');
+
+    if (event.target === breakdownModal) {
         window.hideConfigBreakdown();
+    }
+    if (event.target === editorModal) {
+        window.hideConfigEditor();
     }
 });
 
-// Close modal with Escape key
+// Close modals with Escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         window.hideConfigBreakdown();
+        window.hideConfigEditor();
     }
 });

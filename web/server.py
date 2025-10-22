@@ -586,6 +586,93 @@ async def serve_index():
         content = f.read()
     return HTMLResponse(content=content)
 
+@app.post("/api/configs/{config_id}")
+async def save_configuration(config_id: str, config_data: dict):
+    """
+    Save a configuration file.
+    Only allows saving to personal and team directories (not presets).
+    """
+    import json
+
+    # Parse config_id to get source and name
+    # Format is "{config_name}_{source}" e.g. "my-config_personal"
+    if '_' not in config_id:
+        raise HTTPException(status_code=400, detail="Invalid config ID format")
+
+    parts = config_id.rsplit('_', 1)
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Invalid config ID format")
+
+    config_name, source = parts
+
+    # Only allow saving to personal and teams directories
+    if source not in ['personal', 'teams']:
+        raise HTTPException(status_code=403, detail="Cannot edit built-in preset configurations. Create a personal or team configuration instead.")
+
+    # Determine the config directory
+    config_dir = project_root / "config" / source
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    config_file = config_dir / f"{config_name}.json"
+
+    try:
+        # Write the configuration file
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, indent=2)
+
+        return {"status": "success", "message": f"Configuration saved to {config_file.relative_to(project_root)}"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save configuration: {str(e)}")
+
+@app.post("/api/configs/create")
+async def create_configuration(config_data: dict):
+    """
+    Create a new configuration file in the personal directory.
+    """
+    import json
+
+    # Validate that name is provided
+    if 'name' not in config_data or not config_data['name']:
+        raise HTTPException(status_code=400, detail="Configuration name is required")
+
+    config_name = config_data['name']
+    source = config_data.get('source', 'personal')
+
+    # Only allow creating in personal and teams directories
+    if source not in ['personal', 'teams']:
+        raise HTTPException(status_code=403, detail="Can only create configurations in personal or teams directories")
+
+    # Determine the config directory
+    config_dir = project_root / "config" / source
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    config_file = config_dir / f"{config_name}.json"
+
+    # Check if file already exists
+    if config_file.exists():
+        raise HTTPException(status_code=409, detail=f"Configuration '{config_name}' already exists in {source}")
+
+    try:
+        # Extract the configuration content (remove metadata fields)
+        config_content = {
+            "rules": config_data.get('rules', {}),
+            "file_processing": config_data.get('file_processing', {}),
+            "output": config_data.get('output', {}),
+            "fail_on_error": config_data.get('fail_on_error', False),
+            "fail_on_warning": config_data.get('fail_on_warning', False),
+            "quiet": config_data.get('quiet', False)
+        }
+
+        # Write the configuration file
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config_content, f, indent=2)
+
+        return {"status": "success", "message": f"Configuration created at {config_file.relative_to(project_root)}", "id": f"{config_name}_{source}"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create configuration: {str(e)}")
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
