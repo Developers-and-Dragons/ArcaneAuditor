@@ -45,20 +45,42 @@ jobs:
             dist/ArcaneAuditorCLI*
             dist/ArcaneAuditorWeb.exe
 
-      - name: Upload unsigned distributable artifacts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Sync vdevelop tag with latest develop commit
         shell: bash
         run: |
-          gh release edit vdevelop --target develop
-          gh release create vdevelop --draft --target develop --notes "Unsigned build for signing" || true
+          git fetch origin develop --depth=1
+          git tag -f vdevelop origin/develop
+          git push origin vdevelop --force
       
-          # Upload only final deliverables (top-level files in dist)
+      - name: Create or update vdevelop draft release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+      
+          # Check if a release named vdevelop already exists
+          if gh release view vdevelop >/dev/null 2>&1; then
+            echo "🧙 Updating existing draft release vdevelop"
+            gh release edit vdevelop --draft --target develop --notes "Unsigned build for signing"
+          else
+            echo "✨ Creating new draft release vdevelop"
+            gh release create vdevelop --draft --target develop --notes "Unsigned build for signing"
+          fi
+      
+          echo "📦 Uploading distributable files..."
           for f in ./dist/*; do
             if [ -f "$f" ]; then
-              echo "Uploading $f"
+              echo "➡️  $f"
               gh release upload vdevelop "$f" --clobber
             fi
           done
+      
+          echo "✅ Upload complete"
+          
           
           
