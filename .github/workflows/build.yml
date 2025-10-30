@@ -48,5 +48,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create vdevelop --draft --target develop --notes "Unsigned build for signing" || true
-          gh release upload vdevelop $(find ./dist -type f) --clobber
+          find ./dist -type f -print0 | xargs -0 -I{} gh release upload vdevelop "{}" --clobber
           
