@@ -66,10 +66,10 @@ jobs:
           # Check if a release named vdevelop already exists
           if gh release view vdevelop >/dev/null 2>&1; then
             echo "🧙 Updating existing draft release vdevelop"
-            gh release edit vdevelop --draft --target develop --notes "Unsigned build for signing"
+            gh release edit vdevelop --draft --notes "Unsigned build for signing"
           else
             echo "✨ Creating new draft release vdevelop"
-            gh release create vdevelop --draft --target develop --notes "Unsigned build for signing"
+            gh release create vdevelop --draft --notes "Unsigned build for signing"
           fi
       
           echo "📦 Uploading distributable files..."
