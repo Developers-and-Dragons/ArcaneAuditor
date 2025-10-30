@@ -13,32 +13,23 @@ jobs:
     runs-on: self-hosted  # Your EV token machine
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Download unsigned artifacts from draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --dir ./unsigned
 
-      - name: 📥 Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: arcane-auditor-Windows
-          path: dist
-
-      - name: 🪄 EV Sign Windows Binaries
-        shell: pwsh
+      - name: Sign executables (local EV cert)
         run: |
-          $thumb="A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
-          Get-ChildItem dist -Filter *.exe | ForEach-Object {
-            & "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign `
-              /sha1 $thumb `
-              /fd sha256 `
-              /td sha256 `
-              /tr http://timestamp.digicert.com `
-              $_.FullName
-          }
+          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+            /n "Chris Humphrey" /sm `
+            "./unsigned/ArcaneAuditor.exe" `
+            "./unsigned/ArcaneAuditorCLI.exe" `
+            "./unsigned/ArcaneAuditorWeb.exe"
 
-      - name: 📦 Upload signed Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: signed-windows
-          path: dist/*.exe
+      - name: Upload signed files to GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} ./unsigned/*.exe --clobber
 
   mac-sign-notarize:
     name: 🍎 macOS Sign + Notarize
