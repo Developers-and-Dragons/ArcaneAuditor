@@ -6,7 +6,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.2.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-[![Support](https://img.shields.io/badge/⚡-Support_the_Weave-yellow?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
+[![Support](https://img.shields.io/badge/🪄-Support_This_Project-yellow?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
 ---
 
@@ -38,22 +38,23 @@ No Python, no browser, no setup — just download and run.
 
 Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
-- **Windows:** `ArcaneAuditor_Windows_Desktop.zip`
-- **macOS:** `ArcaneAuditor_macOS_Desktop.dmg`
+| Platform       | File                | Description                               |
+| -------------- | ------------------- | ----------------------------------------- |
+| 🪟 **Windows** | `ArcaneAuditor.exe` | Full desktop app — double-click to launch |
+| 🍎 **macOS**   | `ArcaneAuditor.dmg` | Drag to Applications and open normally    |
 
 ### 2. Install & Run
 
-**Windows:**
+**Windows**
 
-1. Extract the ZIP file
-2. Double-click `ArcaneAuditor.exe`
-3. The app opens with a clean native interface
+1. Download `ArcaneAuditor.exe`
+2. Double-click to launch (no installation required)
 
-**macOS:**
+**macOS**
 
-1. Open the DMG file
-2. Drag Arcane Auditor to Applications (optional)
-3. Double-click to launch
+1. Open `ArcaneAuditor.dmg`
+2. Drag **Arcane Auditor** to Applications (optional)
+3. Open from Launchpad or Finder
 
 ### 3. Analyze
 
@@ -107,8 +108,8 @@ For automation, CI/CD pipelines, and power users who prefer the terminal:
 
 **Download:**
 
-- **Windows:** `ArcaneAuditor_Windows_CLI.zip`
-- **macOS:** `ArcaneAuditor_macOS_CLI.tar.gz`
+- **Windows:** `ArcaneAuditorCLI.exe`
+- **macOS:** `ArcaneAuditorCLI`
 
 **Usage:**
 

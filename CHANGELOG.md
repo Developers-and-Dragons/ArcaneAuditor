@@ -5,13 +5,9 @@ All notable changes to Arcane Auditor will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-Features in develop branch not yet released.
-
 ---
 
-## [1.2.0] - 2025-10-30
+## [v1.2.0] - 2025-10-30
 
 ### Added
 
@@ -41,10 +37,10 @@ Features in develop branch not yet released.
 - **Windows-Only Messaging** - Now fully cross-platform
 - **Confusing Installation Options** - Streamlined to Desktop → CLI → Source
 
-**Closes GitHub Issue #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
+**Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
 ----------------------------------------------------------------------------------------------------------------------------
 
-## [1.1.0] - 2025-10-24
+## [v1.1.0] - 2025-10-24
 
 ### Added
 
@@ -90,7 +86,7 @@ Features in develop branch not yet released.
 
 ---
 
-## [1.0.1] - 2025-10-21
+## [v1.0.1] - 2025-10-21
 
 ### Fixed
 
@@ -106,7 +102,7 @@ Features in develop branch not yet released.
 
 ---
 
-## [1.0.0] - 2025-10-20
+## [v1.0.0] - 2025-10-20
 
 ### Added
 
