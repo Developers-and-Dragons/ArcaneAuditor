@@ -46,6 +46,7 @@ jobs:
       - name: Upload unsigned distributable artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           gh release edit vdevelop --target develop
           gh release create vdevelop --draft --target develop --notes "Unsigned build for signing" || true
