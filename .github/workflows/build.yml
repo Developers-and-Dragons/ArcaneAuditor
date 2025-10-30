@@ -43,10 +43,19 @@ jobs:
             dist/ArcaneAuditorCLI*
             dist/ArcaneAuditorWeb.exe
 
-      - name: Upload unsigned artifacts to draft release
+      - name: Upload unsigned distributable artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          gh release edit vdevelop --target develop
           gh release create vdevelop --draft --target develop --notes "Unsigned build for signing" || true
-          find ./dist -type f -print0 | xargs -0 -I{} gh release upload vdevelop "{}" --clobber
+      
+          # Upload only final deliverables (top-level files in dist)
+          for f in ./dist/*; do
+            if [ -f "$f" ]; then
+              echo "Uploading $f"
+              gh release upload vdevelop "$f" --clobber
+            fi
+          done
+          
           
