@@ -1,153 +1,40 @@
-name: 🧙 Arcane Auditor Build
+name: 🏗️ Build (uv + PyInstaller)
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
   pull_request:
-    branches:
-      - develop
+    branches: [develop]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build CLI + Web Executables (${{ matrix.os }})
     strategy:
       matrix:
         include:
-          - os: self-hosted
-            platform_name: Windows
-            build_script: powershell .\scripts\build.ps1
-            cli_artifact: dist/ArcaneAuditorCLI.exe
-            web_artifact: dist/ArcaneAuditorWeb.exe
-            desktop_artifact: dist/ArcaneAuditor.exe
-          
+          - os: windows-latest
+            build: pwsh ./scripts/build.ps1
           - os: macos-latest
-            platform_name: macOS
-            build_script: bash ./scripts/build.sh
-            cli_artifact: dist/ArcaneAuditorCLI
-            web_artifact: dist/ArcaneAuditorWeb
-            desktop_artifact: dist/ArcaneAuditor.app
-    
+            build: bash ./scripts/build.sh
+
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: 🪄 Checkout code
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: 🧙 Setup uv
+        uses: astral-sh/setup-uv@v1
 
-      # macOS: Import code signing certificate
-      - name: 🔐 Import Code Signing Certificate (macOS)
-        if: matrix.os == 'macos-latest'
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-        run: |
-          # Create temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          
-          # Create and unlock keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
-          # Import certificate
-          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
-          security import certificate.p12 \
-            -k "$KEYCHAIN_PATH" \
-            -P "$MACOS_CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          
-          # Set keychain as default
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
-          # Clean up certificate file
-          rm certificate.p12
-          
-          echo "✅ Certificate imported successfully"
+      - name: 🏗️ Build Artifacts
+        run: ${{ matrix.build }}
 
-      - name: ⚙️ Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil pywebview requests
-
-      - name: 🧰 Run build script
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-        run: ${{ matrix.build_script }}
-
-      - name: 🔏 Sign Windows Executables (EV Token)
-        if: matrix.os == 'self-hosted'
-        shell: pwsh
-        run: |
-          echo "Signing Arcane Auditor executables with EV token..."
-      
-          $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
-      
-          $files = @(
-            "${{ matrix.cli_artifact }}",
-            "${{ matrix.web_artifact }}",
-            "${{ matrix.desktop_artifact }}"
-          )
-      
-          foreach ($file in $files) {
-            Write-Host "🔏 Signing $file"
-            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign `
-              /sha1 $thumb `
-              /fd sha256 `
-              /td sha256 `
-              /tr http://timestamp.digicert.com `
-              $file
-      
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "❌ Failed to sign $file"
-              exit 1
-            }
-          }
-      
-          echo "✅ All Windows executables EV-signed"      
-      
-
-      # Package macOS builds as tar.gz to preserve structure and permissions
-      - name: 📦 Package builds (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd dist
-          tar -czf ArcaneAuditorCLI.tar.gz ArcaneAuditorCLI
-          tar -czf ArcaneAuditorWeb.tar.gz ArcaneAuditorWeb
-          tar -czf ArcaneAuditor.app.tar.gz ArcaneAuditor.app
-
-      - name: 📦 Upload CLI build
+      - name: 📦 Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ArcaneAuditor_CLI_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorCLI.tar.gz' || matrix.cli_artifact }}
-
-      - name: 📦 Upload Web build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ArcaneAuditor_Web_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorWeb.tar.gz' || matrix.web_artifact }}
-      
-      - name: 📦 Upload Desktop build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ArcaneAuditor_Desktop_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditor.app.tar.gz' || matrix.desktop_artifact }}
-
-      # Cleanup keychain
-      - name: 🧹 Cleanup Keychain (macOS)
-        if: matrix.os == 'macos-latest' && always()
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          if [ -f "$KEYCHAIN_PATH" ]; then
-            security delete-keychain "$KEYCHAIN_PATH"
-          fi
+          name: arcane-auditor-${{ runner.os }}
+          path: |
+            dist/ArcaneAuditor*.exe
+            dist/ArcaneAuditor*.app*
+            dist/ArcaneAuditorCLI*
+            dist/ArcaneAuditorWeb.exe
