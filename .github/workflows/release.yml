@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
+          - os: self-hosted
             platform_name: Windows
             
           - os: macos-latest
@@ -71,8 +71,40 @@ jobs:
           pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil pywebview requests
 
       - name: 🧰 Build executables (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'self-hosted'
         run: powershell .\scripts\build.ps1
+
+      - name: 🔏 Sign Executables (Windows EV Token)
+        if: matrix.os == 'self-hosted'
+        shell: pwsh
+        run: |
+          echo "Signing Arcane Auditor executables with EV token..."
+      
+          $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
+      
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign `
+            /sha1 $thumb `
+            /fd sha256 `
+            /td sha256 `
+            /tr http://timestamp.digicert.com `
+            dist\ArcaneAuditorCLI.exe
+          
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign `
+            /sha1 $thumb `
+            /fd sha256 `
+            /td sha256 `
+            /tr http://timestamp.digicert.com `
+            dist\ArcaneAuditorWeb.exe
+          
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign `
+            /sha1 $thumb `
+            /fd sha256 `
+            /td sha256 `
+            /tr http://timestamp.digicert.com `
+            dist\ArcaneAuditor.exe
+      
+          echo "✅ Code signed!"
+      
 
       - name: 🧰 Build executables (macOS)
         if: matrix.os == 'macos-latest'
@@ -141,7 +173,7 @@ jobs:
           echo "✅ All executables notarized successfully"
 
       - name: 📦 Create ZIP packages (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'self-hosted'
         shell: pwsh
         run: |
           Compress-Archive -Path dist\ArcaneAuditorCLI.exe -DestinationPath ArcaneAuditor_Windows_CLI.zip
@@ -173,7 +205,7 @@ jobs:
           echo "Created packages ready for release."
 
       - name: 🚀 Publish GitHub Release (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'self-hosted'
         uses: softprops/action-gh-release@v2
         with:
           files: |

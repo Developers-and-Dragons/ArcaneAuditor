@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
+          - os: self-hosted
             platform_name: Windows
             build_script: powershell .\scripts\build.ps1
             cli_artifact: dist/ArcaneAuditorCLI.exe
@@ -83,6 +83,38 @@ jobs:
         env:
           CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: ${{ matrix.build_script }}
+
+      - name: 🔏 Sign Windows Executables (EV Token)
+        if: matrix.os == 'self-hosted'
+        shell: pwsh
+        run: |
+          echo "Signing Arcane Auditor executables with EV token..."
+      
+          $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
+      
+          $files = @(
+            "${{ matrix.cli_artifact }}",
+            "${{ matrix.web_artifact }}",
+            "${{ matrix.desktop_artifact }}"
+          )
+      
+          foreach ($file in $files) {
+            Write-Host "🔏 Signing $file"
+            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign `
+              /sha1 $thumb `
+              /fd sha256 `
+              /td sha256 `
+              /tr http://timestamp.digicert.com `
+              $file
+      
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "❌ Failed to sign $file"
+              exit 1
+            }
+          }
+      
+          echo "✅ All Windows executables EV-signed"      
+      
 
       # Package macOS builds as tar.gz to preserve structure and permissions
       - name: 📦 Package builds (macOS)
