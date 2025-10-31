@@ -29,11 +29,21 @@ jobs:
       - name: 🔏 Sign executables (local EV cert)
         shell: pwsh
         run: |
-          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
-            /n "Chris Humphrey" /sm `
-            "./unsigned/ArcaneAuditor.exe" `
-            "./unsigned/ArcaneAuditorCLI.exe" `
-            "./unsigned/ArcaneAuditorWeb.exe"
+          $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
+          Get-ChildItem ./unsigned -Filter *.exe | ForEach-Object {
+            Write-Host "🔏 Signing: $($_.Name)"
+            & signtool sign `
+              /sha1 $thumb `
+              /fd sha256 `
+              /td sha256 `
+              /tr http://timestamp.digicert.com `
+              $_.FullName
+            
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to sign $($_.Name)"
+              exit 1
+            }
+          }
 
       - name: 📤 Upload signed Windows artifacts
         uses: actions/upload-artifact@v4
@@ -60,12 +70,16 @@ jobs:
           
           if [ -f ./dist/ArcaneAuditor.app.zip ]; then
             echo "📦 Extracting ArcaneAuditor.app..."
-            unzip -q -o ./dist/ArcaneAuditor.app.zip -d ./dist/
-            rm ./dist/ArcaneAuditor.app.zip
+            cd ./dist
+            unzip -q -o ArcaneAuditor.app.zip
+            rm ArcaneAuditor.app.zip
+            cd ..
           fi
           
           echo "📦 Downloaded and extracted files:"
           ls -lh ./dist/
+          echo "📦 App bundle structure:"
+          ls -lh ./dist/ArcaneAuditor.app/Contents/ || true
 
       - name: 🔏 Import mac certificate
         env:
@@ -84,14 +98,20 @@ jobs:
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          # Sign the CLI first
+          # Sign the CLI binary
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
           
-          # Sign the app bundle
-          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
+          # Sign all frameworks and dylibs inside the app bundle first (inside-out signing)
+          find dist/ArcaneAuditor.app/Contents/Frameworks -type f \( -name "*.dylib" -o -name "*.so" \) -exec codesign --force --options runtime --sign "$MAC_IDENTITY" {} \; 2>/dev/null || true
+          find dist/ArcaneAuditor.app/Contents/MacOS -type f -perm +111 -exec codesign --force --options runtime --sign "$MAC_IDENTITY" {} \; 2>/dev/null || true
+          
+          # Finally, sign the entire app bundle (without --deep, as we've already signed components)
+          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
           
           # Verify signatures
+          echo "✅ Verifying CLI signature..."
           codesign --verify --verbose dist/ArcaneAuditorCLI
+          echo "✅ Verifying App signature..."
           codesign --verify --verbose dist/ArcaneAuditor.app
 
       - name: 🚀 Notarize App
