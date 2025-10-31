@@ -22,7 +22,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           New-Item -ItemType Directory -Force -Path ./unsigned | Out-Null
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./unsigned --pattern "*.exe"
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./unsigned --pattern "*.exe" --clobber
           Write-Host "📦 Downloaded files:"
           Get-ChildItem ./unsigned | Format-Table Name, Length, LastWriteTime
 
@@ -53,14 +53,14 @@ jobs:
           mkdir -p ./dist
           
           # Download CLI
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI"
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber
           
           # Download and extract .app bundle
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip"
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber
           
           if [ -f ./dist/ArcaneAuditor.app.zip ]; then
             echo "📦 Extracting ArcaneAuditor.app..."
-            unzip -q ./dist/ArcaneAuditor.app.zip -d ./dist/
+            unzip -q -o ./dist/ArcaneAuditor.app.zip -d ./dist/
             rm ./dist/ArcaneAuditor.app.zip
           fi
           
