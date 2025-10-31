@@ -93,7 +93,10 @@ jobs:
             if [ -d "$app" ]; then
               app_name=$(basename "$app")
               echo "📦 Zipping macOS app: $app_name"
-              ditto -c -k --keepParent "$app" "./dist/${app_name}.zip"
+              cd "$(dirname "$app")"
+              zip -r -q "${app_name}.zip" "$app_name"
+              cd - > /dev/null
+              mv "$(dirname "$app")/${app_name}.zip" "./dist/"
             fi
           done
           
