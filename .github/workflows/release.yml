@@ -220,6 +220,37 @@ jobs:
           echo "🧹 Removing stray Python.framework copies from Resources..."
           find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
 
+          # 🧹 Move non-Mach-O files from Frameworks to Resources/lib
+          echo "🧹 Moving non-Mach-O files from Frameworks to Resources/lib..."
+          frameworks_dir="dist/ArcaneAuditor.app/Contents/Frameworks"
+          resources_lib_dir="dist/ArcaneAuditor.app/Contents/Resources/lib"
+          
+          if [ -d "$frameworks_dir" ]; then
+            mkdir -p "$resources_lib_dir"
+            
+            # Find all files in Frameworks (excluding Python.framework directory)
+            find "$frameworks_dir" -type f ! -path "*/Python.framework/*" | while read f; do
+              # Check if file is NOT a Mach-O binary
+              if ! file "$f" | grep -q "Mach-O"; then
+                # Get relative path from Frameworks
+                rel_path="${f#$frameworks_dir/}"
+                target="$resources_lib_dir/$rel_path"
+                
+                # Create target directory structure
+                mkdir -p "$(dirname "$target")"
+                
+                # Move the file
+                mv "$f" "$target"
+                echo "  Moved: $rel_path -> Resources/lib/$rel_path"
+              fi
+            done
+            
+            # Clean up empty directories in Frameworks (excluding Python.framework)
+            find "$frameworks_dir" -type d ! -path "*/Python.framework*" -empty -delete 2>/dev/null || true
+            
+            echo "✅ Non-Mach-O files moved to Resources/lib"
+          fi
+
           fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
           
           if [ -d "$fw_path" ]; then
