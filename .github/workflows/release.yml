@@ -21,16 +21,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path ./unsigned | Out-Null
+          
+          Write-Host "📥 Downloading Windows executables..."
           gh release download vdevelop --repo ${{ github.repository }} --dir ./unsigned --pattern "*.exe" --clobber
+          
+          $exeFiles = Get-ChildItem ./unsigned -Filter *.exe
+          if ($exeFiles.Count -eq 0) {
+            Write-Error "❌ No executables downloaded"
+            exit 1
+          }
+          
           Write-Host "📦 Downloaded files:"
-          Get-ChildItem ./unsigned | Format-Table Name, Length, LastWriteTime
+          $exeFiles | Format-Table Name, Length, LastWriteTime
 
       - name: 🔏 Sign executables (local EV cert)
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
-          Get-ChildItem ./unsigned -Filter *.exe | ForEach-Object {
+          
+          $exeFiles = Get-ChildItem ./unsigned -Filter *.exe
+          if ($exeFiles.Count -eq 0) {
+            Write-Error "❌ No executables to sign"
+            exit 1
+          }
+          
+          $exeFiles | ForEach-Object {
             Write-Host "🔏 Signing: $($_.Name)"
             & signtool sign `
               /sha1 $thumb `
@@ -40,9 +58,21 @@ jobs:
               $_.FullName
             
             if ($LASTEXITCODE -ne 0) {
-              Write-Error "Failed to sign $($_.Name)"
+              Write-Error "❌ Failed to sign $($_.Name)"
               exit 1
             }
+            
+            Write-Host "✅ Signed: $($_.Name)"
+          }
+          
+          Write-Host "🔍 Verifying signatures..."
+          $exeFiles | ForEach-Object {
+            & signtool verify /pa $_.FullName
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "❌ Signature verification failed for $($_.Name)"
+              exit 1
+            }
+            Write-Host "✅ Verified: $($_.Name)"
           }
 
       - name: 📤 Upload signed Windows artifacts
@@ -65,34 +95,124 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
           mkdir -p ./dist
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber
-          if [ -f ./dist/ArcaneAuditor.app.zip ]; then
-            echo "📦 Extracting ArcaneAuditor.app with symlink preservation..."
-            cd ./dist
-            ditto -x -k ArcaneAuditor.app.zip .
-            rm ArcaneAuditor.app.zip
-            cd ..
+          
+          echo "📥 Downloading CLI binary..."
+          if ! gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber; then
+            echo "❌ Failed to download ArcaneAuditorCLI"
+            exit 1
           fi
-          echo "📦 Downloaded and extracted files:"
+          
+          echo "📥 Downloading app bundle..."
+          if ! gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber; then
+            echo "❌ Failed to download ArcaneAuditor.app.zip"
+            exit 1
+          fi
+          
+          if [ ! -f ./dist/ArcaneAuditor.app.zip ]; then
+            echo "❌ ArcaneAuditor.app.zip not found after download"
+            exit 1
+          fi
+          
+          echo "📦 Extracting ArcaneAuditor.app with symlink preservation..."
+          cd ./dist
+          ditto -x -k ArcaneAuditor.app.zip . || {
+            echo "❌ Failed to extract app bundle"
+            exit 1
+          }
+          rm ArcaneAuditor.app.zip
+          cd ..
+          
+          if [ ! -d ./dist/ArcaneAuditor.app ]; then
+            echo "❌ ArcaneAuditor.app not found after extraction"
+            exit 1
+          fi
+          
+          if [ ! -f ./dist/ArcaneAuditorCLI ]; then
+            echo "❌ ArcaneAuditorCLI not found"
+            exit 1
+          fi
+          
+          echo "✅ Downloaded and extracted files:"
           ls -lh ./dist/
           echo "📦 App bundle structure:"
           ls -lh ./dist/ArcaneAuditor.app/Contents/ || true
 
-      # ✅ Restore broken framework symlink (just in case)
-      - name: 🔗 Restore Python.framework symlink
+      - name: 🧹 Clean extended attributes
         run: |
-          fw_root="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions"
-          if [ -d "$fw_root" ] && [ ! -L "$fw_root/Current" ]; then
-            latest_ver=$(ls "$fw_root" | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -n 1 || true)
-            if [ -n "$latest_ver" ]; then
-              echo "🔗 Restoring Versions/Current -> $latest_ver symlink..."
-              ln -sfn "$latest_ver" "$fw_root/Current"
-              ls -l "$fw_root"
-            else
-              echo "⚠️ No version folder found under $fw_root"
+          echo "🧹 Removing extended attributes that may interfere with signing..."
+          if [ -d "./dist/ArcaneAuditor.app" ]; then
+            xattr -cr ./dist/ArcaneAuditor.app
+            echo "✅ Extended attributes removed from app bundle"
+          fi
+          if [ -f "./dist/ArcaneAuditorCLI" ]; then
+            xattr -cr ./dist/ArcaneAuditorCLI
+            echo "✅ Extended attributes removed from CLI binary"
+          fi
+
+      - name: 🔗 Verify and restore Python.framework structure
+        run: |
+          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
+          
+          if [ ! -d "$fw_path" ]; then
+            echo "⚠️ Python.framework not found at $fw_path"
+            exit 0
+          fi
+          
+          echo "🔍 Verifying Python.framework structure..."
+          echo "Framework location: $fw_path"
+          ls -la "$fw_path" || true
+          
+          # Verify Versions directory structure
+          fw_root="$fw_path/Versions"
+          if [ -d "$fw_root" ]; then
+            echo "📁 Versions directory contents:"
+            ls -la "$fw_root" || true
+            
+            # Restore Current symlink if missing
+            if [ ! -L "$fw_root/Current" ]; then
+              latest_ver=$(ls "$fw_root" | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -n 1 || true)
+              if [ -n "$latest_ver" ]; then
+                echo "🔗 Restoring Versions/Current -> $latest_ver symlink..."
+                ln -sfn "$latest_ver" "$fw_root/Current"
+              else
+                echo "⚠️ No version folder found under $fw_root"
+              fi
             fi
+            
+            # Verify Current symlink
+            if [ -L "$fw_root/Current" ]; then
+              target=$(readlink "$fw_root/Current")
+              echo "✅ Versions/Current symlink points to: $target"
+              if [ ! -d "$fw_root/$target" ]; then
+                echo "❌ ERROR: Symlink target does not exist!"
+                exit 1
+              fi
+            fi
+            
+            # Verify framework binary symlink
+            if [ -L "$fw_path/Python" ]; then
+              echo "✅ Python.framework/Python symlink exists"
+              readlink "$fw_path/Python" || true
+            elif [ -f "$fw_path/Python" ]; then
+              echo "✅ Python.framework/Python is a regular file"
+            else
+              echo "⚠️ Python.framework/Python not found"
+            fi
+          else
+            echo "⚠️ Versions directory not found in framework"
+          fi
+          
+          # Check for any broken symlinks in the framework
+          echo "🔍 Checking for broken symlinks..."
+          broken=$(find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null | wc -l || echo "0")
+          if [ "$broken" -gt 0 ]; then
+            echo "❌ Found $broken broken symlink(s):"
+            find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null || true
+            exit 1
+          else
+            echo "✅ No broken symlinks found"
           fi
 
       - name: 🔏 Import mac certificate
@@ -112,45 +232,104 @@ jobs:
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          echo "🔏 Signing CLI binary..."
-          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
-
-          echo "✅ Preserving Python.framework and python3.x runtime (no flattening needed)"
+          set -e
+          echo "🔏 Step 1: Signing CLI binary..."
+          if [ ! -f "dist/ArcaneAuditorCLI" ]; then
+            echo "❌ ArcaneAuditorCLI not found"
+            exit 1
+          fi
+          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp || {
+            echo "❌ Failed to sign CLI binary"
+            exit 1
+          }
+          echo "✅ CLI binary signed successfully"
 
           # 🧹 Ensure no stray Python.framework binaries remain in Resources
-          echo "🧹 Removing stray Python.framework copies..."
+          echo "🧹 Removing stray Python.framework copies from Resources..."
           find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
 
-          echo "🧩 Verifying Python.framework symlink structure..."
-          ls -l dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions || true
-
-          echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
-          if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks" ]; then
-            find dist/ArcaneAuditor.app/Contents/Frameworks -type f | while read f; do
-              if ! file "$f" | grep -q "Mach-O"; then
-                rel_path="${f#dist/ArcaneAuditor.app/Contents/Frameworks/}"
-                target="dist/ArcaneAuditor.app/Contents/Resources/lib/$rel_path"
-                mkdir -p "$(dirname "$target")"
-                mv "$f" "$target"
-                echo "  Moved: $rel_path"
+          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
+          
+          if [ -d "$fw_path" ]; then
+            echo "🔏 Step 2: Signing Python.framework contents (inner to outer)..."
+            
+            # First, sign all binaries inside Versions/* subdirectories (support libraries, etc.)
+            find "$fw_path/Versions" -type f | while read f; do
+              if file "$f" | grep -q "Mach-O"; then
+                # Skip the main Python binary - we'll sign that explicitly
+                if [ "$f" != "$fw_path/Versions/Current/Python" ]; then
+                  echo "  Signing framework binary: $f"
+                  codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp || true
+                fi
               fi
             done
-            find dist/ArcaneAuditor.app/Contents/Frameworks -type d -empty -delete 2>/dev/null || true
+            
+            # Sign the versioned Python binary (main framework executable)
+            versioned_python="$fw_path/Versions/Current/Python"
+            if [ -f "$versioned_python" ]; then
+              echo "  Signing versioned Python binary: $versioned_python"
+              codesign --force --options runtime --sign "$MAC_IDENTITY" "$versioned_python" --timestamp || {
+                echo "❌ Failed to sign versioned Python binary"
+                exit 1
+              }
+            fi
+            
+            # Sign the top-level Python if it's a regular file (not a symlink)
+            # Most frameworks use a symlink, but handle the case where it's a file
+            if [ -f "$fw_path/Python" ] && [ ! -L "$fw_path/Python" ]; then
+              echo "  Signing top-level Python binary: $fw_path/Python"
+              codesign --force --options runtime --sign "$MAC_IDENTITY" "$fw_path/Python" --timestamp
+            fi
+
+            echo "🔏 Step 3: Signing Python.framework as a bundle..."
+            codesign --force --options runtime --sign "$MAC_IDENTITY" "$fw_path" --timestamp || {
+              echo "❌ Failed to sign Python.framework bundle"
+              codesign -dvv "$fw_path" 2>&1 || true
+              exit 1
+            }
+            echo "✅ Python.framework signed successfully"
+          else
+            echo "⚠️ Python.framework not found, skipping framework signing"
           fi
 
-          echo "🔏 Signing all Mach-O binaries in app bundle..."
+          echo "🔏 Step 4: Signing other Mach-O binaries in app bundle (excluding framework)..."
           find dist/ArcaneAuditor.app/Contents -type f | while read f; do
-            if file "$f" | grep -q "Mach-O"; then
-              echo "  Signing: $f"
-              codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp 2>/dev/null || true
+            # Skip framework contents (already signed)
+            if [[ "$f" != *"/Frameworks/Python.framework"* ]]; then
+              if file "$f" | grep -q "Mach-O"; then
+                echo "  Signing: $f"
+                codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp 2>/dev/null || true
+              fi
             fi
           done
 
-          echo "🔏 Signing main app bundle..."
-          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
-          codesign --verify --verbose dist/ArcaneAuditorCLI
-          codesign --verify --verbose dist/ArcaneAuditor.app
+          echo "🔏 Step 5: Signing main executable..."
+          main_exe="dist/ArcaneAuditor.app/Contents/MacOS/ArcaneAuditor"
+          if [ -f "$main_exe" ]; then
+            codesign --force --options runtime --sign "$MAC_IDENTITY" "$main_exe" --timestamp || {
+              echo "❌ Failed to sign main executable"
+              exit 1
+            }
+            echo "✅ Main executable signed successfully"
+          else
+            echo "⚠️ Main executable not found at $main_exe"
+          fi
+
+          echo "🔏 Step 6: Signing main app bundle (without --deep flag)..."
+          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp || {
+            echo "❌ Failed to sign main app bundle"
+            exit 1
+          }
+
+          echo "✅ Verification: Checking signatures..."
+          codesign --verify --verbose=4 dist/ArcaneAuditorCLI
+          codesign --verify --verbose=4 dist/ArcaneAuditor.app || {
+            echo "❌ App bundle verification failed"
+            codesign -dvv dist/ArcaneAuditor.app
+            exit 1
+          }
           codesign -dvv dist/ArcaneAuditor.app
+          echo "✅ All signing completed successfully"
 
       - name: 🚀 Notarize App
         env:
@@ -181,16 +360,46 @@ jobs:
           path: notary-logs/
 
       - name: 📦 Create & Sign DMG
+        env:
+          MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          mkdir dmg
+          set -e
+          echo "📦 Creating DMG..."
+          
+          if [ ! -d "dist/ArcaneAuditor.app" ]; then
+            echo "❌ ArcaneAuditor.app not found"
+            exit 1
+          fi
+          
+          mkdir -p dmg
           # ✅ Preserve symlinks when copying
-          cp -R -P dist/ArcaneAuditor.app dmg/
+          cp -R -P dist/ArcaneAuditor.app dmg/ || {
+            echo "❌ Failed to copy app to DMG directory"
+            exit 1
+          }
+          
+          dmg_path="dist/ArcaneAuditor_macOS_Desktop.dmg"
           hdiutil create -volname "Arcane Auditor" \
             -srcfolder dmg \
             -ov -format UDZO \
-            dist/ArcaneAuditor_macOS_Desktop.dmg
+            "$dmg_path" || {
+            echo "❌ Failed to create DMG"
+            rm -rf dmg
+            exit 1
+          }
           rm -rf dmg
-          codesign --force --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" dist/ArcaneAuditor_macOS_Desktop.dmg
+          
+          if [ ! -f "$dmg_path" ]; then
+            echo "❌ DMG file not created"
+            exit 1
+          fi
+          
+          echo "🔏 Signing DMG..."
+          codesign --force --options runtime --sign "$MAC_IDENTITY" "$dmg_path" --timestamp || {
+            echo "❌ Failed to sign DMG"
+            exit 1
+          }
+          echo "✅ DMG created and signed successfully"
 
       - name: 🚀 Notarize DMG
         env:
@@ -207,6 +416,34 @@ jobs:
           path: notary-logs/
 
       - name: 📤 Upload mac artifacts
+        run: |
+          set -e
+          echo "📋 Verifying artifacts before upload..."
+          
+          if [ ! -f "dist/ArcaneAuditorCLI" ]; then
+            echo "❌ ArcaneAuditorCLI not found"
+            exit 1
+          fi
+          
+          if [ ! -f "dist/ArcaneAuditor_macOS_Desktop.dmg" ]; then
+            echo "❌ DMG file not found"
+            exit 1
+          fi
+          
+          # Verify signatures
+          echo "🔍 Verifying signatures..."
+          codesign --verify --verbose=4 dist/ArcaneAuditorCLI || {
+            echo "❌ CLI signature verification failed"
+            exit 1
+          }
+          codesign --verify --verbose=4 dist/ArcaneAuditor_macOS_Desktop.dmg || {
+            echo "❌ DMG signature verification failed"
+            exit 1
+          }
+          
+          echo "✅ All artifacts verified and ready for upload"
+        
+      - name: 📤 Upload verified mac artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-macos
@@ -234,10 +471,37 @@ jobs:
 
       - name: 🎯 Organize for release
         run: |
+          set -e
           mkdir -p release-files
+          
+          echo "🔍 Finding signed artifacts..."
           find ./signed-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "ArcaneAuditorCLI" \) -exec cp {} ./release-files/ \;
-          echo "📦 Files ready for release:"
+          
+          file_count=$(find ./release-files -type f | wc -l | tr -d ' ')
+          if [ "$file_count" -eq 0 ]; then
+            echo "❌ No release files found!"
+            echo "Contents of signed-artifacts:"
+            ls -R ./signed-artifacts/ || true
+            exit 1
+          fi
+          
+          echo "📦 Files ready for release ($file_count files):"
           ls -lh ./release-files/
+          
+          # Verify we have expected files
+          has_exe=$(find ./release-files -name "*.exe" | wc -l | tr -d ' ')
+          has_dmg=$(find ./release-files -name "*.dmg" | wc -l | tr -d ' ')
+          has_cli=$(find ./release-files -name "ArcaneAuditorCLI" | wc -l | tr -d ' ')
+          
+          echo "📊 Release file summary:"
+          echo "  Windows executables: $has_exe"
+          echo "  macOS DMG: $has_dmg"
+          echo "  macOS CLI: $has_cli"
+          
+          if [ "$has_exe" -eq 0 ] && [ "$has_dmg" -eq 0 ] && [ "$has_cli" -eq 0 ]; then
+            echo "❌ No expected release files found!"
+            exit 1
+          fi
 
       - name: 🚀 Create Draft Release & Upload Assets
         uses: softprops/action-gh-release@v2
