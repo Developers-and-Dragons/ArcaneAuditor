@@ -101,6 +101,15 @@ jobs:
           # Sign the CLI binary
           echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
+
+          echo "🪓 Removing fake Python.framework..."
+          if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework" ]; then
+            mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
+            mv dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions/Current/* \
+              dist/ArcaneAuditor.app/Contents/Resources/python_runtime/ 2>/dev/null || true
+            rm -rf dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework
+          fi
+
           
           # Clean up bundle - PyInstaller sometimes puts package data in Frameworks
           echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
@@ -133,7 +142,7 @@ jobs:
           
           # Finally, sign the entire app bundle
           echo "🔏 Signing main app bundle..."
-          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
+          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
           
           # Verify signatures
           echo "✅ Verifying CLI signature..."
