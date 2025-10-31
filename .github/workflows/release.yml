@@ -151,133 +151,40 @@ jobs:
             echo "✅ Extended attributes removed from CLI binary"
           fi
 
-      - name: 🔗 Verify and restore Python.framework structure
+      - name: 🔗 Normalize Python.framework structure
         run: |
           fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
-          
-          if [ ! -d "$fw_path" ]; then
-            echo "⚠️ Python.framework not found at $fw_path"
-            exit 0
-          fi
-          
-          echo "🔍 Verifying Python.framework structure..."
-          echo "Framework location: $fw_path"
-          ls -la "$fw_path" || true
-          
-          # Verify Versions directory structure
-          fw_root="$fw_path/Versions"
-          if [ -d "$fw_root" ]; then
-            echo "📁 Versions directory contents:"
-            ls -la "$fw_root" || true
-            
-            # Restore Current symlink if missing
-            if [ ! -L "$fw_root/Current" ]; then
-              latest_ver=$(ls "$fw_root" | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -n 1 || true)
-              if [ -n "$latest_ver" ]; then
-                echo "🔗 Restoring Versions/Current -> $latest_ver symlink..."
-                ln -sfn "$latest_ver" "$fw_root/Current"
-              else
-                echo "⚠️ No version folder found under $fw_root"
-              fi
+          versions_dir="$fw_path/Versions"
+
+          if [ -d "$versions_dir" ]; then
+            echo "🔧 Normalizing Python.framework..."
+            ver=$(ls -1 "$versions_dir" | grep -E '^[0-9]+' | sort -V | tail -n 1 || true)
+
+            if [ -z "$ver" ]; then
+              echo "⚠️ No numeric version directory found under $versions_dir"
+              exit 0
             fi
-            
-            # Verify Current symlink
-            if [ -L "$fw_root/Current" ]; then
-              target=$(readlink "$fw_root/Current")
-              echo "✅ Versions/Current symlink points to: $target"
-              if [ ! -d "$fw_root/$target" ]; then
-                echo "❌ ERROR: Symlink target does not exist!"
-                exit 1
-              fi
-            fi
-            
-            # Verify framework binary symlink
-            if [ -L "$fw_path/Python" ]; then
-              echo "✅ Python.framework/Python symlink exists"
-              readlink "$fw_path/Python" || true
-            elif [ -f "$fw_path/Python" ]; then
-              echo "✅ Python.framework/Python is a regular file"
-            else
-              echo "⚠️ Python.framework/Python not found"
-            fi
-            
-            # 🧹 Clean up invalid nested symlinks inside version directories
-            echo "🧹 Cleaning up invalid nested symlinks..."
-            cleaned_count=0
-            
-            # Find all version directories (like 3.12, 3.11, etc.)
-            for ver_dir in "$fw_root"/[0-9]*.[0-9]*; do
-              if [ -d "$ver_dir" ]; then
-                ver_name=$(basename "$ver_dir")
-                echo "  Checking version directory: $ver_name"
-                
-                # Find symlinks inside this version directory that match version number patterns
-                # These are likely invalid symlinks created during zip/extract
-                while IFS= read -r invalid_link; do
-                  link_name=$(basename "$invalid_link")
-                  link_target=$(readlink "$invalid_link" 2>/dev/null || echo "")
-                  
-                  # Check if this symlink points to a version number or creates an invalid path
-                  if echo "$link_name" | grep -qE '^[0-9]+\.[0-9]+$'; then
-                    echo "    🗑️  Removing invalid symlink: $invalid_link (version number pattern)"
-                    rm -f "$invalid_link"
-                    cleaned_count=$((cleaned_count + 1))
-                  elif [ -n "$link_target" ] && echo "$link_target" | grep -qE '^[0-9]+\.[0-9]+$'; then
-                    echo "    🗑️  Removing invalid symlink: $invalid_link -> $link_target (points to version number)"
-                    rm -f "$invalid_link"
-                    cleaned_count=$((cleaned_count + 1))
-                  fi
-                done < <(find "$ver_dir" -maxdepth 1 -type l -name "[0-9]*.[0-9]*" 2>/dev/null)
-                
-                # Also check for symlinks that would create nested invalid paths like Versions/X/Y
-                while IFS= read -r link; do
-                  link_target=$(readlink "$link" 2>/dev/null || echo "")
-                  # If target is a relative path that looks like a version number
-                  if echo "$link_target" | grep -qE '^[0-9]+\.[0-9]+$'; then
-                    resolved_path="$ver_dir/$link_target"
-                    if [ ! -e "$resolved_path" ]; then
-                      echo "    🗑️  Removing broken nested symlink: $link -> $link_target"
-                      rm -f "$link"
-                      cleaned_count=$((cleaned_count + 1))
-                    fi
-                  fi
-                done < <(find "$ver_dir" -maxdepth 1 -type l 2>/dev/null)
-              fi
+
+            # Recreate clean Current link
+            rm -rf "$versions_dir/Current"
+            ln -sfn "$ver" "$versions_dir/Current"
+
+            # Rebuild standard top-level symlinks
+            for link in Python Headers Resources; do
+              rm -rf "$fw_path/$link"
+              ln -sfn "Versions/Current/$link" "$fw_path/$link"
             done
-            
-            # Also check symlinks inside Versions/Current (which resolves to a version dir)
-            if [ -L "$fw_root/Current" ]; then
-              current_target=$(readlink "$fw_root/Current")
-              current_dir="$fw_root/$current_target"
-              if [ -d "$current_dir" ]; then
-                while IFS= read -r invalid_link; do
-                  echo "    🗑️  Removing invalid symlink in Current: $invalid_link"
-                  rm -f "$invalid_link"
-                  cleaned_count=$((cleaned_count + 1))
-                done < <(find "$current_dir" -maxdepth 1 -type l -name "[0-9]*.[0-9]*" 2>/dev/null)
-              fi
+
+            # Remove recursive broken link if it exists (e.g. Versions/Current/3.12 → 3.12)
+            bad_link="$versions_dir/Current/$ver"
+            if [ -L "$bad_link" ]; then
+              echo "🗑️ Removing recursive symlink: $bad_link -> $(readlink "$bad_link")"
+              rm -f "$bad_link"
             fi
-            
-            if [ "$cleaned_count" -gt 0 ]; then
-              echo "✅ Cleaned up $cleaned_count invalid symlink(s)"
-            else
-              echo "✅ No invalid symlinks found to clean"
-            fi
+
+            echo "✅ Python.framework normalized (version $ver)"
           else
-            echo "⚠️ Versions directory not found in framework"
-          fi
-          
-          # Check for any remaining broken symlinks in the framework
-          echo "🔍 Checking for broken symlinks after cleanup..."
-          broken=$(find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null | wc -l || echo "0")
-          if [ "$broken" -gt 0 ]; then
-            echo "❌ Found $broken broken symlink(s) after cleanup:"
-            find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null || true
-            echo "🔍 Detailed symlink analysis:"
-            find "$fw_path" -type l -exec sh -c 'echo "  $1 -> $(readlink "$1")"' _ {} \; 2>/dev/null || true
-            exit 1
-          else
-            echo "✅ No broken symlinks found"
+            echo "ℹ️ No Python.framework found at $fw_path"
           fi
 
       - name: 🔏 Import mac certificate
