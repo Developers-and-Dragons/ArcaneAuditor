@@ -102,6 +102,15 @@ jobs:
           echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
 
+          echo "🪄 Flattening fake python3.12 framework..."
+          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/python3.12"
+          if [ -d "$fw_path" ]; then
+            mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
+            mv "$fw_path"/* dist/ArcaneAuditor.app/Contents/Resources/python_runtime/ 2>/dev/null || true
+            rm -rf "$fw_path"
+          fi
+
+
           echo "🪓 Removing fake Python.framework..."
           if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework" ]; then
             mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
@@ -142,7 +151,7 @@ jobs:
           
           # Finally, sign the entire app bundle
           echo "🔏 Signing main app bundle..."
-          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
+          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
           
           # Verify signatures
           echo "✅ Verifying CLI signature..."
