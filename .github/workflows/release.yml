@@ -13,7 +13,7 @@ jobs:
 
   windows-sign:
     name: 🔏 Windows EV Signing
-    runs-on: self-hosted  # Your EV token machine
+    runs-on: self-hosted
 
     steps:
       - name: 📥 Download unsigned artifacts from vdevelop release
@@ -61,13 +61,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ./dist
-          
-          # Download CLI
           gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber
-          
-          # Download and extract .app bundle
           gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber
-          
           if [ -f ./dist/ArcaneAuditor.app.zip ]; then
             echo "📦 Extracting ArcaneAuditor.app..."
             cd ./dist
@@ -75,7 +70,6 @@ jobs:
             rm ArcaneAuditor.app.zip
             cd ..
           fi
-          
           echo "📦 Downloaded and extracted files:"
           ls -lh ./dist/
           echo "📦 App bundle structure:"
@@ -98,7 +92,6 @@ jobs:
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          # Sign the CLI binary
           echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
 
@@ -110,7 +103,6 @@ jobs:
             rm -rf "$fw_path"
           fi
 
-
           echo "🪓 Removing fake Python.framework..."
           if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework" ]; then
             mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
@@ -119,28 +111,20 @@ jobs:
             rm -rf dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework
           fi
 
-          
-          # Clean up bundle - PyInstaller sometimes puts package data in Frameworks
           echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
           if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks" ]; then
             find dist/ArcaneAuditor.app/Contents/Frameworks -type f | while read f; do
               if ! file "$f" | grep -q "Mach-O"; then
-                # Calculate relative path from Frameworks
                 rel_path="${f#dist/ArcaneAuditor.app/Contents/Frameworks/}"
                 target="dist/ArcaneAuditor.app/Contents/Resources/lib/$rel_path"
-                
-                # Create target directory and move file
                 mkdir -p "$(dirname "$target")"
                 mv "$f" "$target"
                 echo "  Moved: $rel_path"
               fi
             done
-            
-            # Remove empty directories in Frameworks
             find dist/ArcaneAuditor.app/Contents/Frameworks -type d -empty -delete 2>/dev/null || true
           fi
-          
-          # Sign all Mach-O binaries in the bundle (inside-out)
+
           echo "🔏 Signing all Mach-O binaries in app bundle..."
           find dist/ArcaneAuditor.app/Contents -type f | while read f; do
             if file "$f" | grep -q "Mach-O"; then
@@ -148,17 +132,11 @@ jobs:
               codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp 2>/dev/null || true
             fi
           done
-          
-          # Finally, sign the entire app bundle
+
           echo "🔏 Signing main app bundle..."
           codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
-          
-          # Verify signatures
-          echo "✅ Verifying CLI signature..."
           codesign --verify --verbose dist/ArcaneAuditorCLI
-          echo "✅ Verifying App signature..."
           codesign --verify --verbose dist/ArcaneAuditor.app
-          echo "✅ Checking app signature details..."
           codesign -dvv dist/ArcaneAuditor.app
 
       - name: 🚀 Notarize App
@@ -166,30 +144,36 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          ditto -c -k --keepParent dist/ArcaneAuditor.app dist/ArcaneAuditor.zip
-          xcrun notarytool submit dist/ArcaneAuditor.zip \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-          xcrun stapler staple dist/ArcaneAuditor.app
-          
-          # Verify notarization
-          spctl -a -vv dist/ArcaneAuditor.app
+        run: ./scripts/notarize.sh dist/ArcaneAuditor.app
 
-      - name: 📦 Create DMG
+      - name: 📜 Upload notarization logs (App)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notarization-logs-app
+          path: notary-logs/
+
+      - name: 📦 Create & Sign DMG
         run: |
           mkdir dmg
           cp -R dist/ArcaneAuditor.app dmg/
-          hdiutil create -volname "Arcane Auditor" \
-            -srcfolder dmg \
-            -ov -format UDZO \
-            dist/ArcaneAuditor_macOS_Desktop.dmg
+          hdiutil create -volname "Arcane Auditor" -srcfolder dmg -ov -format UDZO dist/ArcaneAuditor_macOS_Desktop.dmg
           rm -rf dmg
-          
-          # Sign the DMG as well
           codesign --force --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" dist/ArcaneAuditor_macOS_Desktop.dmg
+
+      - name: 🚀 Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg
+
+      - name: 📜 Upload notarization logs (DMG)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notarization-logs-dmg
+          path: notary-logs/
 
       - name: 📤 Upload mac artifacts
         uses: actions/upload-artifact@v4
