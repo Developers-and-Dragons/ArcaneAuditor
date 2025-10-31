@@ -116,6 +116,11 @@ jobs:
             rm -rf dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework
           fi
 
+          # 🧹 Ensure no stray Python.framework binaries remain in Resources
+          echo "🧹 Removing stray Python.framework copies..."
+          find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
+            
+
           echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
           if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks" ]; then
             find dist/ArcaneAuditor.app/Contents/Frameworks -type f | while read f; do
