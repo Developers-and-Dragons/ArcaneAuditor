@@ -220,14 +220,29 @@ jobs:
           echo "🧹 Removing stray Python.framework copies from Resources..."
           find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
 
-          # 🧹 Move non-Mach-O files from Frameworks to Resources/lib
-          echo "🧹 Moving non-Mach-O files from Frameworks to Resources/lib..."
+          # 🧹 Move directories with periods and non-Mach-O files from Frameworks to Resources/lib
+          echo "🧹 Moving directories with periods from Frameworks to Resources/lib..."
           frameworks_dir="dist/ArcaneAuditor.app/Contents/Frameworks"
           resources_lib_dir="dist/ArcaneAuditor.app/Contents/Resources/lib"
           
           if [ -d "$frameworks_dir" ]; then
             mkdir -p "$resources_lib_dir"
             
+            # First, move directories with periods in their names (excluding Python.framework)
+            # This fixes codesign issues where directories with periods are interpreted as bundles
+            echo "  Moving directories with periods (e.g. python3.12)..."
+            find "$frameworks_dir" -mindepth 1 -maxdepth 1 -type d ! -name "Python.framework" | while read dir; do
+              dir_name=$(basename "$dir")
+              # Check if directory name contains a period
+              if echo "$dir_name" | grep -q "\."; then
+                echo "    Moving directory: $dir_name"
+                target="$resources_lib_dir/$dir_name"
+                mv "$dir" "$target"
+                echo "    Moved: $dir_name -> Resources/lib/$dir_name"
+              fi
+            done
+            
+            echo "🧹 Moving non-Mach-O files from Frameworks to Resources/lib..."
             # Find all files in Frameworks (excluding Python.framework directory)
             find "$frameworks_dir" -type f ! -path "*/Python.framework/*" | while read f; do
               # Check if file is NOT a Mach-O binary
@@ -248,7 +263,7 @@ jobs:
             # Clean up empty directories in Frameworks (excluding Python.framework)
             find "$frameworks_dir" -type d ! -path "*/Python.framework*" -empty -delete 2>/dev/null || true
             
-            echo "✅ Non-Mach-O files moved to Resources/lib"
+            echo "✅ Directories with periods and non-Mach-O files moved to Resources/lib"
           fi
 
           fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
