@@ -78,7 +78,25 @@ jobs:
       - name: 🎯 Organize artifacts for upload
         run: |
           mkdir -p dist
-          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "ArcaneAuditorCLI" -o -name "*.app" \) -exec cp {} ./dist/ \;
+          
+          # Copy Windows executables
+          find ./artifacts -type f -name "*.exe" -exec cp {} ./dist/ \;
+          
+          # Copy DMG files if they exist
+          find ./artifacts -type f -name "*.dmg" -exec cp {} ./dist/ \;
+          
+          # Copy CLI binaries
+          find ./artifacts -type f -name "ArcaneAuditorCLI" -exec cp {} ./dist/ \;
+          
+          # Handle .app bundles by zipping them (they're directories)
+          find ./artifacts -type d -name "*.app" | while read app; do
+            if [ -d "$app" ]; then
+              app_name=$(basename "$app")
+              echo "📦 Zipping macOS app: $app_name"
+              ditto -c -k --keepParent "$app" "./dist/${app_name}.zip"
+            fi
+          done
+          
           echo "📦 Files ready for upload:"
           ls -lh ./dist/
       
@@ -98,11 +116,14 @@ jobs:
           fi
           
           echo "📦 Uploading distributable files..."
-          find ./dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "ArcaneAuditorCLI" \) | while read f; do
+          find ./dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "ArcaneAuditorCLI" \) | while read f; do
             if [[ -f "$f" ]]; then
               case "$f" in
                 *.dmg)
                   echo "🍎 Uploading macOS installer: $f"
+                  ;;
+                *.zip)
+                  echo "📦 Uploading macOS app bundle: $f"
                   ;;
                 *.exe)
                   echo "🪟 Uploading Windows executable: $f"

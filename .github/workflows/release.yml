@@ -49,17 +49,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ./dist
+          
+          # Download CLI
           gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI"
-          # If you also upload .app as a zip/tar in vdevelop, download it here
-          # For now, assuming the .app is in the artifact from the build job
-          echo "📦 Downloaded files:"
+          
+          # Download and extract .app bundle
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip"
+          
+          if [ -f ./dist/ArcaneAuditor.app.zip ]; then
+            echo "📦 Extracting ArcaneAuditor.app..."
+            unzip -q ./dist/ArcaneAuditor.app.zip -d ./dist/
+            rm ./dist/ArcaneAuditor.app.zip
+          fi
+          
+          echo "📦 Downloaded and extracted files:"
           ls -lh ./dist/
-
-      - name: 📥 Download macOS build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: arcane-auditor-macOS
-          path: dist
 
       - name: 🔏 Import mac certificate
         env:
