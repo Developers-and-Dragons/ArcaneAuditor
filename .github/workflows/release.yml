@@ -200,16 +200,81 @@ jobs:
             else
               echo "⚠️ Python.framework/Python not found"
             fi
+            
+            # 🧹 Clean up invalid nested symlinks inside version directories
+            echo "🧹 Cleaning up invalid nested symlinks..."
+            cleaned_count=0
+            
+            # Find all version directories (like 3.12, 3.11, etc.)
+            for ver_dir in "$fw_root"/[0-9]*.[0-9]*; do
+              if [ -d "$ver_dir" ]; then
+                ver_name=$(basename "$ver_dir")
+                echo "  Checking version directory: $ver_name"
+                
+                # Find symlinks inside this version directory that match version number patterns
+                # These are likely invalid symlinks created during zip/extract
+                while IFS= read -r invalid_link; do
+                  link_name=$(basename "$invalid_link")
+                  link_target=$(readlink "$invalid_link" 2>/dev/null || echo "")
+                  
+                  # Check if this symlink points to a version number or creates an invalid path
+                  if echo "$link_name" | grep -qE '^[0-9]+\.[0-9]+$'; then
+                    echo "    🗑️  Removing invalid symlink: $invalid_link (version number pattern)"
+                    rm -f "$invalid_link"
+                    cleaned_count=$((cleaned_count + 1))
+                  elif [ -n "$link_target" ] && echo "$link_target" | grep -qE '^[0-9]+\.[0-9]+$'; then
+                    echo "    🗑️  Removing invalid symlink: $invalid_link -> $link_target (points to version number)"
+                    rm -f "$invalid_link"
+                    cleaned_count=$((cleaned_count + 1))
+                  fi
+                done < <(find "$ver_dir" -maxdepth 1 -type l -name "[0-9]*.[0-9]*" 2>/dev/null)
+                
+                # Also check for symlinks that would create nested invalid paths like Versions/X/Y
+                while IFS= read -r link; do
+                  link_target=$(readlink "$link" 2>/dev/null || echo "")
+                  # If target is a relative path that looks like a version number
+                  if echo "$link_target" | grep -qE '^[0-9]+\.[0-9]+$'; then
+                    resolved_path="$ver_dir/$link_target"
+                    if [ ! -e "$resolved_path" ]; then
+                      echo "    🗑️  Removing broken nested symlink: $link -> $link_target"
+                      rm -f "$link"
+                      cleaned_count=$((cleaned_count + 1))
+                    fi
+                  fi
+                done < <(find "$ver_dir" -maxdepth 1 -type l 2>/dev/null)
+              fi
+            done
+            
+            # Also check symlinks inside Versions/Current (which resolves to a version dir)
+            if [ -L "$fw_root/Current" ]; then
+              current_target=$(readlink "$fw_root/Current")
+              current_dir="$fw_root/$current_target"
+              if [ -d "$current_dir" ]; then
+                while IFS= read -r invalid_link; do
+                  echo "    🗑️  Removing invalid symlink in Current: $invalid_link"
+                  rm -f "$invalid_link"
+                  cleaned_count=$((cleaned_count + 1))
+                done < <(find "$current_dir" -maxdepth 1 -type l -name "[0-9]*.[0-9]*" 2>/dev/null)
+              fi
+            fi
+            
+            if [ "$cleaned_count" -gt 0 ]; then
+              echo "✅ Cleaned up $cleaned_count invalid symlink(s)"
+            else
+              echo "✅ No invalid symlinks found to clean"
+            fi
           else
             echo "⚠️ Versions directory not found in framework"
           fi
           
-          # Check for any broken symlinks in the framework
-          echo "🔍 Checking for broken symlinks..."
+          # Check for any remaining broken symlinks in the framework
+          echo "🔍 Checking for broken symlinks after cleanup..."
           broken=$(find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null | wc -l || echo "0")
           if [ "$broken" -gt 0 ]; then
-            echo "❌ Found $broken broken symlink(s):"
+            echo "❌ Found $broken broken symlink(s) after cleanup:"
             find "$fw_path" -type l ! -exec test -e {} \; -print 2>/dev/null || true
+            echo "🔍 Detailed symlink analysis:"
+            find "$fw_path" -type l -exec sh -c 'echo "  $1 -> $(readlink "$1")"' _ {} \; 2>/dev/null || true
             exit 1
           else
             echo "✅ No broken symlinks found"
