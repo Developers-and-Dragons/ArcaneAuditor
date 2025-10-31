@@ -133,7 +133,7 @@ jobs:
           
           # Finally, sign the entire app bundle
           echo "🔏 Signing main app bundle..."
-          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
+          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
           
           # Verify signatures
           echo "✅ Verifying CLI signature..."
