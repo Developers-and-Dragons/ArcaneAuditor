@@ -59,7 +59,7 @@ jobs:
       - name: 🧭 Checkout repository (for helper scripts)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # keeps it lightweight
+          fetch-depth: 1
 
       - name: 📥 Download unsigned macOS artifacts from vdevelop release
         env:
@@ -69,9 +69,9 @@ jobs:
           gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber
           gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber
           if [ -f ./dist/ArcaneAuditor.app.zip ]; then
-            echo "📦 Extracting ArcaneAuditor.app..."
+            echo "📦 Extracting ArcaneAuditor.app with symlink preservation..."
             cd ./dist
-            unzip -q -o ArcaneAuditor.app.zip
+            ditto -x -k ArcaneAuditor.app.zip .
             rm ArcaneAuditor.app.zip
             cd ..
           fi
@@ -79,6 +79,21 @@ jobs:
           ls -lh ./dist/
           echo "📦 App bundle structure:"
           ls -lh ./dist/ArcaneAuditor.app/Contents/ || true
+
+      # ✅ Restore broken framework symlink (just in case)
+      - name: 🔗 Restore Python.framework symlink
+        run: |
+          fw_root="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions"
+          if [ -d "$fw_root" ] && [ ! -L "$fw_root/Current" ]; then
+            latest_ver=$(ls "$fw_root" | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -n 1 || true)
+            if [ -n "$latest_ver" ]; then
+              echo "🔗 Restoring Versions/Current -> $latest_ver symlink..."
+              ln -sfn "$latest_ver" "$fw_root/Current"
+              ls -l "$fw_root"
+            else
+              echo "⚠️ No version folder found under $fw_root"
+            fi
+          fi
 
       - name: 🔏 Import mac certificate
         env:
@@ -100,26 +115,14 @@ jobs:
           echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
 
-          echo "🪄 Flattening fake python3.12 framework..."
-          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/python3.12"
-          if [ -d "$fw_path" ]; then
-            mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
-            mv "$fw_path"/* dist/ArcaneAuditor.app/Contents/Resources/python_runtime/ 2>/dev/null || true
-            rm -rf "$fw_path"
-          fi
-
-          echo "🪓 Removing fake Python.framework..."
-          if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework" ]; then
-            mkdir -p dist/ArcaneAuditor.app/Contents/Resources/python_runtime
-            mv dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions/Current/* \
-              dist/ArcaneAuditor.app/Contents/Resources/python_runtime/ 2>/dev/null || true
-            rm -rf dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework
-          fi
+          echo "✅ Preserving Python.framework and python3.x runtime (no flattening needed)"
 
           # 🧹 Ensure no stray Python.framework binaries remain in Resources
           echo "🧹 Removing stray Python.framework copies..."
           find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
-            
+
+          echo "🧩 Verifying Python.framework symlink structure..."
+          ls -l dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework/Versions || true
 
           echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
           if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks" ]; then
@@ -166,8 +169,12 @@ jobs:
       - name: 📦 Create & Sign DMG
         run: |
           mkdir dmg
-          cp -R dist/ArcaneAuditor.app dmg/
-          hdiutil create -volname "Arcane Auditor" -srcfolder dmg -ov -format UDZO dist/ArcaneAuditor_macOS_Desktop.dmg
+          # ✅ Preserve symlinks when copying
+          cp -R -P dist/ArcaneAuditor.app dmg/
+          hdiutil create -volname "Arcane Auditor" \
+            -srcfolder dmg \
+            -ov -format UDZO \
+            dist/ArcaneAuditor_macOS_Desktop.dmg
           rm -rf dmg
           codesign --force --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" dist/ArcaneAuditor_macOS_Desktop.dmg
 

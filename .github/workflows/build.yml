@@ -94,7 +94,7 @@ jobs:
               app_name=$(basename "$app")
               echo "📦 Zipping macOS app: $app_name"
               cd "$(dirname "$app")"
-              zip -r -q "${app_name}.zip" "$app_name"
+              ditto -c -k --sequesterRsrc --keepParent "$app_name" "${app_name}.zip"
               cd - > /dev/null
               mv "$(dirname "$app")/${app_name}.zip" "./dist/"
             fi
