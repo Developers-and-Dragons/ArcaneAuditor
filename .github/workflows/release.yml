@@ -102,11 +102,28 @@ jobs:
           echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
           
-          # For PyInstaller bundles, we need to sign all Mach-O binaries inside the app
-          echo "🔏 Finding and signing Mach-O binaries in app bundle..."
+          # Clean up bundle - PyInstaller sometimes puts package data in Frameworks
+          echo "🧹 Moving non-Mach-O files from Frameworks to Resources..."
+          if [ -d "dist/ArcaneAuditor.app/Contents/Frameworks" ]; then
+            find dist/ArcaneAuditor.app/Contents/Frameworks -type f | while read f; do
+              if ! file "$f" | grep -q "Mach-O"; then
+                # Calculate relative path from Frameworks
+                rel_path="${f#dist/ArcaneAuditor.app/Contents/Frameworks/}"
+                target="dist/ArcaneAuditor.app/Contents/Resources/lib/$rel_path"
+                
+                # Create target directory and move file
+                mkdir -p "$(dirname "$target")"
+                mv "$f" "$target"
+                echo "  Moved: $rel_path"
+              fi
+            done
+            
+            # Remove empty directories in Frameworks
+            find dist/ArcaneAuditor.app/Contents/Frameworks -type d -empty -delete 2>/dev/null || true
+          fi
           
-          # Sign all actual Mach-O files (executables, dylibs, frameworks)
-          # Use 'file' command to identify real binaries, not just by extension
+          # Sign all Mach-O binaries in the bundle (inside-out)
+          echo "🔏 Signing all Mach-O binaries in app bundle..."
           find dist/ArcaneAuditor.app/Contents -type f | while read f; do
             if file "$f" | grep -q "Mach-O"; then
               echo "  Signing: $f"
