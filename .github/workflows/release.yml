@@ -56,6 +56,11 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      - name: 🧭 Checkout repository (for helper scripts)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # keeps it lightweight
+
       - name: 📥 Download unsigned macOS artifacts from vdevelop release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
