@@ -166,6 +166,20 @@ jobs:
           name: notarization-logs-app
           path: notary-logs/
 
+      - name: 🚀 Notarize CLI
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: ./scripts/notarize.sh dist/ArcaneAuditorCLI
+     
+      - name: 📜 Upload notarization logs (CLI)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notarization-logs-cli
+          path: notary-logs/
+
       - name: 📦 Create & Sign DMG
         run: |
           mkdir dmg
@@ -183,7 +197,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg
+        run: ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg 
 
       - name: 📜 Upload notarization logs (DMG)
         if: always()

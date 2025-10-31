@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🧙 Arcane Auditor Notarization Helper with Verbose Logging
+# 🧙 Arcane Auditor Notarization Helper (apps, DMGs, and standalone binaries)
 # Works with Apple ID + App-Specific Password authentication.
 
 APP_PATH="$1"
@@ -25,9 +25,19 @@ if [[ ! -e "$APP_PATH" ]]; then
   exit 1
 fi
 
-ZIP_PATH="${APP_PATH}.zip"
-echo "📦 Compressing $APP_PATH for notarization..."
-/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+# --- Handle non-app/dmg binaries (CLI etc.) ---
+ZIP_PATH=""
+if [[ "$APP_PATH" != *.app && "$APP_PATH" != *.dmg && "$APP_PATH" != *.zip ]]; then
+  echo "📦 Detected standalone binary. Zipping for notarization..."
+  ZIP_PATH="${APP_PATH}.zip"
+  /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+elif [[ "$APP_PATH" == *.zip ]]; then
+  ZIP_PATH="$APP_PATH"
+else
+  ZIP_PATH="${APP_PATH}.zip"
+  echo "📦 Compressing $APP_PATH for notarization..."
+  /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+fi
 
 echo "🚀 Submitting to Apple notarization service..."
 xcrun notarytool submit "$ZIP_PATH" \
@@ -44,7 +54,7 @@ if [[ -z "$SUBMISSION_ID" ]]; then
   exit 1
 fi
 
-# Poll for status (up to 60 minutes)
+# Poll for up to 60 minutes
 for i in {1..60}; do
   STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
     --apple-id "$APPLE_ID" \
@@ -68,19 +78,30 @@ for i in {1..60}; do
   sleep 60
 done
 
-echo "🔏 Stapling ticket..."
-xcrun stapler staple -v "$APP_PATH" 2>&1 | tee -a "$LOG_FILE"
-echo "🎉 Notarization complete and stapled!"
+# --- Staple ticket ---
+if [[ "$APP_PATH" == *.app || "$APP_PATH" == *.dmg ]]; then
+  echo "🔏 Stapling ticket to bundle..."
+  xcrun stapler staple -v "$APP_PATH" 2>&1 | tee -a "$LOG_FILE"
+elif [[ -f "$APP_PATH" && ! "$APP_PATH" == *.zip ]]; then
+  echo "🔏 Stapling ticket to binary..."
+  xcrun stapler staple -v "$APP_PATH" 2>&1 | tee -a "$LOG_FILE" || true
+else
+  echo "📦 Skipping staple for ZIP container."
+fi
 
-# Print environment snapshot (for debugging)
-echo "🧾 Runner environment snapshot:" >> "$LOG_FILE"
-echo "GITHUB_RUN_ID=${GITHUB_RUN_ID:-N/A}" >> "$LOG_FILE"
-echo "RUNNER_OS=${RUNNER_OS:-N/A}" >> "$LOG_FILE"
-echo "RUNNER_TEMP=${RUNNER_TEMP:-N/A}" >> "$LOG_FILE"
-echo "ENDPOINT: appstoreconnect.apple.com" >> "$LOG_FILE"
+echo "🎉 Notarization complete!"
 
-# Upload logs as artifacts if in GitHub Actions
+# --- Log environment for traceability ---
+{
+  echo "🧾 Runner environment snapshot:"
+  echo "GITHUB_RUN_ID=${GITHUB_RUN_ID:-N/A}"
+  echo "RUNNER_OS=${RUNNER_OS:-N/A}"
+  echo "RUNNER_TEMP=${RUNNER_TEMP:-N/A}"
+  echo "ENDPOINT: appstoreconnect.apple.com"
+} >> "$LOG_FILE"
+
+# --- GitHub Actions artifact notice ---
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "📤 Uploading notarization logs as artifact..."
-  echo "::notice title=Notarization Logs::Logs saved to $LOG_FILE and $LOG_DIR/log_${timestamp}.json"
+  echo "::notice title=Notarization Logs::Logs saved to $LOG_FILE"
 fi
