@@ -6,19 +6,28 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
 
   windows-sign:
-    name: 🔐 Windows EV Signing
+    name: 🔏 Windows EV Signing
     runs-on: self-hosted  # Your EV token machine
 
     steps:
-      - name: Download unsigned artifacts from draft release
+      - name: 📥 Download unsigned artifacts from vdevelop release
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --dir ./unsigned
+        run: |
+          New-Item -ItemType Directory -Force -Path ./unsigned | Out-Null
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./unsigned --pattern "*.exe"
+          Write-Host "📦 Downloaded files:"
+          Get-ChildItem ./unsigned | Format-Table Name, Length, LastWriteTime
 
-      - name: Sign executables (local EV cert)
+      - name: 🔏 Sign executables (local EV cert)
+        shell: pwsh
         run: |
           signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
             /n "Chris Humphrey" /sm `
@@ -26,41 +35,64 @@ jobs:
             "./unsigned/ArcaneAuditorCLI.exe" `
             "./unsigned/ArcaneAuditorWeb.exe"
 
-      - name: Upload signed files to GitHub release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.ref_name }} ./unsigned/*.exe --clobber
+      - name: 📤 Upload signed Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-windows
+          path: ./unsigned/*.exe
 
   mac-sign-notarize:
     name: 🍎 macOS Sign + Notarize
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 📥 Download unsigned macOS artifacts from vdevelop release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ./dist
+          
+          # Download CLI
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI"
+          
+          # Download and extract .app bundle
+          gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip"
+          
+          if [ -f ./dist/ArcaneAuditor.app.zip ]; then
+            echo "📦 Extracting ArcaneAuditor.app..."
+            unzip -q ./dist/ArcaneAuditor.app.zip -d ./dist/
+            rm ./dist/ArcaneAuditor.app.zip
+          fi
+          
+          echo "📦 Downloaded and extracted files:"
+          ls -lh ./dist/
 
-      - name: 📥 Download mac build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: arcane-auditor-macOS
-          path: dist
-
-      - name: 🔐 Import mac certificate
+      - name: 🔏 Import mac certificate
         env:
           MAC_CERT: ${{ secrets.MACOS_CERTIFICATE }}
           MAC_CERT_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
           echo "$MAC_CERT" | base64 --decode > cert.p12
           security create-keychain -p password build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p password build.keychain
           security import cert.p12 -k build.keychain -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
-          security list-keychain -d user -s build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k password build.keychain
           rm cert.p12
 
       - name: 🔏 Codesign App & CLI
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app
-          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI
+          # Sign the CLI first
+          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
+          
+          # Sign the app bundle
+          codesign --force --deep --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
+          
+          # Verify signatures
+          codesign --verify --verbose dist/ArcaneAuditorCLI
+          codesign --verify --verbose dist/ArcaneAuditor.app
 
       - name: 🚀 Notarize App
         env:
@@ -75,6 +107,9 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --wait
           xcrun stapler staple dist/ArcaneAuditor.app
+          
+          # Verify notarization
+          spctl -a -vv dist/ArcaneAuditor.app
 
       - name: 📦 Create DMG
         run: |
@@ -85,8 +120,11 @@ jobs:
             -ov -format UDZO \
             dist/ArcaneAuditor_macOS_Desktop.dmg
           rm -rf dmg
+          
+          # Sign the DMG as well
+          codesign --force --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" dist/ArcaneAuditor_macOS_Desktop.dmg
 
-      - name: 📦 Upload mac artifacts
+      - name: 📤 Upload mac artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-macos
@@ -102,15 +140,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📥 Download signed artifacts
+      - name: 📥 Download all signed artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: signed-artifacts
 
-      - name: 🚀 Create Release & Upload Assets
+      - name: 📋 List all signed artifacts
+        run: |
+          echo "📦 All signed artifacts:"
+          ls -R ./signed-artifacts/
+
+      - name: 🎯 Organize for release
+        run: |
+          mkdir -p release-files
+          find ./signed-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "ArcaneAuditorCLI" \) -exec cp {} ./release-files/ \;
+          echo "📦 Files ready for release:"
+          ls -lh ./release-files/
+
+      - name: 🚀 Create Draft Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            **/*.exe
-            **/*.dmg
-            **/ArcaneAuditorCLI
+          files: release-files/*
+          draft: true
+          prerelease: false
+          body: "Signed release artifacts. Please add release notes before publishing."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
