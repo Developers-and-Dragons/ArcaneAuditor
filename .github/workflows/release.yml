@@ -99,13 +99,23 @@ jobs:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           # Sign the CLI binary
+          echo "🔏 Signing CLI binary..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp
           
-          # Sign all frameworks and dylibs inside the app bundle first (inside-out signing)
-          find dist/ArcaneAuditor.app/Contents/Frameworks -type f \( -name "*.dylib" -o -name "*.so" \) -exec codesign --force --options runtime --sign "$MAC_IDENTITY" {} \; 2>/dev/null || true
-          find dist/ArcaneAuditor.app/Contents/MacOS -type f -perm +111 -exec codesign --force --options runtime --sign "$MAC_IDENTITY" {} \; 2>/dev/null || true
+          # For PyInstaller bundles, we need to sign all Mach-O binaries inside the app
+          echo "🔏 Finding and signing Mach-O binaries in app bundle..."
           
-          # Finally, sign the entire app bundle (without --deep, as we've already signed components)
+          # Sign all actual Mach-O files (executables, dylibs, frameworks)
+          # Use 'file' command to identify real binaries, not just by extension
+          find dist/ArcaneAuditor.app/Contents -type f | while read f; do
+            if file "$f" | grep -q "Mach-O"; then
+              echo "  Signing: $f"
+              codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp 2>/dev/null || true
+            fi
+          done
+          
+          # Finally, sign the entire app bundle
+          echo "🔏 Signing main app bundle..."
           codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp
           
           # Verify signatures
@@ -113,6 +123,8 @@ jobs:
           codesign --verify --verbose dist/ArcaneAuditorCLI
           echo "✅ Verifying App signature..."
           codesign --verify --verbose dist/ArcaneAuditor.app
+          echo "✅ Checking app signature details..."
+          codesign -dvv dist/ArcaneAuditor.app
 
       - name: 🚀 Notarize App
         env:
