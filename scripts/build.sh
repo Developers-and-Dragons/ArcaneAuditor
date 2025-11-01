@@ -5,12 +5,19 @@ echo "🧙 Arcane Auditor – macOS Build Script (uv mode)"
 
 # Ensure uv python exists
 if ! uv run python3 --version >/dev/null 2>&1; then
-    echo "❌ uv-managed Python missing. Install with:"
-    echo "   uv python install 3.12"
+    echo "❌ uv-managed Python missing"
     exit 1
 fi
 
-echo "✅ uv Python detected"
+echo "✅ uv Python detected: $(uv run python3 --version)"
+
+# CRITICAL FIX: Remove /usr/local/bin and /Library/Frameworks from PATH
+# This prevents PyInstaller from finding system Python.framework
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin"
+
+echo "🔍 Environment:"
+echo "  PATH: $PATH"
+echo "  Python: $(uv run which python3)"
 
 echo "📥 Installing runtime deps"
 uv pip install -r requirements.txt
@@ -24,5 +31,4 @@ uv run pyinstaller ArcaneAuditorDesktop.spec --clean
 echo "🏗 Building CLI"
 uv run pyinstaller ArcaneAuditorCLI.spec --clean
 
-# ✅ We are skipping a web executable on macOS (your call earlier)
 echo "✨ macOS build complete!"
