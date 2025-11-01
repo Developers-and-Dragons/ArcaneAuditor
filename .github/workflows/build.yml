@@ -1,4 +1,4 @@
-name: 🧪 Build (Diagnostic - Unsigned)
+name: 🧪 Build (Unsigned Diagnostic)
 
 on:
   push:
@@ -16,9 +16,11 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            build: pwsh ./scripts/build.ps1
+            shell: pwsh
+            build: ./scripts/build.ps1
           - os: macos-latest
-            build: bash ./scripts/build.sh
+            shell: bash
+            build: ./scripts/build.sh
 
     runs-on: ${{ matrix.os }}
 
@@ -33,36 +35,35 @@ jobs:
         with:
           version: "0.9.6"
 
-      - name: 🧩 Install Python (uv managed)
+      - name: 🧩 Install pinned Python
         run: |
           echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Installing Python via uv"
-          uv python install 3.12
+          uv python install
+        shell: bash
 
       - name: 🔍 Verify Python runtime
         run: |
-          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Environment diagnostics"
           uv --version
           uv run python -V
           uv run python -c "import sys, sysconfig, platform, os; print('Python exe:', sys.executable); print('LIBDIR:', sysconfig.get_config_var('LIBDIR')); print('Platform:', platform.platform()); print('CWD:', os.getcwd())"
-          echo "PATH=$PATH"
+        shell: bash
 
-      - name: 🏗️ Build project with detailed logging
+      - name: 🏗️ Build project
+        shell: ${{ matrix.shell }}
         run: |
-          set -e
-          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting build script"
+          echo "🕒 Starting build script for ${{ runner.os }}"
           mkdir -p build-logs
-          {
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "================ BUILD START $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ================" | Tee-Object -FilePath build-logs/build_Windows.log -Append
+            pwsh ${{ matrix.build }} 2>&1 | Tee-Object -FilePath build-logs/build_Windows.log -Append
+            echo "================ BUILD END $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ================" | Tee-Object -FilePath build-logs/build_Windows.log -Append
+          else
             echo "================ BUILD START $(date '+%Y-%m-%d %H:%M:%S') ================"
-            echo "Runner OS: $RUNNER_OS"
-            echo "Job Name: $GITHUB_JOB"
-            echo "Branch: $GITHUB_REF"
-            echo "Commit: $GITHUB_SHA"
-            echo "------------------------------------------------------"
-            ${{ matrix.build }}
+            ${{ matrix.build }} 2>&1 | tee build-logs/build_${{ runner.os }}.log
             echo "================ BUILD END $(date '+%Y-%m-%d %H:%M:%S') ================"
-          } 2>&1 | tee build-logs/build_${{ runner.os }}.log
+          fi
 
-      - name: 📦 Upload build artifacts and logs
+      - name: 📦 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: arcane-auditor-${{ runner.os }}

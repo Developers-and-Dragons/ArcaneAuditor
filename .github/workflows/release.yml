@@ -11,69 +11,56 @@ permissions:
 
 jobs:
 
+  # 🪟 WINDOWS BUILD & SIGN ------------------------------------
+  windows-build:
+    name: 🏗️ Windows Build (Unsigned)
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🧙 Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🧩 Setup Python
+        run: uv python install 3.12
+
+      - name: 🏗️ Build Windows executables
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: 📦 Upload unsigned artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-windows
+          path: dist/*.exe
+
+
   windows-sign:
     name: 🔏 Windows EV Signing
     runs-on: self-hosted
+    needs: windows-build
 
     steps:
-      - name: 📥 Download unsigned artifacts from vdevelop release
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $ErrorActionPreference = "Stop"
-          New-Item -ItemType Directory -Force -Path ./unsigned | Out-Null
-          
-          Write-Host "📥 Downloading Windows executables..."
-          gh release download vdevelop --repo ${{ github.repository }} --dir ./unsigned --pattern "*.exe" --clobber
-          
-          $exeFiles = Get-ChildItem ./unsigned -Filter *.exe
-          if ($exeFiles.Count -eq 0) {
-            Write-Error "❌ No executables downloaded"
-            exit 1
-          }
-          
-          Write-Host "📦 Downloaded files:"
-          $exeFiles | Format-Table Name, Length, LastWriteTime
+      - name: 📥 Download unsigned Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-windows
+          path: ./unsigned
 
       - name: 🔏 Sign executables (local EV cert)
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
           $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
-          
           $exeFiles = Get-ChildItem ./unsigned -Filter *.exe
-          if ($exeFiles.Count -eq 0) {
-            Write-Error "❌ No executables to sign"
-            exit 1
+          foreach ($exe in $exeFiles) {
+            Write-Host "🔏 Signing $($exe.Name)"
+            & signtool sign /sha1 $thumb /fd sha256 /td sha256 /tr http://timestamp.digicert.com $exe.FullName
           }
-          
-          $exeFiles | ForEach-Object {
-            Write-Host "🔏 Signing: $($_.Name)"
-            & signtool sign `
-              /sha1 $thumb `
-              /fd sha256 `
-              /td sha256 `
-              /tr http://timestamp.digicert.com `
-              $_.FullName
-            
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "❌ Failed to sign $($_.Name)"
-              exit 1
-            }
-            
-            Write-Host "✅ Signed: $($_.Name)"
-          }
-          
-          Write-Host "🔍 Verifying signatures..."
-          $exeFiles | ForEach-Object {
-            & signtool verify /pa $_.FullName
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "❌ Signature verification failed for $($_.Name)"
-              exit 1
-            }
-            Write-Host "✅ Verified: $($_.Name)"
-          }
+          Write-Host "✅ Signatures applied"
 
       - name: 📤 Upload signed Windows artifacts
         uses: actions/upload-artifact@v4
@@ -81,111 +68,26 @@ jobs:
           name: signed-windows
           path: ./unsigned/*.exe
 
+
+  # 🍎 MAC BUILD + SIGN + NOTARIZE -----------------------------
   mac-sign-notarize:
-    name: 🍎 macOS Sign + Notarize
+    name: 🍎 macOS Build + Sign + Notarize
     runs-on: macos-latest
 
     steps:
-      - name: 🧭 Checkout repository (for helper scripts)
+      - name: 📥 Checkout
         uses: actions/checkout@v4
+
+      - name: 🧙 Setup uv
+        uses: astral-sh/setup-uv@v6
         with:
-          fetch-depth: 1
+          version: "0.9.6"
 
-      - name: 📥 Download unsigned macOS artifacts from vdevelop release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          mkdir -p ./dist
-          
-          echo "📥 Downloading CLI binary..."
-          if ! gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditorCLI" --clobber; then
-            echo "❌ Failed to download ArcaneAuditorCLI"
-            exit 1
-          fi
-          
-          echo "📥 Downloading app bundle..."
-          if ! gh release download vdevelop --repo ${{ github.repository }} --dir ./dist --pattern "ArcaneAuditor.app.zip" --clobber; then
-            echo "❌ Failed to download ArcaneAuditor.app.zip"
-            exit 1
-          fi
-          
-          if [ ! -f ./dist/ArcaneAuditor.app.zip ]; then
-            echo "❌ ArcaneAuditor.app.zip not found after download"
-            exit 1
-          fi
-          
-          echo "📦 Extracting ArcaneAuditor.app with symlink preservation..."
-          cd ./dist
-          ditto -x -k ArcaneAuditor.app.zip . || {
-            echo "❌ Failed to extract app bundle"
-            exit 1
-          }
-          rm ArcaneAuditor.app.zip
-          cd ..
-          
-          if [ ! -d ./dist/ArcaneAuditor.app ]; then
-            echo "❌ ArcaneAuditor.app not found after extraction"
-            exit 1
-          fi
-          
-          if [ ! -f ./dist/ArcaneAuditorCLI ]; then
-            echo "❌ ArcaneAuditorCLI not found"
-            exit 1
-          fi
-          
-          echo "✅ Downloaded and extracted files:"
-          ls -lh ./dist/
-          echo "📦 App bundle structure:"
-          ls -lh ./dist/ArcaneAuditor.app/Contents/ || true
+      - name: 🧩 Setup Python
+        run: uv python install 3.12
 
-      - name: 🧹 Clean extended attributes
-        run: |
-          echo "🧹 Removing extended attributes that may interfere with signing..."
-          if [ -d "./dist/ArcaneAuditor.app" ]; then
-            xattr -cr ./dist/ArcaneAuditor.app
-            echo "✅ Extended attributes removed from app bundle"
-          fi
-          if [ -f "./dist/ArcaneAuditorCLI" ]; then
-            xattr -cr ./dist/ArcaneAuditorCLI
-            echo "✅ Extended attributes removed from CLI binary"
-          fi
-
-      - name: 🔗 Normalize Python.framework structure
-        run: |
-          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
-          versions_dir="$fw_path/Versions"
-
-          if [ -d "$versions_dir" ]; then
-            echo "🔧 Normalizing Python.framework..."
-            ver=$(ls -1 "$versions_dir" | grep -E '^[0-9]+' | sort -V | tail -n 1 || true)
-
-            if [ -z "$ver" ]; then
-              echo "⚠️ No numeric version directory found under $versions_dir"
-              exit 0
-            fi
-
-            # Recreate clean Current link
-            rm -rf "$versions_dir/Current"
-            ln -sfn "$ver" "$versions_dir/Current"
-
-            # Rebuild standard top-level symlinks
-            for link in Python Headers Resources; do
-              rm -rf "$fw_path/$link"
-              ln -sfn "Versions/Current/$link" "$fw_path/$link"
-            done
-
-            # Remove recursive broken link if it exists (e.g. Versions/Current/3.12 → 3.12)
-            bad_link="$versions_dir/Current/$ver"
-            if [ -L "$bad_link" ]; then
-              echo "🗑️ Removing recursive symlink: $bad_link -> $(readlink "$bad_link")"
-              rm -f "$bad_link"
-            fi
-
-            echo "✅ Python.framework normalized (version $ver)"
-          else
-            echo "ℹ️ No Python.framework found at $fw_path"
-          fi
+      - name: 🏗️ Build macOS executables
+        run: bash ./scripts/build.sh
 
       - name: 🔏 Import mac certificate
         env:
@@ -194,160 +96,22 @@ jobs:
         run: |
           echo "$MAC_CERT" | base64 --decode > cert.p12
           security create-keychain -p password build.keychain
-          security default-keychain -s build.keychain
           security unlock-keychain -p password build.keychain
           security import cert.p12 -k build.keychain -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k password build.keychain
-          rm cert.p12
 
-      - name: 🔏 Codesign App & CLI
+      - name: 🔏 Codesign app bundle and CLI
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          set -e
-          echo "🔏 Step 1: Signing CLI binary..."
-          if [ ! -f "dist/ArcaneAuditorCLI" ]; then
-            echo "❌ ArcaneAuditorCLI not found"
-            exit 1
-          fi
-          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditorCLI --timestamp || {
-            echo "❌ Failed to sign CLI binary"
-            exit 1
-          }
-          echo "✅ CLI binary signed successfully"
+          APP="dist/ArcaneAuditor.app"
+          CLI="dist/ArcaneAuditorCLI"
 
-          # 🧹 Ensure no stray Python.framework binaries remain in Resources
-          echo "🧹 Removing stray Python.framework copies from Resources..."
-          find dist/ArcaneAuditor.app/Contents/Resources -type d -name "Python.framework" -exec rm -rf {} + || true
-
-          # 🧹 Move directories with periods and non-Mach-O files from Frameworks to Resources/lib
-          echo "🧹 Moving directories with periods from Frameworks to Resources/lib..."
-          frameworks_dir="dist/ArcaneAuditor.app/Contents/Frameworks"
-          resources_lib_dir="dist/ArcaneAuditor.app/Contents/Resources/lib"
-          
-          if [ -d "$frameworks_dir" ]; then
-            mkdir -p "$resources_lib_dir"
-            
-            # First, move directories with periods in their names (excluding Python.framework)
-            # This fixes codesign issues where directories with periods are interpreted as bundles
-            echo "  Moving directories with periods (e.g. python3.12)..."
-            find "$frameworks_dir" -mindepth 1 -maxdepth 1 -type d ! -type l ! -name "Python.framework" | while read dir; do
-              dir_name=$(basename "$dir")
-              # Check if directory name contains a period
-              if echo "$dir_name" | grep -q "\."; then
-                echo "    Moving directory: $dir_name"
-                target="$resources_lib_dir/$dir_name"
-                mv "$dir" "$target"
-                echo "    Moved: $dir_name -> Resources/lib/$dir_name"
-              fi
-            done
-            
-            echo "🧹 Moving non-Mach-O files from Frameworks to Resources/lib..."
-            # Find all files in Frameworks (excluding Python.framework directory)
-            find "$frameworks_dir" -type f ! -type l ! -path "*/Python.framework/*" | while read f; do
-              # Check if file is NOT a Mach-O binary
-              if ! file "$f" | grep -q "Mach-O"; then
-                # Get relative path from Frameworks
-                rel_path="${f#$frameworks_dir/}"
-                target="$resources_lib_dir/$rel_path"
-                
-                # Create target directory structure
-                mkdir -p "$(dirname "$target")"
-                
-                # Move the file
-                mv "$f" "$target"
-                echo "  Moved: $rel_path -> Resources/lib/$rel_path"
-              fi
-            done
-            
-            # Clean up empty directories in Frameworks (excluding Python.framework)
-            find "$frameworks_dir" -type d ! -path "*/Python.framework*" -empty -delete 2>/dev/null || true
-            
-            echo "✅ Directories with periods and non-Mach-O files moved to Resources/lib"
-          fi
-
-          fw_path="dist/ArcaneAuditor.app/Contents/Frameworks/Python.framework"
-          
-          if [ -d "$fw_path" ]; then
-            echo "🔏 Step 2: Signing Python.framework contents (inner to outer)..."
-            
-            # First, sign all binaries inside Versions/* subdirectories (support libraries, etc.)
-            find "$fw_path/Versions" -type f | while read f; do
-              if file "$f" | grep -q "Mach-O"; then
-                # Skip the main Python binary - we'll sign that explicitly
-                if [ "$f" != "$fw_path/Versions/Current/Python" ]; then
-                  echo "  Signing framework binary: $f"
-                  codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp || true
-                fi
-              fi
-            done
-            
-            # Sign the versioned Python binary (main framework executable)
-            versioned_python="$fw_path/Versions/Current/Python"
-            if [ -f "$versioned_python" ]; then
-              echo "  Signing versioned Python binary: $versioned_python"
-              codesign --force --options runtime --sign "$MAC_IDENTITY" "$versioned_python" --timestamp || {
-                echo "❌ Failed to sign versioned Python binary"
-                exit 1
-              }
-            fi
-            
-            # Sign the top-level Python if it's a regular file (not a symlink)
-            # Most frameworks use a symlink, but handle the case where it's a file
-            if [ -f "$fw_path/Python" ] && [ ! -L "$fw_path/Python" ]; then
-              echo "  Signing top-level Python binary: $fw_path/Python"
-              codesign --force --options runtime --sign "$MAC_IDENTITY" "$fw_path/Python" --timestamp
-            fi
-
-            echo "🔏 Step 3: Signing Python.framework as a bundle..."
-            codesign --force --options runtime --sign "$MAC_IDENTITY" "$fw_path" --timestamp || {
-              echo "❌ Failed to sign Python.framework bundle"
-              codesign -dvv "$fw_path" 2>&1 || true
-              exit 1
-            }
-            echo "✅ Python.framework signed successfully"
-          else
-            echo "⚠️ Python.framework not found, skipping framework signing"
-          fi
-
-          echo "🔏 Step 4: Signing other Mach-O binaries in app bundle (excluding framework)..."
-          find dist/ArcaneAuditor.app/Contents -type f | while read f; do
-            # Skip framework contents (already signed)
-            if [[ "$f" != *"/Frameworks/Python.framework"* ]]; then
-              if file "$f" | grep -q "Mach-O"; then
-                echo "  Signing: $f"
-                codesign --force --options runtime --sign "$MAC_IDENTITY" "$f" --timestamp 2>/dev/null || true
-              fi
-            fi
-          done
-
-          echo "🔏 Step 5: Signing main executable..."
-          main_exe="dist/ArcaneAuditor.app/Contents/MacOS/ArcaneAuditor"
-          if [ -f "$main_exe" ]; then
-            codesign --force --options runtime --sign "$MAC_IDENTITY" "$main_exe" --timestamp || {
-              echo "❌ Failed to sign main executable"
-              exit 1
-            }
-            echo "✅ Main executable signed successfully"
-          else
-            echo "⚠️ Main executable not found at $main_exe"
-          fi
-
-          echo "🔏 Step 6: Signing main app bundle (without --deep flag)..."
-          codesign --force --options runtime --sign "$MAC_IDENTITY" dist/ArcaneAuditor.app --timestamp || {
-            echo "❌ Failed to sign main app bundle"
-            exit 1
-          }
-
-          echo "✅ Verification: Checking signatures..."
-          codesign --verify --verbose=4 dist/ArcaneAuditorCLI
-          codesign --verify --verbose=4 dist/ArcaneAuditor.app || {
-            echo "❌ App bundle verification failed"
-            codesign -dvv dist/ArcaneAuditor.app
-            exit 1
-          }
-          codesign -dvv dist/ArcaneAuditor.app
-          echo "✅ All signing completed successfully"
+          echo "🔏 Signing CLI..."
+          codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$CLI"
+          echo "🔏 Signing app bundle..."
+          codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$APP"
+          codesign --verify --verbose=5 "$APP"
 
       - name: 🚀 Notarize App
         env:
@@ -356,119 +120,43 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: ./scripts/notarize.sh dist/ArcaneAuditor.app
 
-      - name: 📜 Upload notarization logs (App)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: notarization-logs-app
-          path: notary-logs/
-
       - name: 🚀 Notarize CLI
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: ./scripts/notarize.sh dist/ArcaneAuditorCLI
-     
-      - name: 📜 Upload notarization logs (CLI)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: notarization-logs-cli
-          path: notary-logs/
 
       - name: 📦 Create & Sign DMG
         env:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          set -e
-          echo "📦 Creating DMG..."
-          
-          if [ ! -d "dist/ArcaneAuditor.app" ]; then
-            echo "❌ ArcaneAuditor.app not found"
-            exit 1
-          fi
-          
           mkdir -p dmg
-          # ✅ Preserve symlinks when copying
-          cp -R -P dist/ArcaneAuditor.app dmg/ || {
-            echo "❌ Failed to copy app to DMG directory"
-            exit 1
-          }
-          
-          dmg_path="dist/ArcaneAuditor_macOS_Desktop.dmg"
-          hdiutil create -volname "Arcane Auditor" \
-            -srcfolder dmg \
-            -ov -format UDZO \
-            "$dmg_path" || {
-            echo "❌ Failed to create DMG"
-            rm -rf dmg
-            exit 1
-          }
+          cp -R -P dist/ArcaneAuditor.app dmg/
+          DMG_PATH="dist/ArcaneAuditor_macOS_Desktop.dmg"
+          hdiutil create -volname "Arcane Auditor" -srcfolder dmg -ov -format UDZO "$DMG_PATH"
+          codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$DMG_PATH"
+          echo "✅ DMG created and signed"
           rm -rf dmg
-          
-          if [ ! -f "$dmg_path" ]; then
-            echo "❌ DMG file not created"
-            exit 1
-          fi
-          
-          echo "🔏 Signing DMG..."
-          codesign --force --options runtime --sign "$MAC_IDENTITY" "$dmg_path" --timestamp || {
-            echo "❌ Failed to sign DMG"
-            exit 1
-          }
-          echo "✅ DMG created and signed successfully"
 
       - name: 🚀 Notarize DMG
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg 
+        run: ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg
 
-      - name: 📜 Upload notarization logs (DMG)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: notarization-logs-dmg
-          path: notary-logs/
-
-      - name: 📤 Upload mac artifacts
-        run: |
-          set -e
-          echo "📋 Verifying artifacts before upload..."
-          
-          if [ ! -f "dist/ArcaneAuditorCLI" ]; then
-            echo "❌ ArcaneAuditorCLI not found"
-            exit 1
-          fi
-          
-          if [ ! -f "dist/ArcaneAuditor_macOS_Desktop.dmg" ]; then
-            echo "❌ DMG file not found"
-            exit 1
-          fi
-          
-          # Verify signatures
-          echo "🔍 Verifying signatures..."
-          codesign --verify --verbose=4 dist/ArcaneAuditorCLI || {
-            echo "❌ CLI signature verification failed"
-            exit 1
-          }
-          codesign --verify --verbose=4 dist/ArcaneAuditor_macOS_Desktop.dmg || {
-            echo "❌ DMG signature verification failed"
-            exit 1
-          }
-          
-          echo "✅ All artifacts verified and ready for upload"
-        
-      - name: 📤 Upload verified mac artifacts
+      - name: 📤 Upload signed mac artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-macos
           path: |
             dist/*.dmg
             dist/ArcaneAuditorCLI
+            dist/ArcaneAuditor.app
 
+
+  # 🚀 PUBLISH RELEASE ----------------------------------------
   publish:
     name: 🚀 Publish GitHub Release
     runs-on: ubuntu-latest
@@ -480,53 +168,17 @@ jobs:
       - name: 📥 Download all signed artifacts
         uses: actions/download-artifact@v4
         with:
-          path: signed-artifacts
+          path: release-files
 
-      - name: 📋 List all signed artifacts
-        run: |
-          echo "📦 All signed artifacts:"
-          ls -R ./signed-artifacts/
-
-      - name: 🎯 Organize for release
-        run: |
-          set -e
-          mkdir -p release-files
-          
-          echo "🔍 Finding signed artifacts..."
-          find ./signed-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "ArcaneAuditorCLI" \) -exec cp {} ./release-files/ \;
-          
-          file_count=$(find ./release-files -type f | wc -l | tr -d ' ')
-          if [ "$file_count" -eq 0 ]; then
-            echo "❌ No release files found!"
-            echo "Contents of signed-artifacts:"
-            ls -R ./signed-artifacts/ || true
-            exit 1
-          fi
-          
-          echo "📦 Files ready for release ($file_count files):"
-          ls -lh ./release-files/
-          
-          # Verify we have expected files
-          has_exe=$(find ./release-files -name "*.exe" | wc -l | tr -d ' ')
-          has_dmg=$(find ./release-files -name "*.dmg" | wc -l | tr -d ' ')
-          has_cli=$(find ./release-files -name "ArcaneAuditorCLI" | wc -l | tr -d ' ')
-          
-          echo "📊 Release file summary:"
-          echo "  Windows executables: $has_exe"
-          echo "  macOS DMG: $has_dmg"
-          echo "  macOS CLI: $has_cli"
-          
-          if [ "$has_exe" -eq 0 ] && [ "$has_dmg" -eq 0 ] && [ "$has_cli" -eq 0 ]; then
-            echo "❌ No expected release files found!"
-            exit 1
-          fi
+      - name: 🗃️ List release artifacts
+        run: ls -R ./release-files
 
       - name: 🚀 Create Draft Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: release-files/*
+          files: release-files/**
           draft: true
           prerelease: false
-          body: "Signed release artifacts. Please add release notes before publishing."
+          body: "Signed & notarized release built from tag ${{ github.ref_name }}."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
