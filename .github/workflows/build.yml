@@ -112,6 +112,17 @@ jobs:
           # Check if a release named vdevelop already exists
           if gh release view vdevelop >/dev/null 2>&1; then
             echo "🧙 Updating existing draft release vdevelop"
+            
+            # 🗑️ DELETE ALL OLD ASSETS FIRST!
+            echo "🗑️  Cleaning old artifacts..."
+            gh release view vdevelop --json assets -q '.assets[].name' | while read -r asset; do
+              if [ ! -z "$asset" ]; then
+                echo "  Deleting: $asset"
+                gh release delete-asset vdevelop "$asset" --yes 2>/dev/null || true
+              fi
+            done
+            echo "✅ Old artifacts removed"
+            
             gh release edit vdevelop --draft --notes "Unsigned build for signing (auto-updated from develop branch)"
           else
             echo "✨ Creating new draft release vdevelop"
