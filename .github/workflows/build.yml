@@ -28,9 +28,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 🧙 Use the official uv setup (pin to a stable version)
       - name: 🧙 Setup uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
 
+      # 🐍 Install uv-managed Python (3.12 pinned)
+      - name: 🧩 Setup uv Python
+        run: uv python install 3.12
+
+      # 🧪 Verify the correct interpreter before build
+      - name: 🔍 Verify Python Env
+        run: |
+          uv run python -c "import sys, sysconfig; print('Python exe:', sys.executable); print('Libdir:', sysconfig.get_config_var('LIBDIR'))"
+
+      # 🧱 Build with uv-managed interpreter
       - name: 🗂️ Build Artifacts
         run: ${{ matrix.build }}
 
@@ -43,6 +56,7 @@ jobs:
             dist/ArcaneAuditor*.app*
             dist/ArcaneAuditorCLI*
             dist/ArcaneAuditorWeb.exe
+
 
   create-vdevelop-release:
     name: 📦 Create vdevelop Draft Release
