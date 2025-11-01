@@ -22,34 +22,7 @@ hidden_imports = (
 # ---------------------------------------------------------------------------
 # Platform-aware data layout (critical for macOS code signing)
 # ---------------------------------------------------------------------------
-datas = []
-
-if sys.platform == "darwin":
-    # macOS — put all non-code resources inside Contents/Resources/
-    datas += [
-        # --- Assets ---
-        ("assets/arcane-auditor-splash.webp", "Resources/assets"),
-        ("assets/icons", "Resources/assets"),
-
-        # --- Web service config (for AppData seeding) ---
-        ("config/web/web_service_config.json.sample", "Resources/config/web"),
-
-        # --- Rule presets ---
-        ("config/rules/presets", "Resources/config/rules/presets"),
-
-        # --- Delivered rule directories ---
-        ("parser/rules/script", "Resources/parser/rules/script"),
-        ("parser/rules/structure", "Resources/parser/rules/structure"),
-
-        # --- Frontend files (HTML, CSS, JS) ---
-        ("web/frontend", "Resources/web/frontend"),
-
-        # --- Grammar for PMD parsing ---
-        ("parser/pmd_script_grammar.lark", "Resources/parser"),
-    ]
-else:
-    # Windows / Linux — keep flat directory layout
-    datas += [
+datas = [
         # --- Assets (logos/icons) ---
         ("assets/arcane-auditor-splash.webp", "assets"),
         ("assets/icons", "assets"),
@@ -82,7 +55,7 @@ a = Analysis(
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['hooks/runtime-hook-macos-paths.py'] if sys.platform == 'darwin' else [],
     excludes=['matplotlib', 'PIL', 'numpy', 'pandas', 'scipy', 'wx'],
     noarchive=False,
     optimize=0,
