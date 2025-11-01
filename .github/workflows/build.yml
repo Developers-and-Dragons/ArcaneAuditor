@@ -14,14 +14,7 @@ jobs:
   build:
     strategy:
       matrix:
-        include:
-          - os: windows-latest
-            shell: pwsh
-            build: ./scripts/build.ps1
-          - os: macos-latest
-            shell: bash
-            build: ./scripts/build.sh
-
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -48,20 +41,23 @@ jobs:
           uv run python -c "import sys, sysconfig, platform, os; print('Python exe:', sys.executable); print('LIBDIR:', sysconfig.get_config_var('LIBDIR')); print('Platform:', platform.platform()); print('CWD:', os.getcwd())"
         shell: bash
 
-      - name: 🏗️ Build project
-        shell: ${{ matrix.shell }}
+      # 🪟 WINDOWS BUILD
+      - name: 🏗️ Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          echo "🕒 Starting build script for ${{ runner.os }}"
+          echo "🕒 $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Starting Windows build"
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          pwsh ./scripts/build.ps1 2>&1 | Tee-Object -FilePath build-logs/build_Windows.log -Append
+
+      # 🍎 MAC BUILD
+      - name: 🏗️ Build (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting macOS build"
           mkdir -p build-logs
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            echo "================ BUILD START $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ================" | Tee-Object -FilePath build-logs/build_Windows.log -Append
-            pwsh ${{ matrix.build }} 2>&1 | Tee-Object -FilePath build-logs/build_Windows.log -Append
-            echo "================ BUILD END $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ================" | Tee-Object -FilePath build-logs/build_Windows.log -Append
-          else
-            echo "================ BUILD START $(date '+%Y-%m-%d %H:%M:%S') ================"
-            ${{ matrix.build }} 2>&1 | tee build-logs/build_${{ runner.os }}.log
-            echo "================ BUILD END $(date '+%Y-%m-%d %H:%M:%S') ================"
-          fi
+          bash ./scripts/build.sh 2>&1 | tee build-logs/build_macos.log
 
       - name: 📦 Upload build artifacts
         uses: actions/upload-artifact@v4
