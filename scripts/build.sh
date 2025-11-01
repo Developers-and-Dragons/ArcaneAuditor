@@ -1,27 +1,58 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-echo "🧙 Arcane Auditor – macOS Build Script (uv mode)"
+echo "🧙 Arcane Auditor – macOS Build Script (uv mode, pinned)"
+echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Build started"
+BUILD_LOG="build-logs/build_macos.log"
+mkdir -p build-logs
 
-# Ensure uv-managed Python exists
-uv python install 3.12
-echo "✅ uv Python ready: $(uv run python3 --version)"
+{
+    echo "=============================================================="
+    echo "🔧 Environment Information"
+    echo "=============================================================="
+    echo "DATE: $(date)"
+    echo "PWD: $(pwd)"
+    echo "USER: $(whoami)"
+    echo "PATH: $PATH"
+    echo "--------------------------------------------------------------"
 
-# Preserve uv path but strip system frameworks
-UV_BIN=$(dirname "$(command -v uv)")
-export PATH="$UV_BIN:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin"
+    echo "🧩 Checking uv installation..."
+    uv --version
 
-echo "🔍 Using uv from: $UV_BIN"
-echo "🔍 PATH: $PATH"
+    echo "📦 Ensuring uv-managed Python is installed and pinned..."
+    uv python install 3.12.6
+    uv python pin 3.12.6
+    echo "✅ uv Python pinned version:"
+    cat .python-version || echo "(no .python-version found!)"
 
-# Install dependencies
-uv pip install -r requirements.txt
-uv pip install pyinstaller
+    echo "✅ uv Python detected: $(uv run python3 --version)"
 
-echo "🏗 Building Desktop"
-uv run pyinstaller ArcaneAuditorDesktop.spec --clean --noconfirm
+    # Prevent PyInstaller from finding system framework Python
+    export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin"
 
-echo "🏗 Building CLI"
-uv run pyinstaller ArcaneAuditorCLI.spec --clean --noconfirm
+    echo "🔍 Python executable:"
+    uv run which python3
+    echo "--------------------------------------------------------------"
 
-echo "✨ macOS build complete!"
+    echo "📥 Installing runtime dependencies..."
+    uv pip install -r requirements.txt
+
+    echo "🛠 Installing PyInstaller..."
+    uv pip install pyinstaller
+
+    echo "=============================================================="
+    echo "🏗️ Building Arcane Auditor Desktop"
+    echo "=============================================================="
+    uv run pyinstaller -v ArcaneAuditorDesktop.spec --clean --noconfirm
+
+    echo "=============================================================="
+    echo "🏗️ Building Arcane Auditor CLI"
+    echo "=============================================================="
+    uv run pyinstaller -v ArcaneAuditorCLI.spec --clean --noconfirm
+
+    echo "=============================================================="
+    echo "✨ Build complete!"
+    echo "Output files:"
+    ls -lh dist/
+    echo "=============================================================="
+} 2>&1 | tee "$BUILD_LOG"

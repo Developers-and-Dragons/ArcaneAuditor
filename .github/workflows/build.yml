@@ -1,4 +1,4 @@
-name: 🗂️ Build (uv + PyInstaller)
+name: 🧪 Build (Diagnostic - Unsigned)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -23,31 +23,46 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: 📥 Checkout Source
+      - name: 📥 Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 🧙 Use the official uv setup (pin to a stable version)
       - name: 🧙 Setup uv
         uses: astral-sh/setup-uv@v6
         with:
           version: "0.9.6"
 
-      # 🐍 Install uv-managed Python (3.12 pinned)
-      - name: 🧩 Setup uv Python
-        run: uv python install 3.12
-
-      # 🧪 Verify the correct interpreter before build
-      - name: 🔍 Verify Python Env
+      - name: 🧩 Install Python (uv managed)
         run: |
-          uv run python -c "import sys, sysconfig; print('Python exe:', sys.executable); print('Libdir:', sysconfig.get_config_var('LIBDIR'))"
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Installing Python via uv"
+          uv python install 3.12
 
-      # 🧱 Build with uv-managed interpreter
-      - name: 🗂️ Build Artifacts
-        run: ${{ matrix.build }}
+      - name: 🔍 Verify Python runtime
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Environment diagnostics"
+          uv --version
+          uv run python -V
+          uv run python -c "import sys, sysconfig, platform, os; print('Python exe:', sys.executable); print('LIBDIR:', sysconfig.get_config_var('LIBDIR')); print('Platform:', platform.platform()); print('CWD:', os.getcwd())"
+          echo "PATH=$PATH"
 
-      - name: 📦 Upload Artifacts
+      - name: 🏗️ Build project with detailed logging
+        run: |
+          set -e
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting build script"
+          mkdir -p build-logs
+          {
+            echo "================ BUILD START $(date '+%Y-%m-%d %H:%M:%S') ================"
+            echo "Runner OS: $RUNNER_OS"
+            echo "Job Name: $GITHUB_JOB"
+            echo "Branch: $GITHUB_REF"
+            echo "Commit: $GITHUB_SHA"
+            echo "------------------------------------------------------"
+            ${{ matrix.build }}
+            echo "================ BUILD END $(date '+%Y-%m-%d %H:%M:%S') ================"
+          } 2>&1 | tee build-logs/build_${{ runner.os }}.log
+
+      - name: 📦 Upload build artifacts and logs
         uses: actions/upload-artifact@v4
         with:
           name: arcane-auditor-${{ runner.os }}
@@ -56,112 +71,4 @@ jobs:
             dist/ArcaneAuditor*.app*
             dist/ArcaneAuditorCLI*
             dist/ArcaneAuditorWeb.exe
-
-
-  create-vdevelop-release:
-    name: 📦 Create vdevelop Draft Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/develop'
-    
-    steps:
-      - name: 📥 Checkout Source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      
-      - name: 🔄 Sync vdevelop tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin develop --depth=1
-          git tag -f vdevelop origin/develop
-          git push origin vdevelop --force
-      
-      - name: 📥 Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      
-      - name: 📋 List downloaded artifacts
-        run: |
-          echo "🧾 Contents of artifacts/:"
-          ls -R ./artifacts || true
-      
-      - name: 🎯 Organize artifacts for upload
-        run: |
-          mkdir -p dist
-          
-          # Copy Windows executables
-          find ./artifacts -type f -name "*.exe" -exec cp {} ./dist/ \;
-          
-          # Copy DMG files if they exist
-          find ./artifacts -type f -name "*.dmg" -exec cp {} ./dist/ \;
-          
-          # Copy CLI binaries
-          find ./artifacts -type f -name "ArcaneAuditorCLI" -exec cp {} ./dist/ \;
-          
-          # Handle .app bundles by zipping them (they're directories)
-          find ./artifacts -type d -name "*.app" | while read app; do
-            if [ -d "$app" ]; then
-              app_name=$(basename "$app")
-              echo "📦 Zipping macOS app: $app_name"
-              cd "$(dirname "$app")"
-              zip -r -q "${app_name}.zip" "$app_name"
-              cd - > /dev/null
-              mv "$(dirname "$app")/${app_name}.zip" "./dist/"
-            fi
-          done
-          
-          echo "📦 Files ready for upload:"
-          ls -lh ./dist/
-      
-      - name: ✨ Create or update vdevelop draft release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          
-          # Check if a release named vdevelop already exists
-          if gh release view vdevelop >/dev/null 2>&1; then
-            echo "🧙 Updating existing draft release vdevelop"
-            
-            # 🗑️ DELETE ALL OLD ASSETS FIRST!
-            echo "🗑️  Cleaning old artifacts..."
-            gh release view vdevelop --json assets -q '.assets[].name' | while read -r asset; do
-              if [ ! -z "$asset" ]; then
-                echo "  Deleting: $asset"
-                gh release delete-asset vdevelop "$asset" --yes 2>/dev/null || true
-              fi
-            done
-            echo "✅ Old artifacts removed"
-            
-            gh release edit vdevelop --draft --notes "Unsigned build for signing (auto-updated from develop branch)"
-          else
-            echo "✨ Creating new draft release vdevelop"
-            gh release create vdevelop --draft --notes "Unsigned build for signing (auto-updated from develop branch)" --title "Development Build (vdevelop)"
-          fi
-          
-          echo "📦 Uploading distributable files..."
-          find ./dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "ArcaneAuditorCLI" \) | while read f; do
-            if [[ -f "$f" ]]; then
-              case "$f" in
-                *.dmg)
-                  echo "🍎 Uploading macOS installer: $f"
-                  ;;
-                *.zip)
-                  echo "📦 Uploading macOS app bundle: $f"
-                  ;;
-                *.exe)
-                  echo "🪟 Uploading Windows executable: $f"
-                  ;;
-                *ArcaneAuditorCLI)
-                  echo "⚙️  Uploading CLI binary: $f"
-                  ;;
-              esac
-              gh release upload vdevelop "$f" --clobber
-            fi
-          done
-          
-          echo "✅ Upload complete"
+            build-logs/
