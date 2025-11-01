@@ -27,9 +27,6 @@ mkdir -p build-logs
 
     echo "✅ uv Python detected: $(uv run python3 --version)"
 
-    # Prevent PyInstaller from finding system framework Python
-    export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin"
-
     echo "🔍 Python executable:"
     uv run which python3
     echo "--------------------------------------------------------------"
