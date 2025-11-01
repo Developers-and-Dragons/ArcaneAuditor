@@ -37,15 +37,12 @@ mkdir -p build-logs
     echo "🛠 Installing PyInstaller..."
     uv pip install pyinstaller
 
-    echo "=============================================================="
     echo "🏗️ Building Arcane Auditor Desktop"
-    echo "=============================================================="
-    uv run pyinstaller -v ArcaneAuditorDesktop.spec --clean --noconfirm
+    uv run --with pyinstaller pyinstaller -v ArcaneAuditorDesktop.spec --clean --noconfirm
 
-    echo "=============================================================="
     echo "🏗️ Building Arcane Auditor CLI"
-    echo "=============================================================="
-    uv run pyinstaller -v ArcaneAuditorCLI.spec --clean --noconfirm
+    uv run --with pyinstaller pyinstaller -v ArcaneAuditorCLI.spec --clean --noconfirm
+
 
     echo "=============================================================="
     echo "✨ Build complete!"
