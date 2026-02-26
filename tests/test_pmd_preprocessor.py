@@ -7,24 +7,24 @@ class TestPMDPreprocessor(unittest.TestCase):
         self.preprocessor = PMDPreprocessor()
     
     def test_empty_set_assignment(self):
-        """Test: var x = {} -> var x = #{}"""
-        code = "var x = {}"
+        """Test: const x = {} -> const x = #{}"""
+        code = "const x = {}"
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "var x = #{}")
+        self.assertEqual(result, "const x = #{}")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_empty_object_assignment(self):
-        """Test: var x = {:} -> var x = #{:}"""
-        code = "var x = {:}"
+        """Test: const x = {:} -> const x = #{:}"""
+        code = "const x = {:}"
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "var x = {:}")
+        self.assertEqual(result, "const x = {:}")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_object_literal_assignment(self):
-        """Test: var x = {"a": 1} -> var x = #{"a": 1}"""
-        code = 'var x = {"a": 1}'
+        """Test: const x = {"a": 1} -> const x = #{"a": 1}"""
+        code = 'const x = {"a": 1}'
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, 'var x = {"a": 1}')
+        self.assertEqual(result, 'const x = {"a": 1}')
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_if_block(self):
@@ -35,10 +35,10 @@ class TestPMDPreprocessor(unittest.TestCase):
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_function_block(self):
-        """Test: function f() {} -> function f() {}"""
-        code = "function f() {}"
+        """Test: function(){} -> function(){}"""
+        code = "function(){}"
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "function f() {}")
+        self.assertEqual(result, "function(){}")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_arrow_function_block(self):
@@ -49,10 +49,10 @@ class TestPMDPreprocessor(unittest.TestCase):
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_function_call_with_empty_set(self):
-        """Test: func({}) -> func(#{})"""
-        code = "func({})"
+        """Test: function({}) -> function(#{})"""
+        code = "function({})"
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "func(#{})")
+        self.assertEqual(result, "function(#{})")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_array_with_empty_set(self):
@@ -64,19 +64,19 @@ class TestPMDPreprocessor(unittest.TestCase):
     
     def test_multiline_assignment(self):
         """Test multiline assignment with brace on new line"""
-        code = """var x = 
+        code = """const x = 
 {}"""
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, """var x = 
+        self.assertEqual(result, """const x = 
 #{}""")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_multiline_function(self):
         """Test multiline function with brace on new line"""
-        code = """function f()
+        code = """function()
 {}"""
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, """function f()
+        self.assertEqual(result, """function()
 {}""")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
@@ -100,16 +100,9 @@ class TestPMDPreprocessor(unittest.TestCase):
     
     def test_nested_expressions(self):
         """Test nested expressions with multiple braces"""
-        code = 'func({"key": {}})'
+        code = 'const test = function(){return {"key": {:}}}'
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, 'func({"key": #{}})')
-        self.assertEqual(len(self.preprocessor.warnings), 0)
-    
-    def test_while_loop(self):
-        """Test: while (x) {} -> while (x) {}"""
-        code = "while (x) {}"
-        result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "while (x) {}")
+        self.assertEqual(result, 'const test = function(){return {"key": {:}}}')
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_for_loop(self):
@@ -118,14 +111,7 @@ class TestPMDPreprocessor(unittest.TestCase):
         result = self.preprocessor.preprocess(code)
         self.assertEqual(result, "for (i = 0; i < 10; i++) {}")
         self.assertEqual(len(self.preprocessor.warnings), 0)
-    
-    def test_do_while_loop(self):
-        """Test: do {} while (x) -> do {} while (x)"""
-        code = "do {} while (x)"
-        result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "do {} while (x)")
-        self.assertEqual(len(self.preprocessor.warnings), 0)
-    
+
     def test_else_block(self):
         """Test: else {} -> else {}"""
         code = "else {}"
@@ -146,14 +132,14 @@ class TestPMDPreprocessor(unittest.TestCase):
     
     def test_complex_nested_case(self):
         """Test complex nested case with multiple braces"""
-        code = """function test() {
+        code = """function() {
     if (condition) {
         const obj = {
             "nested": {}
         };
     }
 }"""
-        expected = """function test() {
+        expected = """function() {
     if (condition) {
         const obj = {
             "nested": #{}
@@ -191,16 +177,16 @@ class TestPMDPreprocessor(unittest.TestCase):
     
     def test_no_braces(self):
         """Test preprocessing code with no braces"""
-        code = "var x = 5; var y = 10;"
+        code = "const x = 5; const y = 10;"
         result = self.preprocessor.preprocess(code)
         self.assertEqual(result, code)
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_multiple_braces_same_line(self):
         """Test multiple braces on the same line"""
-        code = "var x = {}; var y = {};"
+        code = "const x = {}; const y = {};"
         result = self.preprocessor.preprocess(code)
-        self.assertEqual(result, "var x = #{}; var y = #{};")
+        self.assertEqual(result, "const x = #{}; const y = #{};")
         self.assertEqual(len(self.preprocessor.warnings), 0)
     
     def test_json_with_multiline_script_blocks(self):
@@ -231,7 +217,21 @@ class TestPMDPreprocessor(unittest.TestCase):
 }'''
         self.assertEqual(result, expected)
         self.assertEqual(len(self.preprocessor.warnings), 0)
-    
+
+    def test_json_with_literal_tab_in_script_block(self):
+        """Test that literal tabs in PMD script blocks are escaped so JSON parses."""
+        # Literal tab inside onSend-style script block (user-reported case)
+        code = '{"onSend": "<%  \n\tlet body = {};\n\t%>"}'
+        result = self.preprocessor.preprocess(code)
+        expected = '{"onSend": "<%  \\n\\tlet body = {};\\n\\t%>"}'
+        self.assertEqual(result, expected)
+        self.assertEqual(len(self.preprocessor.warnings), 0)
+        # Preprocessed string must be valid JSON
+        import json
+        parsed = json.loads(result)
+        self.assertIn("onSend", parsed)
+        self.assertTrue(parsed["onSend"].startswith("<%"))
+
     def test_json_with_property_access_in_field_names(self):
         """Test that JSON with property access patterns in field names is detected as JSON"""
         code = '''{

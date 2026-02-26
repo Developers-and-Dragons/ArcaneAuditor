@@ -475,6 +475,18 @@ class PMDPreprocessor:
                         else:
                             escaped_parts.append(char)
                         i += 1
+                    elif char == '\t':
+                        # Same logic for tab - literal tabs in script blocks break JSON parsing
+                        backslash_count = 0
+                        j = i - 1
+                        while j >= 0 and script_content[j] == '\\':
+                            backslash_count += 1
+                            j -= 1
+                        if backslash_count % 2 == 0:
+                            escaped_parts.append('\\t')
+                        else:
+                            escaped_parts.append(char)
+                        i += 1
                     else:
                         escaped_parts.append(char)
                         i += 1
