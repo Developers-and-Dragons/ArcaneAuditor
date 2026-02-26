@@ -1419,6 +1419,21 @@ const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
 const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 ```
 
+**Configuration:**
+
+- **`allow_wid_in_task_report_link_fields`** (boolean, default: false): When true, hardcoded WIDs in the `wid` field (used by Workday task/report link functionality) are not reported. Leave false to flag all hardcoded WIDs; set true if your app uses task or report links that require a WID in that field.
+
+```json
+{
+  "HardcodedWidRule": {
+    "enabled": true,
+    "custom_settings": {
+      "allow_wid_in_task_report_link_fields": false
+    }
+  }
+}
+```
+
 ---
 
 ### HardcodedWorkdayAPIRule
@@ -2255,7 +2270,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **WidgetIdRequiredRule**                 | Structure | 🚨 ACTION | ✅              | `excluded_widget_types`                               |
 | **WidgetIdLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedApplicationIdRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
-| **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | `allow_wid_in_task_report_link_fields`                 |
 | **PMDSectionOrderingRule**               | Structure | ℹ️ ADVICE | ✅              | `required_order`                                      |
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |

@@ -27,7 +27,22 @@ class HardcodedWidRule(StructureRuleBase):
     ID = "HardcodedWidRule"
     DESCRIPTION = "Detects hardcoded WID values that should be configured in app attributes"
     SEVERITY = "ADVICE"
-    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    AVAILABLE_SETTINGS = {
+        'allow_wid_in_task_report_link_fields': {
+            'type': 'bool',
+            'default': False,
+            'description': 'Allow WIDs in task/report link wid field values (Workday feature). When enabled, no finding is reported for hardcoded WIDs in field names "wid".'
+        }
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.allow_wid_in_task_report_link_fields = False
+
+    def apply_settings(self, custom_settings: dict) -> None:
+        """Apply custom settings from configuration."""
+        if 'allow_wid_in_task_report_link_fields' in custom_settings:
+            self.allow_wid_in_task_report_link_fields = bool(custom_settings['allow_wid_in_task_report_link_fields'])
     
     DOCUMENTATION = {
         'why': '''Hardcoded WIDs (Workday IDs) are often environment-specific - a worker or job WID from your WCPDev tenant won't exist in Production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!''',
@@ -37,7 +52,8 @@ class HardcodedWidRule(StructureRuleBase):
         ],
         'allows': [
             'Business process WID "d9e41a8c446c11de98360015c5e6daf6" (allowed exception)',
-            'Business process WID "d9e4223e446c11de98360015c5e6daf6" (allowed exception)'
+            'Business process WID "d9e4223e446c11de98360015c5e6daf6" (allowed exception)',
+            'WIDs in task/report link "wid" field when allow_wid_in_task_report_link_fields is enabled (Workday feature)'
         ],
         'examples': '''**Example violations:**
 
@@ -51,7 +67,8 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = 'd9e41a8c446
 const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
 const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 ```''',
-        'recommendation': 'Store WID values in app attributes instead of hardcoding them. This makes your application portable across environments and allows meaningful naming that helps developers understand the code.'
+        'recommendation': 'Store WID values in app attributes instead of hardcoding them. This makes your application portable across environments and allows meaningful naming that helps developers understand the code.',
+        'configuration': 'allow_wid_in_task_report_link_fields (boolean, default false): When true, hardcoded WIDs in the "wid" field (task/report link values) are not reported. Use this if your app uses Workday\'s task/report link feature where wid is required in those fields.'
     }
     
     # Allowed business process WIDs that are exceptions
@@ -93,6 +110,9 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
             
             for key, value in model.items():
                 if isinstance(value, str):
+                    # Skip task/report link wid field when config allows it
+                    if key == 'wid' and getattr(self, 'allow_wid_in_task_report_link_fields', False):
+                        continue
                     # Build descriptive path
                     context_path = path
                     if widget_id and widget_type:

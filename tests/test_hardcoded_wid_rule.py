@@ -214,6 +214,56 @@ class TestHardcodedWidRule:
         assert any('a1b2c3d4e5f6708192a3b4c5d6e7f890' in msg for msg in wid_messages)
         assert any('b2c3d4e5f6a70819f3e4d5c6b7a89012' in msg for msg in wid_messages)
 
+    def test_wid_field_returns_finding_by_default(self):
+        """By default, hardcoded WID in task/report link 'wid' field is reported."""
+        source_content = '{"id": "testPage", "presentation": {"body": {"type": "taskLink", "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890"}}}'
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content=source_content,
+            presentation={"body": {"type": "taskLink", "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890"}},
+        )
+        self.context.pmds["testPage"] = pmd_model
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "a1b2c3d4e5f6708192a3b4c5d6e7f890" in findings[0].message
+
+    def test_wid_field_ignored_when_allow_task_report_link_wids_true(self):
+        """When allow_wid_in_task_report_link_fields is True, WIDs in 'wid' field are not reported."""
+        source_content = '{"id": "testPage", "presentation": {"body": {"type": "taskLink", "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890"}}}'
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content=source_content,
+            presentation={"body": {"type": "taskLink", "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890"}},
+        )
+        self.context.pmds["testPage"] = pmd_model
+        self.rule.apply_settings({"allow_wid_in_task_report_link_fields": True})
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_other_fields_still_checked_when_allow_task_report_link_wids_true(self):
+        """When allow_wid_in_task_report_link_fields is True, only 'wid' field is exempt; other fields still report."""
+        source_content = '{"id": "testPage", "presentation": {"body": {"type": "section", "children": [{"type": "text", "value": "WID: b2c3d4e5f6a70819f3e4d5c6b7a89012"}]}, "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890"}}'
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content=source_content,
+            presentation={
+                "body": {
+                    "type": "section",
+                    "children": [{"type": "text", "value": "WID: b2c3d4e5f6a70819f3e4d5c6b7a89012"}],
+                },
+                "wid": "a1b2c3d4e5f6708192a3b4c5d6e7f890",
+            },
+        )
+        self.context.pmds["testPage"] = pmd_model
+        self.rule.apply_settings({"allow_wid_in_task_report_link_fields": True})
+        findings = list(self.rule.analyze(self.context))
+        # Should still report the WID in body.children[0].value, not the one in "wid"
+        assert len(findings) == 1
+        assert "b2c3d4e5f6a70819f3e4d5c6b7a89012" in findings[0].message
+
 
 if __name__ == '__main__':
     pytest.main([__file__])
