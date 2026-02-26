@@ -26,6 +26,42 @@ class ScriptModel(BaseModel):
     source: str
     file_path: str = Field(..., exclude=True) # Exclude from exported model data
 
+
+class WQLQueryModel(BaseModel):
+    """Represents the structure of a .wqlquery file."""
+    id: str
+    parameters: Optional[List[str]] = Field(default_factory=list)
+    query: Optional[str] = None
+    offset: Optional[str] = None
+    limit: Optional[str] = None
+    file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
+
+    # Private attribute to store hash-based line mappings (same as PMDModel/PodModel)
+    _hash_to_lines: Optional[Dict[str, List[List[int]]]] = PrivateAttr(default=None)
+
+    def set_hash_to_lines_mapping(self, hash_to_lines: Dict[str, List[List[int]]]):
+        """Set the hash-based line mappings for precise line number tracking."""
+        self._hash_to_lines = hash_to_lines or {}
+
+    def get_script_start_line(self, script_value: str) -> Optional[int]:
+        """
+        Get the starting line number for a script value using hash-based mapping.
+
+        Mirrors PMDModel.get_script_start_line() so shared script-field extraction works.
+        """
+        import hashlib
+
+        if not self._hash_to_lines:
+            return None
+
+        content_hash = hashlib.sha256(script_value.encode('utf-8')).hexdigest()
+        if content_hash in self._hash_to_lines and self._hash_to_lines[content_hash]:
+            line_list = self._hash_to_lines[content_hash].pop(0)
+            return line_list[0] if line_list else None
+
+        return None
+
 class PMDIncludes(BaseModel):
     scripts: Optional[List[str]] = Field(default_factory=list)
 
@@ -452,6 +488,7 @@ class ProjectContext:
         self.amd: AMDModel = None                    # Assumes one .amd file per app
         self.pods: Dict[str, PodModel] = {}          # Maps podId to PodModel
         self.smd: SMDModel = None                    # Assumes one .smd file per app
+        self.wqlqueries: Dict[str, WQLQueryModel] = {}  # Maps id to WQLQueryModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
         
         # Context tracking for informing users about missing cross-file dependencies

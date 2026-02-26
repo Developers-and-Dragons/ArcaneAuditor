@@ -254,5 +254,41 @@ class TestPMDPreprocessor(unittest.TestCase):
         self.assertEqual(result, code)
         self.assertEqual(len(self.preprocessor.warnings), 0)
 
+
+class TestPreprocessWqlqueryContent(unittest.TestCase):
+    """Tests for preprocess_wqlquery_content (multi-line query/offset/limit)."""
+
+    def test_multiline_query_escaped(self):
+        """Multi-line query value is escaped so JSON parses."""
+        from parser.pmd_preprocessor import preprocess_wqlquery_content
+        content = '''{
+  "id": "getWorkers",
+  "query": "
+      SELECT worker
+      FROM workers
+  ",
+  "offset": "<% offsetParam %>",
+  "limit": "<% limitParam %>"
+}'''
+        result = preprocess_wqlquery_content(content)
+        self.assertIn('\\n', result)
+        self.assertNotIn('\n      SELECT', result)
+        import json
+        parsed = json.loads(result)
+        self.assertEqual(parsed["id"], "getWorkers")
+        self.assertIn("SELECT worker", parsed["query"])
+        self.assertIn("\n", parsed["query"])
+
+    def test_tab_in_query_escaped(self):
+        """Literal tab in query value is escaped so JSON parses."""
+        from parser.pmd_preprocessor import preprocess_wqlquery_content
+        content = '{"id": "q", "query": "SELECT\tworker", "offset": "", "limit": ""}'
+        result = preprocess_wqlquery_content(content)
+        self.assertIn('\\t', result)
+        import json
+        parsed = json.loads(result)
+        self.assertEqual(parsed["query"], "SELECT\tworker")
+
+
 if __name__ == '__main__':
     unittest.main()

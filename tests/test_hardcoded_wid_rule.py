@@ -264,6 +264,24 @@ class TestHardcodedWidRule:
         assert len(findings) == 1
         assert "b2c3d4e5f6a70819f3e4d5c6b7a89012" in findings[0].message
 
+    def test_hardcoded_wid_in_wqlquery(self):
+        """Test that hardcoded WIDs in WQL query files are detected."""
+        from parser.models import WQLQueryModel
+        wql_model = WQLQueryModel(
+            id="getWorkersHiredAfter",
+            parameters=["locationId"],
+            query='SELECT worker FROM workers WHERE countryWid = "a1b2c3d4e5f6708192a3b4c5d6e7f890"',
+            offset="<% offsetParam %>",
+            limit="<% limitParam %>",
+            file_path="getWorkersHiredAfter.wqlquery",
+            source_content='{"id":"getWorkersHiredAfter","query":"SELECT worker FROM workers WHERE countryWid = \\"a1b2c3d4e5f6708192a3b4c5d6e7f890\\""}',
+        )
+        self.context.wqlqueries["getWorkersHiredAfter"] = wql_model
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "a1b2c3d4e5f6708192a3b4c5d6e7f890" in findings[0].message
+        assert "wqlquery" in findings[0].file_path
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

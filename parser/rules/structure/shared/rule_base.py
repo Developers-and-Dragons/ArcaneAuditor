@@ -7,7 +7,7 @@ that analyze PMD and POD files for structural compliance issues.
 from abc import ABC, abstractmethod
 from typing import Generator, List, Dict, Any, Optional
 from ...base import Rule, Finding
-from ....models import PMDModel, PodModel, ProjectContext
+from ....models import PMDModel, PodModel, ProjectContext, WQLQueryModel
 
 
 class StructureRuleBase(Rule, ABC):
@@ -31,7 +31,11 @@ class StructureRuleBase(Rule, ABC):
         # Analyze AMD file if present
         if context.amd:
             yield from self._analyze_amd(context.amd, context)
-    
+
+        # Analyze WQL query files if present
+        for wql_model in getattr(context, "wqlqueries", {}).values():
+            yield from self._analyze_wqlquery(wql_model, context)
+
     def _analyze_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD file - must be implemented by subclasses."""
         yield from self.visit_pmd(pmd_model, context)
@@ -43,7 +47,11 @@ class StructureRuleBase(Rule, ABC):
     def _analyze_amd(self, amd_model, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze AMD file - can be overridden by subclasses."""
         yield from self.visit_amd(amd_model, context)
-    
+
+    def _analyze_wqlquery(self, wql_model: WQLQueryModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze WQL query file - can be overridden by subclasses."""
+        yield from self.visit_wqlquery(wql_model, context)
+
     @abstractmethod
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit PMD model - must be implemented by subclasses."""
@@ -56,6 +64,11 @@ class StructureRuleBase(Rule, ABC):
     
     def visit_amd(self, amd_model, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit AMD model - can be overridden by subclasses."""
+        # Default implementation does nothing
+        return
+
+    def visit_wqlquery(self, wql_model: WQLQueryModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Visit WQL query model - can be overridden by subclasses."""
         # Default implementation does nothing
         return
         yield  # This line is never reached, but makes it a generator

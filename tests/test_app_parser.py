@@ -19,7 +19,7 @@ class TestModelParser:
     
     def test_init(self):
         """Test parser initialization."""
-        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd'}
+        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery'}
     
     def test_parse_files_empty_map(self):
         """Test parsing empty source files map."""
@@ -236,6 +236,30 @@ class TestModelParser:
         # Should raise JSONDecodeError when JSON parsing fails
         with pytest.raises(json.JSONDecodeError):
             self.parser._parse_amd_file("app.amd", mock_file, context)
+
+    def test_parse_wqlquery_file_json_success(self):
+        """Test successful JSON parsing of WQL query file."""
+        wql_content = json.dumps({
+            "id": "getWorkersHiredAfter",
+            "parameters": ["locationId", "hireDate", "offsetParam", "limitParam"],
+            "query": "SELECT worker FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers) WHERE location in (\"<% locationId %>\")",
+            "offset": "<% const offset = offsetParam; offset %>",
+            "limit": "<% limitParam %>"
+        })
+
+        mock_file = Mock()
+        mock_file.content = wql_content
+
+        context = ProjectContext()
+        self.parser._parse_single_file("getWorkersHiredAfter.wqlquery", mock_file, context)
+
+        assert hasattr(context, "wqlqueries")
+        assert "getWorkersHiredAfter" in context.wqlqueries
+        wql_model = context.wqlqueries["getWorkersHiredAfter"]
+        assert wql_model.id == "getWorkersHiredAfter"
+        assert wql_model.parameters == ["locationId", "hireDate", "offsetParam", "limitParam"]
+        assert "<% locationId %>" in wql_model.query
+        assert "<% limitParam %>" in wql_model.limit
     
     def test_parse_single_file_pmd(self):
         """Test single file parsing for PMD files."""

@@ -505,6 +505,38 @@ class PMDPreprocessor:
         return ''.join(result)
 
 
+def preprocess_wqlquery_content(content: str) -> str:
+    """
+    Escape literal newlines and tabs in .wqlquery "query", "offset", and "limit"
+    string values so the file is valid JSON (like PMD preprocessing for script blocks).
+    """
+    spans = []
+    for key in ('query', 'offset', 'limit'):
+        pattern = re.escape(f'"{key}"') + r'\s*:\s*"'
+        for m in re.finditer(pattern, content):
+            value_start = m.end()
+            i = value_start
+            while i < len(content):
+                if content[i] == '\\' and i + 1 < len(content):
+                    i += 2
+                    continue
+                if content[i] == '"':
+                    value_end = i
+                    inner = content[value_start:value_end]
+                    inner_escaped = (
+                        inner.replace('\n', '\\n')
+                        .replace('\r', '\\r')
+                        .replace('\t', '\\t')
+                    )
+                    spans.append((value_start, value_end, inner_escaped))
+                    break
+                i += 1
+    result = content
+    for value_start, value_end, inner_escaped in sorted(spans, key=lambda x: -x[0]):
+        result = result[:value_start] + inner_escaped + result[value_end:]
+    return result
+
+
 def preprocess_pmd_content(content: str) -> Tuple[str, dict, Dict[str, List[List[int]]]]:
     """
     Preprocess PMD/Pod FULL FILE content with line tracking.

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel
+from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel, WQLQueryModel
 from .pmd_preprocessor import PMDPreprocessor
 
 
@@ -14,7 +14,7 @@ class ModelParser:
     """Parses source files into PMD models for analysis."""
     
     def __init__(self):
-        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd'}
+        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery'}
     
     def _filter_commented_keys(self, data):
         """
@@ -117,6 +117,9 @@ class ModelParser:
         
         # Merge Pods
         main_context.pods.update(temp_context.pods)
+
+        # Merge WQL Queries
+        main_context.wqlqueries.update(temp_context.wqlqueries)
         
         # Handle SMD (only one expected)
         if temp_context.smd:
@@ -141,6 +144,43 @@ class ModelParser:
             self._parse_pod_file(file_path, source_file, context)
         elif extension == '.script':
             self._parse_script_file(file_path, source_file, context)
+        elif extension == '.wqlquery':
+            self._parse_wqlquery_file(file_path, source_file, context)
+
+    def _parse_wqlquery_file(self, file_path: str, source_file: Any, context: ProjectContext):
+        """Parse a .wqlquery file into a WQLQueryModel."""
+        try:
+            content = source_file.content.strip()
+            path_obj = Path(file_path)
+
+            # Escape newlines/tabs in query/offset/limit so multi-line values are valid JSON
+            from .pmd_preprocessor import preprocess_wqlquery_content, preprocess_pmd_content
+            content = preprocess_wqlquery_content(content)
+            # Then handle script blocks (<% %>) like PMD/POD
+            processed_content, _, hash_to_lines = preprocess_pmd_content(content)
+
+            wql_data = json.loads(processed_content)
+            wql_data = self._filter_commented_keys(wql_data)
+
+            wql_model = WQLQueryModel(
+                id=wql_data.get('id', path_obj.stem),
+                parameters=wql_data.get('parameters', []) or [],
+                query=wql_data.get('query'),
+                offset=wql_data.get('offset'),
+                limit=wql_data.get('limit'),
+                file_path=file_path,
+                source_content=content
+            )
+            wql_model.set_hash_to_lines_mapping(hash_to_lines)
+
+            context.wqlqueries[wql_model.id] = wql_model
+
+            from utils.file_path_utils import strip_uuid_prefix
+            cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
+            print(f"Parsed WQLQuery: {cleaned_filename}")
+        except Exception as e:
+            print(f"Failed to parse WQLQuery file {file_path}: {e}")
+            raise
     
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .pmd file into a PMDModel."""

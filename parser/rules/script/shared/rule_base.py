@@ -39,10 +39,31 @@ class ScriptRuleBase(Rule, ABC):
         # Analyze POD files
         for pod in context.pods.values():
             yield from self._analyze_pod(pod, context)
+
+        # Analyze WQL query files (offset/limit/query fields only)
+        if hasattr(context, "wqlqueries"):
+            for wql_model in context.wqlqueries.values():
+                yield from self._analyze_wqlquery(wql_model, context)
         
         # Analyze script files
         for script in context.scripts.values():
             yield from self._analyze_script(script, context)
+
+    def _analyze_wqlquery(self, wql_model, context=None) -> Generator[Finding, None, None]:
+        """Analyze .wqlquery file for script fields in query/offset/limit."""
+        for field in ("query", "offset", "limit"):
+            value = getattr(wql_model, field, None)
+            if isinstance(value, str) and "<%" in value and "%>" in value:
+                try:
+                    yield from self._check(
+                        value,
+                        f"wqlquery.{field}",
+                        wql_model.file_path,
+                        1,
+                        context
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to analyze wqlquery {wql_model.file_path} field {field}: {e}")
     
     def _analyze_pmd(self, pmd_model: PMDModel, context) -> Generator[Finding, None, None]:
         """Analyze PMD file for script fields."""
