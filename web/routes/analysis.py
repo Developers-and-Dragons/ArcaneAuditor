@@ -98,7 +98,7 @@ async def upload_file(
             
             for file in files:
                 # Validate file extension
-                valid_extensions = ['.pmd', '.pod', '.amd', '.smd', '.script']
+                valid_extensions = ['.pmd', '.pod', '.amd', '.smd', '.script', '.wqlquery', '.orchestration']
                 if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
                     raise HTTPException(status_code=400, detail=f"Invalid file type: {file.filename}. Only {', '.join(valid_extensions)} files are allowed.")
                 
