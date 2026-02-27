@@ -77,6 +77,7 @@ class RulesConfig(BaseModel):
     HardcodedApplicationIdRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded applicationId values that should be replaced with site.applicationId")
     HardcodedWidRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded WID values that should be configured in app attributes")
     PMDSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Validates that PMD files have a securityDomains section and that it is not empty")
+    OrchestrationSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures Sync and Async orchestrations have at least one security domain")
     FileNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all file names follow lowerCamelCase naming convention")
     MultipleStringInterpolatorsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects multiple string interpolators in a single string which should use template literals instead")
 
@@ -86,7 +87,7 @@ class FileProcessingConfig(BaseModel):
     max_file_size: int = Field(default=52428800, description="Maximum file size in bytes (50MB)")
     max_zip_size: int = Field(default=524288000, description="Maximum zip file size in bytes (500MB)")
     relevant_extensions: List[str] = Field(
-        default=[".pod", ".pmd", ".script", ".amd", ".smd", ".wqlquery"],
+        default=[".pod", ".pmd", ".script", ".amd", ".smd", ".wqlquery", ".orchestration"],
         description="File extensions to process"
     )
     encoding: str = Field(default="utf-8", description="Default file encoding")

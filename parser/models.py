@@ -27,6 +27,17 @@ class ScriptModel(BaseModel):
     file_path: str = Field(..., exclude=True) # Exclude from exported model data
 
 
+class OrchestrationModel(BaseModel):
+    """Represents the structure of a .orchestration file (Orchestrate flow)."""
+    flow_type: str  # e.g. FlowSync, FlowAsync, FlowBusinessProcessTriggered, IntegrationFrameworkTrigger
+    id: str
+    name: str
+    security_domains: Optional[List[str]] = None
+    raw_value: Dict[str, Any] = Field(default_factory=dict)  # full _value dict for rules to traverse
+    file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
+
+
 class WQLQueryModel(BaseModel):
     """Represents the structure of a .wqlquery file."""
     id: str
@@ -489,6 +500,7 @@ class ProjectContext:
         self.pods: Dict[str, PodModel] = {}          # Maps podId to PodModel
         self.smd: SMDModel = None                    # Assumes one .smd file per app
         self.wqlqueries: Dict[str, WQLQueryModel] = {}  # Maps id to WQLQueryModel
+        self.orchestrations: Dict[str, OrchestrationModel] = {}  # Maps id (or name) to OrchestrationModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
         
         # Context tracking for informing users about missing cross-file dependencies

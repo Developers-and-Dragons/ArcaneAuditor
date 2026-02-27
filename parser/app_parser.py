@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel, WQLQueryModel
+from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel, WQLQueryModel, OrchestrationModel
 from .pmd_preprocessor import PMDPreprocessor
 
 
@@ -14,7 +14,7 @@ class ModelParser:
     """Parses source files into PMD models for analysis."""
     
     def __init__(self):
-        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery'}
+        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration'}
     
     def _filter_commented_keys(self, data):
         """
@@ -120,6 +120,9 @@ class ModelParser:
 
         # Merge WQL Queries
         main_context.wqlqueries.update(temp_context.wqlqueries)
+
+        # Merge Orchestrations
+        main_context.orchestrations.update(temp_context.orchestrations)
         
         # Handle SMD (only one expected)
         if temp_context.smd:
@@ -146,6 +149,62 @@ class ModelParser:
             self._parse_script_file(file_path, source_file, context)
         elif extension == '.wqlquery':
             self._parse_wqlquery_file(file_path, source_file, context)
+        elif extension == '.orchestration':
+            self._parse_orchestration_file(file_path, source_file, context)
+
+    def _unwrap_orchestration_value(self, obj: Any) -> Any:
+        """Unwrap typed envelope: return obj['_value'] if obj is a dict with _value."""
+        if obj is None:
+            return None
+        if isinstance(obj, dict) and "_value" in obj:
+            return obj["_value"]
+        return obj
+
+    def _parse_orchestration_file(self, file_path: str, source_file: Any, context: ProjectContext):
+        """Parse a .orchestration file into an OrchestrationModel."""
+        try:
+            content = source_file.content.strip()
+            if "\n" in content or "\r" in content:
+                content = content.replace("\r", "").replace("\n", "")
+            data = json.loads(content)
+            if data.get("_type") != "Flow" or "_value" not in data:
+                raise ValueError("Orchestration root must have _type 'Flow' and _value")
+            val = data["_value"]
+            flow_type_val = self._unwrap_orchestration_value(val.get("type"))
+            flow_type = flow_type_val if isinstance(flow_type_val, str) else ""
+            orch_id = self._unwrap_orchestration_value(val.get("id"))
+            orch_id = orch_id if isinstance(orch_id, str) else ""
+            orch_name = self._unwrap_orchestration_value(val.get("name"))
+            orch_name = orch_name if isinstance(orch_name, str) else ""
+            sd_node = val.get("securityDomains")
+            security_domains = None
+            if sd_node is not None:
+                inner = self._unwrap_orchestration_value(sd_node)
+                if inner is not None:
+                    lst = self._unwrap_orchestration_value(inner) if isinstance(inner, dict) else inner
+                    if isinstance(lst, list):
+                        security_domains = [
+                            self._unwrap_orchestration_value(x) or x
+                            for x in lst
+                        ]
+                        security_domains = [x if isinstance(x, str) else str(x) for x in security_domains]
+            orch_model = OrchestrationModel(
+                flow_type=flow_type,
+                id=orch_id,
+                name=orch_name,
+                security_domains=security_domains,
+                raw_value=val,
+                file_path=file_path,
+                source_content=source_file.content,
+            )
+            key = orch_id or orch_name or str(len(context.orchestrations))
+            context.orchestrations[key] = orch_model
+            from utils.file_path_utils import strip_uuid_prefix
+            cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
+            print(f"Parsed Orchestration: {cleaned_filename}")
+        except Exception as e:
+            print(f"Failed to parse orchestration file {file_path}: {e}")
+            raise
 
     def _parse_wqlquery_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .wqlquery file into a WQLQueryModel."""

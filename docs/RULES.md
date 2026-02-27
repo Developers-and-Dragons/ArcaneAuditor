@@ -50,6 +50,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [OnlyMaximumEffortRule](#onlymaximumeffortrule)
 - [PMDSectionOrderingRule](#pmdsectionorderingrule)
 - [PMDSecurityDomainRule](#pmdsecuritydomainrule)
+- [OrchestrationSecurityDomainRule](#orchestrationsecuritydomainrule)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -59,7 +60,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization
+- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, PMD organization, and orchestration (`.orchestration`) validation
 
 ## Severity Levels
 
@@ -1892,6 +1893,29 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 
 ---
 
+### OrchestrationSecurityDomainRule
+
+**Severity:** 🚨ACTION
+**Description:** Ensures Synchronous and Asynchronous orchestrations have at least one security domain defined
+**Applies to:** `.orchestration` files (Sync and Async flow types only)
+
+**Why This Matters:**
+
+Security domains control access to orchestrations in Workday. Sync and Async flows must define at least one security domain. Business Process Triggered and Integration flows are not checked by this rule.
+
+**What it catches:**
+
+- Sync/Async orchestrations with missing `securityDomains`
+- Sync/Async orchestrations with empty `securityDomains` list
+
+**Example message:**
+
+Orchestration 'myFlow' must define at least one security domain (securityDomains).
+
+**Configuration:** No custom settings.
+
+---
+
 ### WidgetIdRequiredRule
 
 **Severity:** 🚨ACTION
@@ -2273,6 +2297,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | `allow_wid_in_task_report_link_fields`                 |
 | **PMDSectionOrderingRule**               | Structure | ℹ️ ADVICE | ✅              | `required_order`                                      |
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
+| **OrchestrationSecurityDomainRule**     | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
