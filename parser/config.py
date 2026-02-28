@@ -87,7 +87,7 @@ class FileProcessingConfig(BaseModel):
     max_file_size: int = Field(default=52428800, description="Maximum file size in bytes (50MB)")
     max_zip_size: int = Field(default=524288000, description="Maximum zip file size in bytes (500MB)")
     relevant_extensions: List[str] = Field(
-        default=[".pod", ".pmd", ".script", ".amd", ".smd", ".wqlquery", ".orchestration"],
+        default=[".pod", ".pmd", ".script", ".amd", ".smd", ".wqlquery", ".orchestration", ".suborchestration"],
         description="File extensions to process"
     )
     encoding: str = Field(default="utf-8", description="Default file encoding")

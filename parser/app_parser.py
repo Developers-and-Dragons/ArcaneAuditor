@@ -14,7 +14,7 @@ class ModelParser:
     """Parses source files into PMD models for analysis."""
     
     def __init__(self):
-        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration'}
+        self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration', '.suborchestration'}
     
     def _filter_commented_keys(self, data):
         """
@@ -149,7 +149,7 @@ class ModelParser:
             self._parse_script_file(file_path, source_file, context)
         elif extension == '.wqlquery':
             self._parse_wqlquery_file(file_path, source_file, context)
-        elif extension == '.orchestration':
+        elif extension == '.orchestration' or extension == '.suborchestration':
             self._parse_orchestration_file(file_path, source_file, context)
 
     def _unwrap_orchestration_value(self, obj: Any) -> Any:

@@ -596,7 +596,7 @@ class ArcaneAuditorApp {
             if (zipFiles.length > 0) {
                 // If multiple ZIP files are present, show error
                 if (zipFiles.length > 1) {
-                    this.showError('Only one ZIP file can be uploaded at a time. Please drop a single ZIP file or individual files (.pmd, .pod, .amd, .smd, .script, .wqlquery, .orchestration).');
+                    this.showError('Only one ZIP file can be uploaded at a time. Please drop a single ZIP file or individual files (.pmd, .pod, .amd, .smd, .script, .wqlquery, .orchestration, .suborchestration).');
                     return;
                 }
                 // Single ZIP file - proceed with upload
@@ -605,7 +605,7 @@ class ArcaneAuditorApp {
                 this.uploadFile(zipFiles[0]); // Auto-upload ZIP files
             } else {
                 // No ZIP files - handle individual files
-                const validExtensions = ['.pmd', '.pod', '.amd', '.smd', '.script', '.wqlquery', '.orchestration'];
+                const validExtensions = ['.pmd', '.pod', '.amd', '.smd', '.script', '.wqlquery', '.orchestration', '.suborchestration'];
                 const validFiles = files.filter(file => {
                     return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
                 });
@@ -615,7 +615,7 @@ class ArcaneAuditorApp {
                     this.uploadedFileName = null; // Don't set for individual files
                     this.updateSelectedFilesDisplay(); // Show files in list for individual files
                 } else {
-                    this.showError('Please drop valid files (.zip or .pmd, .pod, .amd, .smd, .script, .wqlquery, .orchestration)');
+                    this.showError('Please drop valid files (.zip or .pmd, .pod, .amd, .smd, .script, .wqlquery, .orchestration, .suborchestration)');
                     return;
                 }
             }

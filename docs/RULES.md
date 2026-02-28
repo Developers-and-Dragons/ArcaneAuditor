@@ -60,7 +60,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, PMD organization, and orchestration (`.orchestration`) validation
+- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, PMD organization, and orchestration (`.orchestration`, `.suborchestration`) validation
 
 ## Severity Levels
 
@@ -1506,7 +1506,7 @@ Hardcoded workday.com URLs are not update safe and lack regional awareness. Usin
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files.*
+*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration (`.orchestration`) and suborchestration (`.suborchestration`) files; suborchestrations are reusable flow modules (FlowSubflow) and some rules apply only to certain flow types (e.g. security domain only to Sync/Async).*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1897,11 +1897,11 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 
 **Severity:** 🚨ACTION
 **Description:** Ensures Synchronous and Asynchronous orchestrations have at least one security domain defined
-**Applies to:** `.orchestration` files (Sync and Async flow types only)
+**Applies to:** `.orchestration` and `.suborchestration` files (Sync and Async flow types only; suborchestrations are FlowSubflow and are not checked by this rule).
 
 **Why This Matters:**
 
-Security domains control access to orchestrations in Workday. Sync and Async flows must define at least one security domain. Business Process Triggered and Integration flows are not checked by this rule.
+Security domains control access to orchestrations in Workday. Sync and Async flows must define at least one security domain. Business Process Triggered, Integration, and Subflow (suborchestration) flows are not checked by this rule.
 
 **What it catches:**
 

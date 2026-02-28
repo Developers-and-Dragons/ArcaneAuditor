@@ -19,7 +19,7 @@ class TestModelParser:
     
     def test_init(self):
         """Test parser initialization."""
-        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration'}
+        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration', '.suborchestration'}
     
     def test_parse_files_empty_map(self):
         """Test parsing empty source files map."""
@@ -288,6 +288,34 @@ class TestModelParser:
         orch = context.orchestrations["o4i-id-1"]
         assert orch.flow_type == ".maya.IntegrationFrameworkTrigger"
         assert orch.name == "myIntegration"
+
+    def test_parse_suborchestration_file(self):
+        """Test successful parsing of .suborchestration file (FlowSubflow)."""
+        suborch_content = json.dumps({
+            "flowVersion": "3.3.0",
+            "_type": "Flow",
+            "_value": {
+                "id": {"_type": "String", "_value": "sub-id-1"},
+                "name": {"_type": "Identifier", "_value": "subOrch"},
+                "type": {"_type": "FlowType", "_value": ".maya.FlowSubflow"},
+                "start": {"_type": "StartSubflow", "_value": {"parameters": {"_type": ["List", "ExprParameter"], "_value": []}}},
+                "end": {"_type": "EndSubflow", "_value": {"exports": {"_type": ["List", "Assignment"], "_value": []}}},
+                "nodes": {"_type": ["List", "Node"], "_value": []},
+                "securityDomains": {"_type": ["Opt", ["List", "String"]], "_value": None},
+            },
+        })
+        mock_file = Mock()
+        mock_file.content = suborch_content
+        context = ProjectContext()
+        self.parser._parse_single_file("subOrch.suborchestration", mock_file, context)
+        assert hasattr(context, "orchestrations")
+        assert "sub-id-1" in context.orchestrations
+        orch = context.orchestrations["sub-id-1"]
+        assert orch.flow_type == ".maya.FlowSubflow"
+        assert orch.name == "subOrch"
+        assert "start" in orch.raw_value
+        start = orch.raw_value["start"]
+        assert isinstance(start, dict) and start.get("_type") == "StartSubflow"
 
     def test_parse_orchestration_file_with_security_domains(self):
         """Test parsing orchestration with non-empty securityDomains."""
