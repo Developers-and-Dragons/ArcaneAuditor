@@ -78,6 +78,7 @@ class RulesConfig(BaseModel):
     HardcodedWidRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded WID values that should be configured in app attributes")
     PMDSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Validates that PMD files have a securityDomains section and that it is not empty")
     OrchestrationSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures Sync and Async orchestrations have at least one security domain")
+    OrchestrationGlobalErrorHandlerRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures orchestrations have a global error handler (Sync, Async, BPT, Integration)")
     FileNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all file names follow lowerCamelCase naming convention")
     MultipleStringInterpolatorsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects multiple string interpolators in a single string which should use template literals instead")
 

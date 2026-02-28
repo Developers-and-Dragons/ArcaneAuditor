@@ -51,6 +51,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [PMDSectionOrderingRule](#pmdsectionorderingrule)
 - [PMDSecurityDomainRule](#pmdsecuritydomainrule)
 - [OrchestrationSecurityDomainRule](#orchestrationsecuritydomainrule)
+- [OrchestrationGlobalErrorHandlerRule](#orchestrationglobalerrorhandlerrule)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -1506,7 +1507,7 @@ Hardcoded workday.com URLs are not update safe and lack regional awareness. Usin
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration (`.orchestration`) and suborchestration (`.suborchestration`) files; suborchestrations are reusable flow modules (FlowSubflow) and some rules apply only to certain flow types (e.g. security domain only to Sync/Async).*
+*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration and suborchestration files; some rules apply only to certain flow types (e.g. security domain only to Sync/Async).*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1897,20 +1898,42 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 
 **Severity:** 🚨ACTION
 **Description:** Ensures Synchronous and Asynchronous orchestrations have at least one security domain defined
-**Applies to:** `.orchestration` and `.suborchestration` files (Sync and Async flow types only; suborchestrations are FlowSubflow and are not checked by this rule).
+**Applies to:** Sync and Async Orchestration templates only; Suborchestrations are not checked by this rule.
 
 **Why This Matters:**
 
-Security domains control access to orchestrations in Workday. Sync and Async flows must define at least one security domain. Business Process Triggered, Integration, and Subflow (suborchestration) flows are not checked by this rule.
+Security domains control access to orchestrations in Workday. Sync and Async flows must define a security domain. Business Process Triggered, Integration, and Suborchestrations are not checked by this rule, as they do not currently support security domains.
 
 **What it catches:**
 
 - Sync/Async orchestrations with missing `securityDomains`
-- Sync/Async orchestrations with empty `securityDomains` list
 
 **Example message:**
 
 Orchestration 'myFlow' must define at least one security domain (securityDomains).
+
+**Configuration:** No custom settings.
+
+---
+
+### OrchestrationGlobalErrorHandlerRule
+
+**Severity:** 🚨 ACTION
+**Description:** Ensures orchestrations have a global error handler for uncaught or propagated errors.
+**Applies to:** Orchestration files only. Applies to Sync, Async, Business Process Triggered, and Integration flow types. Suborchestrations are not checked because they do not support global handlers.
+
+**Why This Matters:**
+
+A global error handler is required when an uncaught error occurs or when a local (step-level) error handler propagates the error. The global handler is the safety net.
+
+**What it catches:**
+
+- Orchestrations (Sync, Async, BPT, Integration) with missing top-level (global) `errorHandler`
+- Step-level error handlers alone do not satisfy this rule (e.g. a flow with only a step error handler still yields a finding)
+
+**Example message:**
+
+Orchestration 'myFlow' must have a global error handler.
 
 **Configuration:** No custom settings.
 
@@ -2298,6 +2321,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **PMDSectionOrderingRule**               | Structure | ℹ️ ADVICE | ✅              | `required_order`                                      |
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
 | **OrchestrationSecurityDomainRule**     | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationGlobalErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
