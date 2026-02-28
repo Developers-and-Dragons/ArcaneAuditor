@@ -13,6 +13,7 @@ from parser.rules.structure.validation.hardcoded_wid import HardcodedWidRule
 from parser.rules.structure.validation.pmd_security_domain import PMDSecurityDomainRule
 from parser.rules.structure.validation.orchestration_security_domain import OrchestrationSecurityDomainRule
 from parser.rules.structure.validation.orchestration_global_error_handler import OrchestrationGlobalErrorHandlerRule
+from parser.rules.structure.validation.orchestration_api_step_error_handler import OrchestrationApiStepErrorHandlerRule
 from parser.rules.base import Finding
 from parser.models import ProjectContext, PMDModel, PMDPresentation
 
@@ -50,6 +51,7 @@ class TestAllStructureRulesIntegration:
             PMDSecurityDomainRule(),
             OrchestrationSecurityDomainRule(),
             OrchestrationGlobalErrorHandlerRule(),
+            OrchestrationApiStepErrorHandlerRule(),
         ]
         
         # Test that all rules have required attributes
@@ -59,7 +61,7 @@ class TestAllStructureRulesIntegration:
             assert hasattr(rule, 'SEVERITY')
             assert hasattr(rule, 'analyze')
             # ID is now either RULE000 (base class) or class name (ValidationRule)
-            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule', 'OrchestrationSecurityDomainRule', 'OrchestrationGlobalErrorHandlerRule')
+            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule', 'OrchestrationSecurityDomainRule', 'OrchestrationGlobalErrorHandlerRule', 'OrchestrationApiStepErrorHandlerRule')
     
     def test_all_rules_analyze_method(self):
         """Test that all rules can analyze without errors."""
@@ -75,6 +77,7 @@ class TestAllStructureRulesIntegration:
             PMDSecurityDomainRule(),
             OrchestrationSecurityDomainRule(),
             OrchestrationGlobalErrorHandlerRule(),
+            OrchestrationApiStepErrorHandlerRule(),
         ]
         
         # Test that all rules can analyze without throwing exceptions

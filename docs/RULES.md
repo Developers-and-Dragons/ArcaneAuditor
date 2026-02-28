@@ -52,6 +52,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [PMDSecurityDomainRule](#pmdsecuritydomainrule)
 - [OrchestrationSecurityDomainRule](#orchestrationsecuritydomainrule)
 - [OrchestrationGlobalErrorHandlerRule](#orchestrationglobalerrorhandlerrule)
+- [OrchestrationApiStepErrorHandlerRule](#orchestrationapisteperrorhandlerrule)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -1939,6 +1940,29 @@ Orchestration 'myFlow' must have a global error handler.
 
 ---
 
+### OrchestrationApiStepErrorHandlerRule
+
+**Severity:** 🚨 ACTION
+**Description:** Ensures every API step in an orchestration has a local (node-level) error handler.
+**Applies to:** All orchestration templates as well as suborchestrations. API steps are checked wherever they appear: on the main flow, inside loops, inside branch (if/else) bodies, and inside groups.
+
+**Why This Matters:**
+
+API steps (e.g. Send Http Request, Send Workday API Request) can fail for various reasons, including network or transient errors. A local error handler on each API step lets the flow handle or propagate failures explicitly.
+
+**What it catches:**
+
+- API steps without a node-level `errorHandler` (SendWwsPaginationApiRequest, SendHttpPaginationRequest, SendHttpRequest, SendWorkdayApiRequest, SendWorkdayRestApiPaginationRequest)
+- Applies to steps on the main flow and inside loops, branches, and groups (including nested structures)
+
+**Example message:**
+
+API step 'SendHTTPRequest' must have a local error handler.
+
+**Configuration:** No custom settings.
+
+---
+
 ### WidgetIdRequiredRule
 
 **Severity:** 🚨ACTION
@@ -2322,6 +2346,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
 | **OrchestrationSecurityDomainRule**     | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OrchestrationGlobalErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationApiStepErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
