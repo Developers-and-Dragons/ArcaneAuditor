@@ -1,7 +1,7 @@
 """Rule to require a global error handler for orchestrations (Sync, Async, BPT, Integration)."""
 
 from typing import Generator
-from ...base import Finding, Rule
+from ...base import Finding
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 
@@ -25,7 +25,7 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {
-        "why": "A global error handler is required in case an uncaught error occurs or a local error handler propagates the error.",
+        "why": "A global error handler is required in case an uncaught error occurs or a local error handler propagates the error, with no upstream handler to catch it.",
         "catches": [
             "Orchestrations (Sync, Async, BPT, Integration) with missing global errorHandler"
         ],
