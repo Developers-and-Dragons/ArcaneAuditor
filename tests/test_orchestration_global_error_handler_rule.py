@@ -13,12 +13,50 @@ def _raw_value_without_global_handler():
     return {"errorHandler": {"_type": ["Opt", "ErrorHandler"], "_value": None}}
 
 
+def _log_node():
+    """Single Log node for use inside error handler nodes list."""
+    return {
+        "_type": "Log",
+        "_value": {
+            "name": {"_type": "Identifier", "_value": "Log"},
+            "isDisabled": {"_type": "Boolean", "_value": False},
+            "errorHandler": {"_type": ["Opt", "ErrorHandler"], "_value": None},
+            "message": {"_type": ["Expr", "String"], "_value": {"type": {"_type": "Type", "_value": "String"}, "source": {"_type": "String", "_value": "\"\"\"\"\"\""}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "condition": {"_type": ["Expr", "Boolean"], "_value": {"type": {"_type": "Type", "_value": "Boolean"}, "source": {"_type": "String", "_value": "true"}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "notes": {"_type": ["List", "Note"], "_value": []},
+        },
+    }
+
+
+def _send_integration_message_node():
+    """Single SendIntegrationMessage node for use inside error handler (Integration template alternative)."""
+    return {
+        "_type": "SendIntegrationMessage",
+        "_value": {
+            "name": {"_type": "Identifier", "_value": "AddIntegrationMessage"},
+            "isDisabled": {"_type": "Boolean", "_value": False},
+            "errorHandler": {"_type": ["Opt", "ErrorHandler"], "_value": None},
+            "severity": {"_type": "IntegrationMessageSeverity", "_value": "INFO"},
+            "summary": {"_type": ["Expr", "String"], "_value": {"type": {"_type": "Type", "_value": "String"}, "source": {"_type": "String", "_value": "\"\"\"\"\"\""}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "detail": {"_type": ["Opt", ["Expr", "String"]], "_value": None},
+            "condition": {"_type": ["Expr", "Boolean"], "_value": {"type": {"_type": "Type", "_value": "Boolean"}, "source": {"_type": "String", "_value": "true"}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "notes": {"_type": ["List", "Note"], "_value": []},
+        },
+    }
+
+
 def _raw_value_with_global_handler():
-    """Flow-level errorHandler present (has global handler)."""
+    """Flow-level errorHandler present with a Log step (valid for Sync/Async/BPT)."""
     return {
         "errorHandler": {
             "_type": ["Opt", "ErrorHandler"],
-            "_value": {"_type": "ErrorHandler", "_value": {"name": {"_type": "Identifier", "_value": "globalErr"}}},
+            "_value": {
+                "_type": "ErrorHandler",
+                "_value": {
+                    "name": {"_type": "Identifier", "_value": "globalErr"},
+                    "nodes": {"_type": ["List", "Node"], "_value": [_log_node()]},
+                },
+            },
         }
     }
 
@@ -193,7 +231,7 @@ class TestOrchestrationGlobalErrorHandlerRule:
         assert len(findings) == 1
 
     def test_integration_with_global_no_finding(self):
-        """Integration flow with global error handler yields nothing."""
+        """Integration flow with global error handler (with Log) yields nothing."""
         orch = OrchestrationModel(
             flow_type=".maya.IntegrationFrameworkTrigger",
             id="o4i-2",
@@ -206,6 +244,89 @@ class TestOrchestrationGlobalErrorHandlerRule:
         self.context.orchestrations["o4i-2"] = orch
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0
+
+    def test_global_handler_empty_nodes_yields_finding(self):
+        """Global error handler present but with empty nodes yields a finding (missing log step)."""
+        raw = {
+            "errorHandler": {
+                "_type": ["Opt", "ErrorHandler"],
+                "_value": {
+                    "_type": "ErrorHandler",
+                    "_value": {
+                        "name": {"_type": "Identifier", "_value": "_globalErrorHandler"},
+                        "nodes": {"_type": ["List", "Node"], "_value": []},
+                    },
+                },
+            }
+        }
+        orch = OrchestrationModel(
+            flow_type=".maya.FlowSync",
+            id="empty",
+            name="emptyHandler",
+            security_domains=None,
+            raw_value=raw,
+            file_path="emptyHandler.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["empty"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "log step" in findings[0].message.lower() or "integration" in findings[0].message.lower()
+
+    def test_integration_with_send_integration_message_only_no_finding(self):
+        """Integration template with global handler containing only SendIntegrationMessage (no Log) yields no finding."""
+        raw = {
+            "errorHandler": {
+                "_type": ["Opt", "ErrorHandler"],
+                "_value": {
+                    "_type": "ErrorHandler",
+                    "_value": {
+                        "name": {"_type": "Identifier", "_value": "_globalErrorHandler"},
+                        "nodes": {"_type": ["List", "Node"], "_value": [_send_integration_message_node()]},
+                    },
+                },
+            }
+        }
+        orch = OrchestrationModel(
+            flow_type=".maya.IntegrationFrameworkTrigger",
+            id="o4i-3",
+            name="o4iTest",
+            security_domains=None,
+            raw_value=raw,
+            file_path="o4iTest.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["o4i-3"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_integration_global_handler_without_log_or_integration_yields_finding(self):
+        """Integration template with global handler containing neither Log nor SendIntegrationMessage yields a finding."""
+        raw = {
+            "errorHandler": {
+                "_type": ["Opt", "ErrorHandler"],
+                "_value": {
+                    "_type": "ErrorHandler",
+                    "_value": {
+                        "name": {"_type": "Identifier", "_value": "_globalErrorHandler"},
+                        "nodes": {"_type": ["List", "Node"], "_value": []},
+                    },
+                },
+            }
+        }
+        orch = OrchestrationModel(
+            flow_type=".maya.IntegrationFrameworkTrigger",
+            id="o4i-4",
+            name="integrationNoLog",
+            security_domains=None,
+            raw_value=raw,
+            file_path="integrationNoLog.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["o4i-4"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "log step" in findings[0].message.lower() or "integration" in findings[0].message.lower()
 
     def test_finding_severity_is_action(self):
         """Finding severity is ACTION."""

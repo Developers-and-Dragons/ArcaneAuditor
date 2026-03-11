@@ -1508,7 +1508,7 @@ Hardcoded workday.com URLs are not update safe and lack regional awareness. Usin
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration and suborchestration files; some rules apply only to certain flow types (e.g. security domain only to Sync/Async).*
+*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration and suborchestration files; some rules apply only to certain templates (e.g. security domain only to Sync/Async).*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1898,8 +1898,8 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 ### OrchestrationSecurityDomainRule
 
 **Severity:** 🚨ACTION
-**Description:** Ensures Synchronous and Asynchronous orchestrations have at least one security domain defined
-**Applies to:** Sync and Async Orchestration templates only; Suborchestrations are not checked by this rule.
+**Description:** Ensures Synchronous and Asynchronous orchestrations have a security domain defined
+**Applies to:** Sync and Async Orchestration templates only
 
 **Why This Matters:**
 
@@ -1911,7 +1911,7 @@ Security domains control access to orchestrations in Workday. Sync and Async flo
 
 **Example message:**
 
-Orchestration 'myFlow' must define at least one security domain (securityDomains).
+Orchestration 'myFlow' must define a security domain (securityDomains).
 
 **Configuration:** No custom settings.
 
@@ -1920,21 +1920,24 @@ Orchestration 'myFlow' must define at least one security domain (securityDomains
 ### OrchestrationGlobalErrorHandlerRule
 
 **Severity:** 🚨 ACTION
-**Description:** Ensures orchestrations have a global error handler for uncaught or propagated errors.
-**Applies to:** Orchestration files only. Applies to Sync, Async, Business Process Triggered, and Integration flow types. Suborchestrations are not checked because they do not support global handlers.
+**Description:** Ensures orchestrations have a global error handler with a log step (or Add Integration Message step for Integration templates).
+**Applies to:** Orchestration files only. Applies to Sync, Async, Business Process Triggered, and Integration templates. Suborchestrations are not checked because they do not support global handlers.
 
 **Why This Matters:**
 
-A global error handler is required when an uncaught error occurs or when a local (step-level) error handler propagates the error. The global handler is the safety net.
+A global error handler is required when an uncaught error occurs or when a local (step-level) error handler propagates the error. The handler must contain a log step to record the failure (or an Add Integration Message step for Integration templates).
 
 **What it catches:**
 
 - Orchestrations (Sync, Async, BPT, Integration) with missing top-level (global) `errorHandler`
+- Orchestrations whose global error handler has no log step (or no Add Integration Message step for Integration templates)
 - Step-level error handlers alone do not satisfy this rule (e.g. a flow with only a step error handler still yields a finding)
 
 **Example message:**
 
 Orchestration 'myFlow' must have a global error handler.
+
+Orchestration 'myFlow' global error handler must contain a log step (or Add Integration Message step for Integration templates).
 
 **Configuration:** No custom settings.
 
@@ -1943,21 +1946,24 @@ Orchestration 'myFlow' must have a global error handler.
 ### OrchestrationApiStepErrorHandlerRule
 
 **Severity:** 🚨 ACTION
-**Description:** Ensures every API step in an orchestration has a local (node-level) error handler.
+**Description:** Ensures every API step in an orchestration has a local (node-level) error handler with a log step (or Add Integration Message step for Integration templates).
 **Applies to:** All orchestration templates as well as suborchestrations. API steps are checked wherever they appear: on the main flow, inside loops, inside branch (if/else) bodies, and inside groups.
 
 **Why This Matters:**
 
-API steps (e.g. Send Http Request, Send Workday API Request) can fail for various reasons, including network or transient errors. A local error handler on each API step lets the flow handle or propagate failures explicitly.
+API steps (e.g. Send Http Request, Send Workday API Request) can fail for various reasons, including network or transient errors. A local error handler with a log step (or Add Integration Message for Integration templates) on each API step lets the flow record and handle failures explicitly.
 
 **What it catches:**
 
 - API steps without a node-level `errorHandler` (SendWwsPaginationApiRequest, SendHttpPaginationRequest, SendHttpRequest, SendWorkdayApiRequest, SendWorkdayRestApiPaginationRequest)
+- API steps whose error handler has no log step (or no Add Integration Message step for Integration templates)
 - Applies to steps on the main flow and inside loops, branches, and groups (including nested structures)
 
 **Example message:**
 
 API step 'SendHTTPRequest' must have a local error handler.
+
+API step 'SendHTTPRequest' error handler must contain a log step (or Add Integration Message step for Integration templates).
 
 **Configuration:** No custom settings.
 

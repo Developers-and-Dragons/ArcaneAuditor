@@ -8,9 +8,56 @@ from parser.rules.structure.validation.orchestration_api_step_error_handler impo
 from parser.models import ProjectContext, OrchestrationModel
 
 
-def _node(name_val: str, node_type: str, has_error_handler: bool):
-    """Build a single node with optional errorHandler."""
-    err_val = {"_type": "ErrorHandler", "_value": {"name": {"_type": "Identifier", "_value": f"_err_{name_val}"}}} if has_error_handler else None
+def _log_node():
+    """Single Log node for use inside error handler nodes list."""
+    return {
+        "_type": "Log",
+        "_value": {
+            "name": {"_type": "Identifier", "_value": "Log"},
+            "isDisabled": {"_type": "Boolean", "_value": False},
+            "errorHandler": {"_type": ["Opt", "ErrorHandler"], "_value": None},
+            "message": {"_type": ["Expr", "String"], "_value": {"type": {"_type": "Type", "_value": "String"}, "source": {"_type": "String", "_value": "\"\"\"\"\"\""}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "condition": {"_type": ["Expr", "Boolean"], "_value": {"type": {"_type": "Type", "_value": "Boolean"}, "source": {"_type": "String", "_value": "true"}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "notes": {"_type": ["List", "Note"], "_value": []},
+        },
+    }
+
+
+def _send_integration_message_node():
+    """Single SendIntegrationMessage node for use inside error handler (Integration template alternative)."""
+    return {
+        "_type": "SendIntegrationMessage",
+        "_value": {
+            "name": {"_type": "Identifier", "_value": "AddIntegrationMessage"},
+            "isDisabled": {"_type": "Boolean", "_value": False},
+            "errorHandler": {"_type": ["Opt", "ErrorHandler"], "_value": None},
+            "severity": {"_type": "IntegrationMessageSeverity", "_value": "INFO"},
+            "summary": {"_type": ["Expr", "String"], "_value": {"type": {"_type": "Type", "_value": "String"}, "source": {"_type": "String", "_value": "\"\"\"\"\"\""}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "detail": {"_type": ["Opt", ["Expr", "String"]], "_value": None},
+            "condition": {"_type": ["Expr", "Boolean"], "_value": {"type": {"_type": "Type", "_value": "Boolean"}, "source": {"_type": "String", "_value": "true"}, "isAuto": {"_type": "Boolean", "_value": False}}},
+            "notes": {"_type": ["List", "Note"], "_value": []},
+        },
+    }
+
+
+def _node(name_val: str, node_type: str, has_error_handler: bool, with_log_step: bool = False, with_integration_step_only: bool = False):
+    """Build a single node with optional errorHandler. If has_error_handler and with_log_step, handler contains a Log node. If with_integration_step_only, handler contains only SendIntegrationMessage (for Integration flow tests)."""
+    if not has_error_handler:
+        err_val = None
+    else:
+        if with_integration_step_only:
+            nodes_val = [_send_integration_message_node()]
+        elif with_log_step:
+            nodes_val = [_log_node()]
+        else:
+            nodes_val = []
+        err_val = {
+            "_type": "ErrorHandler",
+            "_value": {
+                "name": {"_type": "Identifier", "_value": f"_err_{name_val}"},
+                "nodes": {"_type": ["List", "Node"], "_value": nodes_val},
+            },
+        }
     return {
         "_type": node_type,
         "_value": {
@@ -85,8 +132,8 @@ class TestOrchestrationApiStepErrorHandlerRule:
         self.context = ProjectContext()
 
     def test_api_step_with_local_error_handler_no_finding(self):
-        """API step (SendHttpRequest) with local error handler yields no finding."""
-        raw = _raw_value_main_nodes([_node("SendHTTPRequest", "SendHttpRequest", True)])
+        """API step (SendHttpRequest) with local error handler that has a Log step yields no finding."""
+        raw = _raw_value_main_nodes([_node("SendHTTPRequest", "SendHttpRequest", True, with_log_step=True)])
         orch = OrchestrationModel(
             flow_type=".maya.FlowSync",
             id="o1",
@@ -135,10 +182,10 @@ class TestOrchestrationApiStepErrorHandlerRule:
         assert len(findings) == 0
 
     def test_multiple_api_steps_one_missing_yields_one_finding(self):
-        """Two API steps, one with handler one without -> one finding."""
+        """Two API steps, one with handler (with log) one without -> one finding."""
         raw = _raw_value_main_nodes([
             _node("SendHTTPRequest", "SendHttpRequest", False),
-            _node("SendWorkdayAPIRequest", "SendWorkdayApiRequest", True),
+            _node("SendWorkdayAPIRequest", "SendWorkdayApiRequest", True, with_log_step=True),
         ])
         orch = OrchestrationModel(
             flow_type=".maya.FlowSync",
@@ -205,6 +252,56 @@ class TestOrchestrationApiStepErrorHandlerRule:
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 1
         assert "SendHTTPRequest_2" in findings[0].message or "API" in findings[0].message
+
+    def test_api_step_with_handler_but_no_log_step_yields_finding(self):
+        """API step with local error handler but empty nodes (no log step) yields one finding."""
+        raw = _raw_value_main_nodes([_node("SendHTTPRequest", "SendHttpRequest", True, with_log_step=False)])
+        orch = OrchestrationModel(
+            flow_type=".maya.FlowSync",
+            id="o7a",
+            name="myOrch",
+            security_domains=None,
+            raw_value=raw,
+            file_path="myOrch.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["o7a"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "log step" in findings[0].message.lower() or "integration" in findings[0].message.lower()
+
+    def test_integration_api_step_with_send_integration_message_only_no_finding(self):
+        """Integration flow with API step whose error handler contains only SendIntegrationMessage (no Log) yields no finding."""
+        raw = _raw_value_main_nodes([_node("SendHTTPRequest", "SendHttpRequest", True, with_integration_step_only=True)])
+        orch = OrchestrationModel(
+            flow_type=".maya.IntegrationFrameworkTrigger",
+            id="o4i-api",
+            name="myIntegration",
+            security_domains=None,
+            raw_value=raw,
+            file_path="myIntegration.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["o4i-api"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_integration_api_step_handler_without_log_or_integration_yields_finding(self):
+        """Integration flow with API step whose error handler has neither Log nor SendIntegrationMessage yields one finding."""
+        raw = _raw_value_main_nodes([_node("SendHTTPRequest", "SendHttpRequest", True, with_log_step=False)])
+        orch = OrchestrationModel(
+            flow_type=".maya.IntegrationFrameworkTrigger",
+            id="o4i-api2",
+            name="myIntegration",
+            security_domains=None,
+            raw_value=raw,
+            file_path="myIntegration.orchestration",
+            source_content="",
+        )
+        self.context.orchestrations["o4i-api2"] = orch
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "log step" in findings[0].message.lower() or "integration" in findings[0].message.lower()
 
     def test_finding_severity_is_action(self):
         """Finding severity is ACTION."""
