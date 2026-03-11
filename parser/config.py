@@ -80,6 +80,7 @@ class RulesConfig(BaseModel):
     OrchestrationSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures Sync and Async orchestrations have at least one security domain")
     OrchestrationGlobalErrorHandlerRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures orchestrations have a global error handler (Sync, Async, BPT, Integration)")
     OrchestrationApiStepErrorHandlerRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures every API step has a local error handler (all flow types including suborchestrations)")
+    OrchestrationBranchOnConditionsNestingRule: RuleConfig = Field(default_factory=RuleConfig, description="Limits Branch on Conditions nesting to 3 levels (ADVICE)")
     FileNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all file names follow lowerCamelCase naming convention")
     MultipleStringInterpolatorsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects multiple string interpolators in a single string which should use template literals instead")
 
