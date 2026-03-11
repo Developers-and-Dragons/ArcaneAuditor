@@ -1976,7 +1976,7 @@ Deeply nested Branch on Conditions make flows hard to follow. Keeping nesting to
 
 **What it catches:**
 
-- Top-level Branch on Conditions steps whose branch (when-branch or else-branch) nests BoC deeper than 3 levels
+- Top-level Branch on Conditions steps whose branch (if-branch or else-branch) nests BoC deeper than 3 levels
 - Each such branch is reported once with the actual max depth (e.g. 4, 5, or 6 levels)
 
 **Example message:**
