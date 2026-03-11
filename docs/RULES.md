@@ -53,6 +53,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [OrchestrationSecurityDomainRule](#orchestrationsecuritydomainrule)
 - [OrchestrationGlobalErrorHandlerRule](#orchestrationglobalerrorhandlerrule)
 - [OrchestrationApiStepErrorHandlerRule](#orchestrationapisteperrorhandlerrule)
+- [OrchestrationBranchOnConditionsNestingRule](#orchestrationbranchonconditionsnestingrule)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -1963,6 +1964,29 @@ API step 'SendHTTPRequest' must have a local error handler.
 
 ---
 
+### OrchestrationBranchOnConditionsNestingRule
+
+**Severity:** ℹ️ ADVICE
+**Description:** Limits Branch on Conditions nesting to 3 levels for readability; deeper nesting suggests extracting to a suborchestration. Reports based on top-level branches only.
+**Applies to:** All orchestration templates and suborchestrations.
+
+**Why This Matters:**
+
+Deeply nested Branch on Conditions make flows hard to follow. Keeping nesting to 3 levels and extracting logic to a suborchestration improves clarity. If a top-level branch’s children exceed the limit, the top-level branch is reported (one finding per top-level branch with its actual max depth).
+
+**What it catches:**
+
+- Top-level Branch on Conditions steps whose branch (when-branch or else-branch) nests BoC deeper than 3 levels
+- Each such branch is reported once with the actual max depth (e.g. 4, 5, or 6 levels)
+
+**Example message:**
+
+Branch on Conditions 'MyBoC' has a branch nested at 5 levels; consider extracting logic to a suborchestration to keep nesting to 3 levels or fewer.
+
+**Configuration:** No custom settings.
+
+---
+
 ### WidgetIdRequiredRule
 
 **Severity:** 🚨ACTION
@@ -2347,6 +2371,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **OrchestrationSecurityDomainRule**     | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OrchestrationGlobalErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OrchestrationApiStepErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationBranchOnConditionsNestingRule** | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
