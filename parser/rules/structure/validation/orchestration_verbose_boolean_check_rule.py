@@ -7,7 +7,6 @@ from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
     get_container_display_name,
     get_owning_key_from_path,
-    get_step_name_from_path,
     get_step_name_chain_from_path,
     navigate,
     unwrap as _unwrap,
@@ -171,8 +170,8 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
         "catches": [
             "Step conditions where the true/false return values are true and false (or inverted) respectively.",
         ],
-        "examples": "Redundant boolean wrapper: expression uses \"if (...) true else false\" (or \"false else true\"). The condition already evaluates to a Boolean and can be used directly or inverted.",
-        "recommendation": "Test the value directly outside of a step condition.",
+        "examples": "Redundant boolean condition step: expression uses \"if (...) true else false\" (or \"false else true\"). The condition step is unnecessary as it already evaluates to a Boolean and can be used directly or inverted.",
+        "recommendation": "Remove the condition step and test the value directly in the step itself.",
     }
 
     def get_description(self) -> str:
@@ -200,7 +199,7 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
                     line=1,
                     message=(
                         'Condition expression uses "if (...) true else false" '
-                        '(or "false else true"). The condition already evaluates to a Boolean and can be used directly.'
+                        '(or "false else true"). The condition step is unnecessary as it already evaluates to a Boolean and can be used directly.'
                         f"{location_suffix}"
                     ),
                 )
