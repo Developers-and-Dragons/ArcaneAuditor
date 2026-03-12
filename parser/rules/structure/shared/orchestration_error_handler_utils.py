@@ -2,18 +2,11 @@
 
 from typing import Any, List
 
+from .orchestration_path_utils import unwrap
+
 LOG_NODE_TYPE = "Log"
 SEND_INTEGRATION_MESSAGE_NODE_TYPE = "SendIntegrationMessage"
 FLOW_INTEGRATION = ".maya.IntegrationFrameworkTrigger"
-
-
-def unwrap(obj: Any) -> Any:
-    """Unwrap typed envelope: return obj['_value'] if obj is a dict with _value."""
-    if obj is None:
-        return None
-    if isinstance(obj, dict) and "_value" in obj:
-        return obj["_value"]
-    return obj
 
 
 def unwrap_nodes_list(nodes_obj: Any) -> List[dict]:

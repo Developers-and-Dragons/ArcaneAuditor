@@ -9,18 +9,9 @@ from ..shared.orchestration_error_handler_utils import (
     get_error_handler_nodes,
     handler_has_log_or_integration_step,
     handler_has_log_step,
+    unwrap,
     unwrap_nodes_list,
 )
-
-
-def _unwrap(obj: Any) -> Any:
-    """Unwrap typed envelope: return obj['_value'] if obj is a dict with _value."""
-    if obj is None:
-        return None
-    if isinstance(obj, dict) and "_value" in obj:
-        return obj["_value"]
-    return obj
-
 
 API_STEP_NODE_TYPES = frozenset({
     "SendWorkdayRaasRequest",
@@ -41,7 +32,7 @@ def _get_child_node_lists(node_value: dict) -> List[list]:
     # Loop: group -> unwrap -> nodes -> unwrap
     group = node_value.get("group")
     if group is not None:
-        group_val = _unwrap(group)
+        group_val = unwrap(group)
         if isinstance(group_val, dict):
             nodes = group_val.get("nodes")
             lst = unwrap_nodes_list(nodes)
@@ -52,20 +43,20 @@ def _get_child_node_lists(node_value: dict) -> List[list]:
     if node_value.get("_type") == "BranchOnConditions" or "ifBranches" in node_value:
         if_branches = node_value.get("ifBranches")
         if if_branches is not None:
-            branches_list = _unwrap(if_branches)
+            branches_list = unwrap(if_branches)
             if isinstance(branches_list, list):
                 for when_branch in branches_list:
-                    wb_val = _unwrap(when_branch) if isinstance(when_branch, dict) else when_branch
+                    wb_val = unwrap(when_branch) if isinstance(when_branch, dict) else when_branch
                     if isinstance(wb_val, dict):
                         g = wb_val.get("group")
-                        g_val = _unwrap(g) if g is not None else None
+                        g_val = unwrap(g) if g is not None else None
                         if isinstance(g_val, dict):
                             nlst = unwrap_nodes_list(g_val.get("nodes"))
                             if nlst:
                                 out.append(nlst)
         else_branch = node_value.get("elseBranch")
         if else_branch is not None:
-            eb_val = _unwrap(else_branch)
+            eb_val = unwrap(else_branch)
             if isinstance(eb_val, dict):
                 nlst = unwrap_nodes_list(eb_val.get("nodes"))
                 if nlst:
@@ -83,14 +74,14 @@ def _get_child_node_lists(node_value: dict) -> List[list]:
 def _has_local_error_handler(node_value: dict) -> bool:
     """Return True if the node has a non-null local errorHandler."""
     err = node_value.get("errorHandler")
-    val = _unwrap(err)
+    val = unwrap(err)
     return val is not None
 
 
 def _node_name(node_value: dict) -> str:
     """Get display name from node _value (unwrap Identifier)."""
     name_node = node_value.get("name")
-    val = _unwrap(name_node)
+    val = unwrap(name_node)
     if isinstance(val, str):
         return val
     return ""
