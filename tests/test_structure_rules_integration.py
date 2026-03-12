@@ -15,6 +15,7 @@ from parser.rules.structure.validation.orchestration_security_domain import Orch
 from parser.rules.structure.validation.orchestration_global_error_handler import OrchestrationGlobalErrorHandlerRule
 from parser.rules.structure.validation.orchestration_api_step_error_handler import OrchestrationApiStepErrorHandlerRule
 from parser.rules.structure.validation.orchestration_branch_on_conditions_nesting import OrchestrationBranchOnConditionsNestingRule
+from parser.rules.structure.validation.orchestration_verbose_boolean_check_rule import OrchestrationVerboseBooleanCheckRule
 from parser.rules.base import Finding
 from parser.models import ProjectContext, PMDModel, PMDPresentation
 
@@ -54,6 +55,7 @@ class TestAllStructureRulesIntegration:
             OrchestrationGlobalErrorHandlerRule(),
             OrchestrationApiStepErrorHandlerRule(),
             OrchestrationBranchOnConditionsNestingRule(),
+            OrchestrationVerboseBooleanCheckRule(),
         ]
         
         # Test that all rules have required attributes
@@ -63,7 +65,7 @@ class TestAllStructureRulesIntegration:
             assert hasattr(rule, 'SEVERITY')
             assert hasattr(rule, 'analyze')
             # ID is now either RULE000 (base class) or class name (ValidationRule)
-            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule', 'OrchestrationSecurityDomainRule', 'OrchestrationGlobalErrorHandlerRule', 'OrchestrationApiStepErrorHandlerRule', 'OrchestrationBranchOnConditionsNestingRule')
+            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule', 'OrchestrationSecurityDomainRule', 'OrchestrationGlobalErrorHandlerRule', 'OrchestrationApiStepErrorHandlerRule', 'OrchestrationBranchOnConditionsNestingRule', 'OrchestrationVerboseBooleanCheckRule')
     
     def test_all_rules_analyze_method(self):
         """Test that all rules can analyze without errors."""
@@ -81,6 +83,7 @@ class TestAllStructureRulesIntegration:
             OrchestrationGlobalErrorHandlerRule(),
             OrchestrationApiStepErrorHandlerRule(),
             OrchestrationBranchOnConditionsNestingRule(),
+            OrchestrationVerboseBooleanCheckRule(),
         ]
         
         # Test that all rules can analyze without throwing exceptions
