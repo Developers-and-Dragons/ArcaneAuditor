@@ -81,6 +81,7 @@ class RulesConfig(BaseModel):
     OrchestrationGlobalErrorHandlerRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures orchestrations have a global error handler (Sync, Async, BPT, Integration)")
     OrchestrationApiStepErrorHandlerRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures every API step has a local error handler (all flow types including suborchestrations)")
     OrchestrationBranchOnConditionsNestingRule: RuleConfig = Field(default_factory=RuleConfig, description="Limits Branch on Conditions nesting to 3 levels (ADVICE)")
+    OrchestrationVerboseBooleanCheckRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects redundant boolean wrapper expressions (if (X) true else false / false else true)")
     FileNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all file names follow lowerCamelCase naming convention")
     MultipleStringInterpolatorsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects multiple string interpolators in a single string which should use template literals instead")
 
