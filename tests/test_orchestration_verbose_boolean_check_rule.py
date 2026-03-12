@@ -160,6 +160,63 @@ class TestOrchestrationVerboseBooleanCheckRule:
         findings = self._run(raw)
         assert len(findings) == 2
 
+    def test_generic_nested_nodes_step_chain(self):
+        """Nested nodes: location includes outer and inner step names (e.g. Loop -> InnerStep -> key)."""
+        inner_expr = _bool_expr("(if ((x)) true else false)")
+        raw = {
+            "nodes": {
+                "_type": ["List", "Node"],
+                "_value": [
+                    {
+                        "_type": "Loop",
+                        "_value": {
+                            "name": {"_type": "Identifier", "_value": "Loop"},
+                            "filter": {"_type": ["Opt", ["Expr", "Boolean"]], "_value": None},
+                            "group": {
+                                "_type": "ImplicitGroup",
+                                "_value": {
+                                    "nodes": {
+                                        "_type": ["List", "Node"],
+                                        "_value": [
+                                            {
+                                                "_type": "CreateValues",
+                                                "_value": {
+                                                    "name": {"_type": "Identifier", "_value": "CreateValues_1"},
+                                                    "values": {
+                                                        "_type": ["List", "Assignment"],
+                                                        "_value": [
+                                                            {
+                                                                "_type": "Assignment",
+                                                                "_value": {
+                                                                    "param": {
+                                                                        "_type": "Parameter",
+                                                                        "_value": {
+                                                                            "name": {"_type": "Identifier", "_value": "fdafdsf"},
+                                                                            "type": {"_type": "Type", "_value": "Boolean"},
+                                                                            "default": {"_type": ["Opt", "Any"], "_value": None},
+                                                                        },
+                                                                    },
+                                                                    "expr": inner_expr,
+                                                                },
+                                                            }
+                                                        ],
+                                                    },
+                                                },
+                                            }
+                                        ],
+                                    }
+                                },
+                            },
+                        },
+                    }
+                ],
+            }
+        }
+        findings = self._run(raw)
+        assert len(findings) == 1
+        assert "Location:" in findings[0].message
+        assert "Loop -> CreateValues_1 -> fdafdsf" in findings[0].message
+
     def test_severity_is_advice(self):
         """Finding severity is ADVICE."""
         raw = _raw_value_with_expr(_bool_expr("(if ((x)) true else false)"))

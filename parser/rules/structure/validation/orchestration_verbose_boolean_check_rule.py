@@ -6,7 +6,9 @@ from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
     get_container_display_name,
+    get_owning_key_from_path,
     get_step_name_from_path,
+    get_step_name_chain_from_path,
     navigate,
     unwrap as _unwrap,
 )
@@ -99,14 +101,16 @@ def _get_ui_location(raw_value: Any, path: Tuple[Union[str, int], ...]) -> str:
     """
     if not path or not isinstance(raw_value, dict):
         return ""
-    step_name = get_step_name_from_path(raw_value, path)
-    if not step_name:
+    step_chain = get_step_name_chain_from_path(raw_value, path)
+    if not step_chain:
         return _format_location_fallback(path)
+    step_prefix = " -> ".join(step_chain)
     parent = navigate(raw_value, path[:-1]) if len(path) > 1 else None
     sub = get_container_display_name(parent) if isinstance(parent, dict) else None
     if not sub:
-        sub = path[-1] if path else ""  # e.g. "condition", "expr"
-    return f"{step_name} -> {sub}" if sub else step_name
+        # Prefer a meaningful owning key when path ends with envelope details like '_value'
+        sub = get_owning_key_from_path(path)  # e.g. "filter", "condition", "expr"
+    return f"{step_prefix} -> {sub}" if sub else step_prefix
 
 
 def _format_location_fallback(path: Tuple[Union[str, int], ...]) -> str:
