@@ -166,12 +166,13 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {
-        "why": "Expressions like if (X) true else false are redundant; X already evaluates to a Boolean and can be used directly (or inverted for false else true).",
+        "why": "This value is created using a Conditional wrapper that returns `true` or `false`. The condition itself already evaluates to a Boolean value, so the Conditional step is unnecessary.",
         "catches": [
-            "Step conditions where the true/false return values are true and false (or inverted) respectively.",
+            "Conditional value builders that return `true` when conditions are met and `false` otherwise.",
+            "Conditional value builders that return `false` when conditions are met and `true` otherwise."
         ],
-        "examples": "Redundant boolean condition step: expression uses \"if (...) true else false\" (or \"false else true\"). The condition step is unnecessary as it already evaluates to a Boolean and can be used directly or inverted.",
-        "recommendation": "Remove the condition step and test the value directly in the step itself.",
+        "examples": "Example: A value configured as a Conditional where the result is `true` if the conditions are met and `false` otherwise. The conditions themselves already evaluate to a Boolean value. This is redundant and can be removed.",
+        "recommendation": "Remove the Conditional wrapper and use the Boolean condition directly in the step. The condition already evaluates to `true` or `false`, so the extra Conditional step is not needed."
     }
 
     def get_description(self) -> str:
@@ -198,8 +199,9 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
                     file_path=file_path,
                     line=1,
                     message=(
-                        'Condition expression uses "if (...) true else false" '
-                        '(or "false else true"). The condition step is unnecessary as it already evaluates to a Boolean and can be used directly.'
-                        f"{location_suffix}"
+                        f"{location_suffix}: "
+                        'Conditional step returns true/false based on a condition that already evaluates to true/false.'
+                        f'This creates a redundant wrapper (internally generated as "if (foo == true) {{return true}} else {{return false}}"). '
+                        'Remove the Conditional step and test the boolean directly.'
                     ),
                 )
