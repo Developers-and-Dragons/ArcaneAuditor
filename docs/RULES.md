@@ -54,6 +54,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [OrchestrationGlobalErrorHandlerRule](#orchestrationglobalerrorhandlerrule)
 - [OrchestrationApiStepErrorHandlerRule](#orchestrationapisteperrorhandlerrule)
 - [OrchestrationBranchOnConditionsNestingRule](#orchestrationbranchonconditionsnestingrule)
+- [OrchestratePreferExplicitDefaultAccessor](#orchestratepreferexplicitdefaultaccessor)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -1993,6 +1994,48 @@ Branch on Conditions 'MyBoC' has a branch nested at 5 levels; consider extractin
 
 ---
 
+### OrchestratePreferExplicitDefaultAccessor
+
+**Severity:** ℹ️ ADVICE
+**Description:** Prefer default-capable accessors over exception-throwing accessors.
+**Applies to:** Orchestration and suborchestration expression fields (conditions, value expressions, etc.). Only the specific accessor functions listed below are flagged; other accessors (e.g. `bigDecimalAtJsonPath`) are not in scope.
+
+**Why This Matters:**
+
+Some Orchestrate accessor functions throw an exception when a value is not found. Prefer the paired default-capable accessor so missing values are handled explicitly, or validate first when the value is required. Making missing-value behavior explicit improves reliability and makes intent clear to other developers.
+
+**What it catches:**
+
+- Calls to exception-throwing accessors that have default-capable alternatives: `booleanAtJsonPath`, `numberAtJsonPath`, `objectAtJsonPath`, `stringAtJsonPath`, `bigDecimalAtXPath`, `booleanAtXPath`, `dateAtXPath`, `dateTimeAtXPath`, `numberAtXPath`, `stringAtXPath`, `xmlString`, `zonedDateTimeAtXPath`
+- The rule does **not** flag the safe alternatives (e.g. `stringAtJsonPathWithDefault`, `stringAtJsonPathOrEmptyString`) or accessors that have no default-capable alternative (e.g. `bigDecimalAtJsonPath`)
+
+**Where to fix:** Update the expression in the orchestration step where the finding is reported (the message includes a Location such as the step name and field). Replace the reported function with the suggested alternative and supply an explicit default, or validate that the value exists before calling.
+
+**Bad example:**
+
+```javascript
+// Throws if /name is missing
+data.asJSON().stringAtJsonPath("/name")
+data.asXML().numberAtXPath("//count")
+```
+
+**Good examples:**
+
+```javascript
+// Explicit default when value may be missing
+data.asJSON().stringAtJsonPathWithDefault("/name", "")
+data.asJSON().stringAtJsonPathOrEmptyString("/name")
+data.asXML().numberAtXPathWithDefault("//count", 0)
+```
+
+**Example message:**
+
+This expression uses "stringAtJsonPath", which throws an exception when the target value is not found. Prefer "stringAtJsonPathWithDefault" or "stringAtJsonPathOrEmptyString" so missing values are handled explicitly, or validate first if the value is required.
+
+**Configuration:** No custom settings.
+
+---
+
 ### WidgetIdRequiredRule
 
 **Severity:** 🚨ACTION
@@ -2378,6 +2421,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **OrchestrationGlobalErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OrchestrationApiStepErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OrchestrationBranchOnConditionsNestingRule** | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **OrchestratePreferExplicitDefaultAccessor**   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
