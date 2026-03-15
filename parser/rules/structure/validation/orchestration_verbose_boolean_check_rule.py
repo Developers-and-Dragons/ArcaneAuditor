@@ -5,10 +5,8 @@ from ...base import Finding
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
-    get_container_display_name,
-    get_owning_key_from_path,
-    get_step_name_chain_from_path,
-    navigate,
+    get_expression_source,
+    resolve_ui_location,
     unwrap as _unwrap,
 )
 
@@ -44,20 +42,6 @@ def _is_boolean_expression(d: Any) -> bool:
     return False
 
 
-def _get_expression_source(expr_obj: Any) -> Optional[str]:
-    """Unwrap _value.source to raw string; normalize to plain string. Return None if missing or not a string."""
-    if not isinstance(expr_obj, dict):
-        return None
-    value_val = expr_obj.get("_value")
-    if not isinstance(value_val, dict):
-        return None
-    source_node = value_val.get("source")
-    raw = _unwrap(source_node)
-    if isinstance(raw, str):
-        return raw.strip()
-    return None
-
-
 def _is_redundant_boolean_wrapper(source: str) -> bool:
     """Detect only the full top-level pattern: if (X) true else false or if (X) false else true."""
     if not source or not isinstance(source, str):
@@ -91,55 +75,6 @@ def _is_redundant_boolean_wrapper(source: str) -> bool:
         remainder = remainder[:-1].strip()
     normalized = " ".join(remainder.split())
     return normalized in ("true else false", "false else true")
-
-
-def _get_ui_location(raw_value: Any, path: Tuple[Union[str, int], ...]) -> str:
-    """
-    Resolve path to a UI-oriented location: "StepName -> sublocation".
-    Uses shared path helpers: step name from first node in path, sublocation from parent's display name or key.
-    """
-    if not path or not isinstance(raw_value, dict):
-        return ""
-    step_chain = get_step_name_chain_from_path(raw_value, path)
-    if not step_chain:
-        return _format_location_fallback(path)
-    step_prefix = " -> ".join(step_chain)
-    parent = navigate(raw_value, path[:-1]) if len(path) > 1 else None
-    sub = get_container_display_name(parent) if isinstance(parent, dict) else None
-    if not sub:
-        # Prefer a meaningful owning key when path ends with envelope details like '_value'
-        sub = get_owning_key_from_path(path)  # e.g. "filter", "condition", "expr"
-    return f"{step_prefix} -> {sub}" if sub else step_prefix
-
-
-def _format_location_fallback(path: Tuple[Union[str, int], ...]) -> str:
-    """Fallback when UI location cannot be resolved: structural path (e.g. 'nodes -> node 2 -> condition')."""
-    if not path:
-        return ""
-    parts: list[str] = []
-    path_list = list(path)
-    i = 0
-    while i < len(path_list):
-        seg = path_list[i]
-        if seg == "_value":
-            i += 1
-            continue
-        if isinstance(seg, int):
-            prev = path_list[i - 1] if i > 0 else None
-            prev2 = path_list[i - 2] if i > 1 else None
-            if prev == "_value" and prev2 == "nodes":
-                parts.append(f"node {seg + 1}")
-            elif prev == "_value" and prev2 == "ifBranches":
-                parts.append(f"branch {seg + 1}")
-            elif prev == "_value" and prev2 == "values":
-                parts.append(f"assignment {seg + 1}")
-            else:
-                parts.append(f"item {seg + 1}")
-        else:
-            if seg in ("condition", "expr", "nodes", "ifBranches", "values"):
-                parts.append(seg)
-        i += 1
-    return " -> ".join(parts) if parts else ""
 
 
 def _walk_json(obj: Any, path: Tuple[Union[str, int], ...] = ()) -> Generator[Tuple[dict, Tuple[Union[str, int], ...]], None, None]:
@@ -190,9 +125,9 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
         raw = orch_model.raw_value
         file_path = orch_model.file_path
         for expr_obj, path in _walk_json(raw):
-            source = _get_expression_source(expr_obj)
+            source = get_expression_source(expr_obj)
             if source and _is_redundant_boolean_wrapper(source):
-                location = _get_ui_location(raw, path)
+                location = resolve_ui_location(raw, path)
                 location_suffix = f" Location: {location}." if location else ""
                 yield Finding(
                     rule=self,

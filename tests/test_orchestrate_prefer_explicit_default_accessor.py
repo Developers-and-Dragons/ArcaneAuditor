@@ -207,6 +207,7 @@ class TestOrchestratePreferExplicitDefaultAccessor:
         assert 'Prefer "booleanAtJsonPathWithDefault"' in msg
         assert "stringAtJsonPathOrEmptyString" not in msg  # only for string dual-alternative
         assert "throws an exception when the target value is not found" in msg
+        assert "missing values are handled explicitly" in msg
         assert "validate first if the value is required" in msg
 
     def test_message_dual_alternative(self):
@@ -216,10 +217,42 @@ class TestOrchestratePreferExplicitDefaultAccessor:
         assert len(findings) == 1
         msg = findings[0].message
         assert "stringAtJsonPath" in msg
-        assert "stringAtJsonPathWithDefault" in msg
-        assert "stringAtJsonPathOrEmptyString" in msg
-        assert " or " in msg
+        assert '"stringAtJsonPathWithDefault" or "stringAtJsonPathOrEmptyString"' in msg
         assert "throws an exception when the target value is not found" in msg
+        assert "validate first if the value is required" in msg
+
+    # --- CreateJson mapping location ---
+
+    def test_createjson_mapping_location_shows_path_label(self):
+        """Finding inside CreateJson mapping expr shows step name and mapping path (e.g. CreateJSON -> jsonNumberNoDefault)."""
+        raw = {
+            "nodes": {
+                "_type": ["List", "Node"],
+                "_value": [
+                    {
+                        "_type": "CreateJson",
+                        "_value": {
+                            "name": {"_type": "Identifier", "_value": "CreateJSON"},
+                            "values": {
+                                "_type": ["List", "Mapping"],
+                                "_value": [
+                                    {
+                                        "_type": "Mapping",
+                                        "_value": {
+                                            "path": {"_type": "JsonPath", "_value": "$.jsonNumberNoDefault"},
+                                            "expr": _expr("data.asJSON().numberAtJsonPath(\"$.x\")"),
+                                        },
+                                    }
+                                ],
+                            },
+                        },
+                    }
+                ],
+            }
+        }
+        findings = self._run(raw)
+        assert len(findings) == 1
+        assert "CreateJSON -> jsonNumberNoDefault" in findings[0].message
 
     # --- Severity ---
 
