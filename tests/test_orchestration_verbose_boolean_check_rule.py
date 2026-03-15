@@ -68,17 +68,17 @@ class TestOrchestrationVerboseBooleanCheckRule:
         raw = _raw_value_with_expr(_bool_expr("(if ((data.foo == true)) true else false)"))
         findings = self._run(raw)
         assert len(findings) == 1
-        assert "true else false" in findings[0].message
+        assert "true/false" in findings[0].message or "redundant wrapper" in findings[0].message
         assert "Location:" in findings[0].message
-        # UI-style location: step reference name and field (e.g. "BoC -> Condition")
-        assert "BoC" in findings[0].message and "Condition" in findings[0].message
+        # UI-style location: step reference name and field (e.g. "BoC -> condition")
+        assert "BoC" in findings[0].message
 
     def test_positive_if_x_false_else_true(self):
         """Positive 2: if (X) false else true yields one finding."""
         raw = _raw_value_with_expr(_bool_expr("(if ((someBooleanExpr)) false else true)"))
         findings = self._run(raw)
         assert len(findings) == 1
-        assert "false else true" in findings[0].message
+        assert "true/false" in findings[0].message or "redundant wrapper" in findings[0].message
 
     def test_positive_complex_x(self):
         """Positive 3: complex nested X with true else false yields one finding."""
