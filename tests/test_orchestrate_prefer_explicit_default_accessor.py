@@ -253,6 +253,36 @@ class TestOrchestratePreferExplicitDefaultAccessor:
         findings = self._run(raw)
         assert len(findings) == 1
         assert "CreateJSON -> jsonNumberNoDefault" in findings[0].message
+        assert "-> line " not in findings[0].message
+
+    def test_create_text_template_multi_line_locations(self):
+        """CreateTextTemplate body with two unsafe calls on different lines yields findings with template-local line numbers."""
+        body = (
+            "line1 {{ data.asXML().stringAtXPath(\"//a\") }}\n"
+            "line2\n"
+            "line3 {{ data.asXML().stringAtXPath(\"//b\") }}"
+        )
+        raw = {
+            "nodes": {
+                "_type": ["List", "Node"],
+                "_value": [
+                    {
+                        "_type": "CreateTextTemplate",
+                        "_value": {
+                            "name": {"_type": "Identifier", "_value": "CTT_XmlInput"},
+                            "message": {"_type": "TextTemplate", "_value": body},
+                        },
+                    }
+                ],
+            }
+        }
+        findings = self._run(raw)
+        assert len(findings) == 2
+        messages = [f.message for f in findings]
+        assert any("-> line 1" in m for m in messages)
+        assert any("-> line 3" in m for m in messages)
+        assert all("CTT_XmlInput" in m for m in messages)
+        assert {f.line for f in findings} == {1, 3}
 
     # --- Severity ---
 

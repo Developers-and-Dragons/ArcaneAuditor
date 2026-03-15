@@ -7,6 +7,7 @@ from ...base import Finding
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
+    get_template_line_number,
     resolve_ui_location,
     walk_orchestration_source_strings,
 )
@@ -66,16 +67,22 @@ class OrchestratePreferExplicitDefaultAccessor(StructureRuleBase):
     ) -> Generator[Finding, None, None]:
         raw = orch_model.raw_value
         file_path = orch_model.file_path
-        for source, path in walk_orchestration_source_strings(raw):
+        for source, path, is_template_body in walk_orchestration_source_strings(raw):
             for unsafe_name, alternatives in UNSAFE_TO_ALTERNATIVES:
                 pattern = re.compile(r"\b" + re.escape(unsafe_name) + r"\s*\(")
-                for _ in pattern.finditer(source):
-                    location = resolve_ui_location(raw, path)
+                for match in pattern.finditer(source):
+                    template_line = (
+                        get_template_line_number(source, match.start())
+                        if is_template_body
+                        else None
+                    )
+                    location = resolve_ui_location(raw, path, template_line=template_line)
                     location_suffix = f" Location: {location}. " if location else ""
                     message = location_suffix + _format_message(unsafe_name, alternatives)
+                    finding_line = template_line if template_line is not None else 1
                     yield Finding(
                         rule=self,
                         file_path=file_path,
-                        line=1,
+                        line=finding_line,
                         message=message,
                     )

@@ -162,6 +162,21 @@ def _path_inside_createjson_mapping(
     return None
 
 
+# --- Template body line number (CreateTextTemplate; format-agnostic) ---
+
+
+def get_template_line_number(text: str, offset: int) -> int:
+    """
+    Return 1-based line number for a character offset within template body text.
+    Counts newlines in text[:offset]. Clamps offset to [0, len(text)]. Returns at least 1.
+    Independent of orchestration file line numbers; for template-local locations only.
+    """
+    if not text:
+        return 1
+    clamped = max(0, min(offset, len(text)))
+    return text[:clamped].count("\n") + 1
+
+
 # --- User-facing location resolution ---
 
 
@@ -208,9 +223,14 @@ def format_location_fallback(path: Tuple[Union[str, int], ...]) -> str:
     return " -> ".join(parts) if parts else ""
 
 
-def resolve_ui_location(raw_value: Any, path: Tuple[Union[str, int], ...]) -> str:
+def resolve_ui_location(
+    raw_value: Any,
+    path: Tuple[Union[str, int], ...],
+    template_line: Optional[int] = None,
+) -> str:
     """
     Resolve path to user-facing Orchestrate location text: "StepName -> sublocation".
+    When template_line is set (e.g. for CreateTextTemplate body findings), appends " -> line N".
 
     - CreateJson mapping: if path is inside a Mapping (values -> _value -> i -> _value -> expr...),
       uses step name + mapping path as row label (path with only leading '$.' stripped).
@@ -218,44 +238,58 @@ def resolve_ui_location(raw_value: Any, path: Tuple[Union[str, int], ...]) -> st
       or normalized fallback (no raw 'expr' / 'nodes' / 'values' / 'ifBranches').
     """
     if not path or not isinstance(raw_value, dict):
-        return ""
-
-    mapping_info = _path_inside_createjson_mapping(raw_value, path)
-    if mapping_info is not None:
-        path_to_mapping, mapping_node = mapping_info
-        step_chain = get_step_name_chain_from_path(raw_value, path_to_mapping)
-        label = _get_mapping_path_label(mapping_node)
-        if step_chain and label is not None:
-            step_prefix = " -> ".join(step_chain)
-            if label != step_chain[-1]:
-                return f"{step_prefix} -> {label}"
-            return step_prefix
-        if label is not None:
-            return label
-
-    step_chain = get_step_name_chain_from_path(raw_value, path)
-    if not step_chain:
-        return format_location_fallback(path)
-
-    step_prefix = " -> ".join(step_chain)
-    parent = navigate(raw_value, path[:-1]) if len(path) > 1 else None
-
-    if isinstance(parent, dict):
-        parent_mapping_label = _get_mapping_path_label(parent)
-        if parent_mapping_label is not None:
-            if parent_mapping_label != step_chain[-1]:
-                return f"{step_prefix} -> {parent_mapping_label}"
-            return step_prefix
-        sub = get_container_display_name(parent)
+        base = ""
     else:
-        sub = None
+        mapping_info = _path_inside_createjson_mapping(raw_value, path)
+        if mapping_info is not None:
+            path_to_mapping, mapping_node = mapping_info
+            step_chain = get_step_name_chain_from_path(raw_value, path_to_mapping)
+            label = _get_mapping_path_label(mapping_node)
+            if step_chain and label is not None:
+                step_prefix = " -> ".join(step_chain)
+                if label != step_chain[-1]:
+                    base = f"{step_prefix} -> {label}"
+                else:
+                    base = step_prefix
+            elif label is not None:
+                base = label
+            else:
+                base = ""
+        else:
+            step_chain = get_step_name_chain_from_path(raw_value, path)
+            if not step_chain:
+                base = format_location_fallback(path)
+            else:
+                step_prefix = " -> ".join(step_chain)
+                parent = navigate(raw_value, path[:-1]) if len(path) > 1 else None
 
-    if not sub:
-        key = get_owning_key_from_path(path)
-        sub = "value" if key == "expr" else (key if key else None)
-    if sub and sub != step_chain[-1]:
-        return f"{step_prefix} -> {sub}"
-    return step_prefix
+                if isinstance(parent, dict):
+                    parent_mapping_label = _get_mapping_path_label(parent)
+                    if parent_mapping_label is not None:
+                        if parent_mapping_label != step_chain[-1]:
+                            base = f"{step_prefix} -> {parent_mapping_label}"
+                        else:
+                            base = step_prefix
+                    else:
+                        sub = get_container_display_name(parent)
+                        if not sub:
+                            key = get_owning_key_from_path(path)
+                            sub = "value" if key == "expr" else (key if key else None)
+                        if sub and sub != step_chain[-1]:
+                            base = f"{step_prefix} -> {sub}"
+                        else:
+                            base = step_prefix
+                else:
+                    key = get_owning_key_from_path(path)
+                    sub = "value" if key == "expr" else (key if key else None)
+                    if sub and sub != step_chain[-1]:
+                        base = f"{step_prefix} -> {sub}"
+                    else:
+                        base = step_prefix
+
+    if template_line is not None:
+        return f"{base} -> line {template_line}"
+    return base
 
 
 def get_expression_source(expr_obj: Any) -> Optional[str]:
@@ -312,13 +346,13 @@ def _is_text_template_node(d: Any) -> bool:
 
 def walk_orchestration_source_strings(
     obj: Any, path: Tuple[Union[str, int], ...] = ()
-) -> Generator[Tuple[str, Tuple[Union[str, int], ...]], None, None]:
+) -> Generator[Tuple[str, Tuple[Union[str, int], ...], bool], None, None]:
     """
-    Yield (source_string, path) for every script-bearing place in orchestration JSON.
+    Yield (source_string, path, is_template_body) for every script-bearing place in orchestration JSON.
 
     Covers:
-    - Expr nodes: _value.source (conditions, value expressions, mappings, etc.)
-    - TextTemplate nodes: _value string (e.g. CreateTextTemplate message with {{ ... }}).
+    - Expr nodes: _value.source -> (source, path, False).
+    - TextTemplate nodes: _value string -> (value_val, path, True) (e.g. CreateTextTemplate message).
 
     Path is the tuple of keys/indices from the flow root to the node, for location resolution.
     """
@@ -326,11 +360,11 @@ def walk_orchestration_source_strings(
         if _is_expression_with_source(obj):
             source = _get_expression_source(obj)
             if source:
-                yield (source, path)
+                yield (source, path, False)
         if _is_text_template_node(obj):
             value_val = obj.get("_value")
             if isinstance(value_val, str):
-                yield (value_val, path)
+                yield (value_val, path, True)
         for k, v in obj.items():
             yield from walk_orchestration_source_strings(v, path + (k,))
     elif isinstance(obj, list):

@@ -5,6 +5,7 @@ import pytest
 from parser.rules.structure.shared.orchestration_path_utils import (
     format_location_fallback,
     get_expression_source,
+    get_template_line_number,
     resolve_ui_location,
 )
 
@@ -87,6 +88,23 @@ class TestResolveUiLocationCreateJsonMapping:
         path = ("nodes", "_value", 0, "_value", "message")
         loc = resolve_ui_location(raw, path)
         assert loc == "CTT_XmlInput"
+
+
+class TestGetTemplateLineNumber:
+    """get_template_line_number: 1-based line from template body offset."""
+
+    def test_offset_zero_returns_line_one(self):
+        assert get_template_line_number("abc", 0) == 1
+
+    def test_after_one_newline_returns_line_two(self):
+        # "a\nb\nc": offset 2 is right after first \n
+        assert get_template_line_number("a\nb\nc", 2) == 2
+
+    def test_offset_past_end_clamped(self):
+        assert get_template_line_number("ab", 100) == 1
+
+    def test_empty_string_offset_zero_returns_one(self):
+        assert get_template_line_number("", 0) == 1
 
 
 class TestFormatLocationFallback:
