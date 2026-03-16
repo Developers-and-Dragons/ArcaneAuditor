@@ -197,8 +197,9 @@ class ModelParser:
                 file_path=file_path,
                 source_content=source_file.content,
             )
-            key = orch_id or orch_name or str(len(context.orchestrations))
-            context.orchestrations[key] = orch_model
+            # Use file_path as key so multiple orchestration files never overwrite each other
+            # (id/name can be shared or empty across files)
+            context.orchestrations[file_path] = orch_model
             from utils.file_path_utils import strip_uuid_prefix
             cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
             print(f"Parsed Orchestration: {cleaned_filename}")

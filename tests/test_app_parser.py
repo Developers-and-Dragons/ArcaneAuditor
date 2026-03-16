@@ -284,8 +284,8 @@ class TestModelParser:
         mock_file.content = orch_content
         context = ProjectContext()
         self.parser._parse_single_file("o4i.orchestration", mock_file, context)
-        assert "o4i-id-1" in context.orchestrations
-        orch = context.orchestrations["o4i-id-1"]
+        assert "o4i.orchestration" in context.orchestrations
+        orch = context.orchestrations["o4i.orchestration"]
         assert orch.flow_type == ".maya.IntegrationFrameworkTrigger"
         assert orch.name == "myIntegration"
 
@@ -309,8 +309,8 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_single_file("subOrch.suborchestration", mock_file, context)
         assert hasattr(context, "orchestrations")
-        assert "sub-id-1" in context.orchestrations
-        orch = context.orchestrations["sub-id-1"]
+        assert "subOrch.suborchestration" in context.orchestrations
+        orch = context.orchestrations["subOrch.suborchestration"]
         assert orch.flow_type == ".maya.FlowSubflow"
         assert orch.name == "subOrch"
         assert "start" in orch.raw_value
@@ -342,7 +342,7 @@ class TestModelParser:
         mock_file.content = orch_content
         context = ProjectContext()
         self.parser._parse_single_file("asyncFull.orchestration", mock_file, context)
-        orch = context.orchestrations["async-1"]
+        orch = context.orchestrations["asyncFull.orchestration"]
         assert orch.security_domains == ["OrchSecurityDomain"]
 
     def test_parse_orchestration_file_multiline_normalization(self):
