@@ -20,12 +20,14 @@ class StructureRuleBase(Rule, ABC):
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
+        pmds = context.pmds if context.pmds is not None else {}
+        pods = context.pods if context.pods is not None else {}
         # Analyze PMD files
-        for pmd_model in context.pmds.values():
+        for pmd_model in pmds.values():
             yield from self._analyze_pmd(pmd_model, context)
         
         # Analyze POD files
-        for pod_model in context.pods.values():
+        for pod_model in pods.values():
             yield from self._analyze_pod(pod_model, context)
         
         # Analyze AMD file if present
@@ -33,11 +35,13 @@ class StructureRuleBase(Rule, ABC):
             yield from self._analyze_amd(context.amd, context)
 
         # Analyze WQL query files if present
-        for wql_model in getattr(context, "wqlqueries", {}).values():
+        wqlqueries = getattr(context, "wqlqueries", None) or {}
+        for wql_model in wqlqueries.values():
             yield from self._analyze_wqlquery(wql_model, context)
 
         # Analyze orchestration files if present
-        for orch_model in getattr(context, "orchestrations", {}).values():
+        orchestrations = getattr(context, "orchestrations", None) or {}
+        for orch_model in orchestrations.values():
             yield from self._analyze_orchestration(orch_model, context)
 
     def _analyze_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
@@ -72,20 +76,15 @@ class StructureRuleBase(Rule, ABC):
     
     def visit_amd(self, amd_model, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit AMD model - can be overridden by subclasses."""
-        # Default implementation does nothing
-        return
+        yield from ()
 
     def visit_wqlquery(self, wql_model: WQLQueryModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit WQL query model - can be overridden by subclasses."""
-        # Default implementation does nothing
-        return
-        yield  # This line is never reached, but makes it a generator
+        yield from ()
 
     def visit_orchestration(self, orch_model: OrchestrationModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit orchestration model - can be overridden by subclasses."""
-        # Default implementation does nothing
-        return
-        yield  # This line is never reached, but makes it a generator
+        yield from ()
     
     def _create_finding(self, message: str, file_path: str, line: int = 1) -> Finding:
         """Create a finding with consistent formatting."""

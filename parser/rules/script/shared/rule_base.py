@@ -32,21 +32,24 @@ class ScriptRuleBase(Rule, ABC):
     
     def analyze(self, context) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
+        pmds = getattr(context, "pmds", None) or {}
+        pods = getattr(context, "pods", None) or {}
+        scripts = getattr(context, "scripts", None) or {}
+        wqlqueries = getattr(context, "wqlqueries", None) or {}
         # Analyze PMD files
-        for pmd in context.pmds.values():
+        for pmd in pmds.values():
             yield from self._analyze_pmd(pmd, context)
         
         # Analyze POD files
-        for pod in context.pods.values():
+        for pod in pods.values():
             yield from self._analyze_pod(pod, context)
 
         # Analyze WQL query files (offset/limit/query fields only)
-        if hasattr(context, "wqlqueries"):
-            for wql_model in context.wqlqueries.values():
-                yield from self._analyze_wqlquery(wql_model, context)
+        for wql_model in wqlqueries.values():
+            yield from self._analyze_wqlquery(wql_model, context)
         
         # Analyze script files
-        for script in context.scripts.values():
+        for script in scripts.values():
             yield from self._analyze_script(script, context)
 
     def _analyze_wqlquery(self, wql_model, context=None) -> Generator[Finding, None, None]:
