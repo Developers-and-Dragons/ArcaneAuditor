@@ -134,7 +134,7 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
                     file_path=file_path,
                     line=1,
                     message=(
-                        f"{location_suffix}: "
+                        f"{location_suffix} "
                         'Conditional step returns true/false based on a condition that already evaluates to true/false.'
                         f'This creates a redundant wrapper (internally generated as "if (foo == true) {{return true}} else {{return false}}"). '
                         'Remove the Conditional step and test the boolean directly.'
