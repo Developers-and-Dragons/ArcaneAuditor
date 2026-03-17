@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.5.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 [![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
@@ -12,13 +12,14 @@
 
 ## ✨ Overview
 
-Arcane Auditor channels ancient wisdom through **42 validation rules** to reveal subtle code quality issues invisible to compilers but obvious to master developers.
+Arcane Auditor channels ancient wisdom through **48 validation rules** to reveal subtle code quality issues invisible to compilers but obvious to master developers.
 
 It analyzes:
 
 - **📄 PMD** — Page definitions with embedded scripts and endpoints
 - **🧩 Pod** — Reusable widget components
 - **📜 Script** — Function libraries and utilities
+- **🔄 Orchestration** — All templates + suborchestrations
 - **🗝️ AMD / 🔒 SMD** — Application and security manifests
 
 **Key Traits**
@@ -67,10 +68,10 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 
 ### 3. Analyze
 
-Drag and drop your Extend app ZIP or individual files (`.pmd`, `.pod`, `.script`, `.amd`, `.smd`).
+Drag and drop your Extend app ZIP or individual files (`.pmd`, `.pod`, `.script`, `.orchestration`, `.suborchestration`, `.amd`, `.smd`).
 Results appear faster than a polymorph spell — download Excel reports as needed.
 
-**Includes:** 42 rules, configuration presets, Excel export — fully self-contained.
+**Includes:** 48 rules, configuration presets, Excel export — fully self-contained.
 
 > 💡 **Windows SmartScreen Notice**
 > Even with code signing, Windows SmartScreen may show “Windows protected your PC” until the app builds download reputation with Microsoft.
@@ -120,15 +121,20 @@ For automation, CI/CD pipelines, and power users who prefer the terminal:
 # Analyze an app
 ArcaneAuditorCLI review-app myapp.zip
 
-# Use custom configuration
+# Use specific configuration
 ArcaneAuditorCLI review-app myapp.zip --config production-ready
 
-# Export to Excel
+# Export results to Excel
 ArcaneAuditorCLI review-app myapp.zip --format excel --output report.xlsx
 
-# Export to JSON for CI/CD
+# CI/CD: one flag for quiet, JSON, and default output file (arcane-auditor-results.json)
+ArcaneAuditorCLI review-app myapp.zip --ci
+
+# Or specify format/output explicitly
 ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
 ```
+
+**For CI/CD pipelines:** use `--ci` to enable a preset that is quiet (no status chatter), outputs JSON, and writes to a default file (`arcane-auditor-results.json`) unless you pass `--output`. You can still override with `--format` or `--output` when needed.
 
 **Exit Codes for CI/CD:**
 
@@ -181,15 +187,15 @@ ArcaneAuditorCLI review-app myapp.zip --config my-config
 
 ## 🧠 Validation Rules
 
-Arcane Auditor enforces **42 rules** across two realms:
+Arcane Auditor enforces **48 rules** across two realms:
 
-### 📜 Script Quality (23)
+### 📜 Script Quality (22)
 
 Complexity limits • long-function checks • unused variables/functions • naming • magic numbers • descriptive parameters
 
-### 🗝️ Structural Integrity (19)
+### 🗝️ Structural Integrity (26)
 
-Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks
+Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks • orchestration (error handlers, security domains, branching, expression best practices)
 
 > 📖 See full details: [Rule Documentation](docs/RULES.md)
 

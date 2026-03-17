@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 42 mystical validation rules*
+*Ancient wisdom distilled into 48 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers don't detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **48 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers don't detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -2475,7 +2475,7 @@ Each rule supports:
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **48 rules** across **2 categories**:
 
 - ✅ **Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **Structure Rules** - Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization
