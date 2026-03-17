@@ -226,6 +226,36 @@
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}
+    },
+    "OrchestrationSecurityDomainRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OrchestrationGlobalErrorHandlerRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OrchestrationApiStepErrorHandlerRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OrchestrationBranchOnConditionsNestingRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OrchestrationVerboseBooleanCheckRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OrchestratePreferExplicitDefaultAccessor": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
     }
   }
 }
