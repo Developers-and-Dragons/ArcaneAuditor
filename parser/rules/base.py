@@ -129,7 +129,8 @@ class Rule(ABC):
                     context.set_cached_ast(cache_key, parsed_ast)
                     return parsed_ast
                 except Exception as e:
-                    print(f"Failed to parse script content: {e}")
+                    from utils.console import error
+                    error(f"Failed to parse script content: {e}")
                     context.set_cached_ast(cache_key, None)
                     return None
             else:
@@ -145,7 +146,8 @@ class Rule(ABC):
                     from ..pmd_script_parser import parse_with_preprocessor
                     self._script_ast_cache[cache_key] = parse_with_preprocessor(content)
                 except Exception as e:
-                    print(f"Failed to parse script content: {e}")
+                    from utils.console import error
+                    error(f"Failed to parse script content: {e}")
                     self._script_ast_cache[cache_key] = None
             
             return self._script_ast_cache[cache_key]
@@ -611,7 +613,8 @@ class Rule(ABC):
                         try:
                             return preprocessor.preprocess_template_expression(stripped_content)
                         except Exception as e:
-                            print(f"Warning: Failed to parse template expression '{stripped_content[:50]}...': {e}")
+                            from utils.console import warn
+                            warn(f"Failed to parse template expression '{stripped_content[:50]}...': {e}")
                             return None
                 
             
@@ -630,7 +633,8 @@ class Rule(ABC):
                 
                 return self._script_ast_cache[cache_key]
         except Exception as e:
-            print(f"Failed to parse script content: {e}")
+            from utils.console import error
+            error(f"Failed to parse script content: {e}")
             # Add parsing error to context if available
             if context is not None:
                 context.parsing_errors.append(f"Script parsing failed: {str(e)}")

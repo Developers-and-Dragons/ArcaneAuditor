@@ -104,12 +104,14 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
                         code_int = int(code)
                         codes_found.add(code_int)
                     except (ValueError, TypeError):
-                        print(f"Warning: Invalid status code value '{code}' at index {i} in endpoint '{endpoint_name}' - must be a number")
+                        from utils.console import warn
+                        warn(f"Invalid status code value '{code}' at index {i} in endpoint '{endpoint_name}' - must be a number")
                         continue
                 # Silently ignore entries with 'codeName' or other unexpected structures
                 continue
             else:
-                print(f"Warning: Unexpected failOnStatusCodes entry type at index {i} in endpoint '{endpoint_name}': {type(status_code_entry)} - {status_code_entry}")
+                from utils.console import warn
+                warn(f"Unexpected failOnStatusCodes entry type at index {i} in endpoint '{endpoint_name}': {type(status_code_entry)} - {status_code_entry}")
                 continue
         
         # Check for required codes 400 and 403 (as integers)

@@ -109,4 +109,5 @@ const getCurrentTime = function() {
                 )
                 
         except Exception as e:
-            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
+            from utils.console import warn
+            warn(f"Failed to analyze script file {script_model.file_path}: {e}")

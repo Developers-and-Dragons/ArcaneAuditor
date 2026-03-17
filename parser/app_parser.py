@@ -8,6 +8,7 @@ from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel, WQLQueryModel, OrchestrationModel
 from .pmd_preprocessor import PMDPreprocessor
+from utils.console import info, warn, error
 
 
 class ModelParser:
@@ -53,17 +54,16 @@ class ModelParser:
         
         # For small numbers of files, use serial processing to avoid overhead
         if len(source_files_map) <= 3:
-            print("Using serial file parsing (small file count)")
+            info("Using serial file parsing (small file count)")
             for file_path, source_file in source_files_map.items():
                 try:
                     self._parse_single_file(file_path, source_file, context)
                 except Exception as e:
-                    print(f"Failed to parse {file_path}: {e}")
+                    error(f"Failed to parse {file_path}: {e}")
                     context.parsing_errors.append(f"{file_path}: {e}")
         else:
-            # Use parallel processing for larger applications
-            max_workers = min(10, len(source_files_map))  # Cap at 10 workers
-            print(f"Using parallel file parsing ({max_workers} workers for {len(source_files_map)} files)")
+            max_workers = min(10, len(source_files_map))
+            info(f"Using parallel file parsing ({max_workers} workers for {len(source_files_map)} files)")
             
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Submit all parsing tasks
@@ -78,13 +78,12 @@ class ModelParser:
                     try:
                         result = future.result()
                         if result:
-                            # Merge the result into the main context
-                            parsed_context, error = result
+                            parsed_context, parse_error = result
                             self._merge_context(context, parsed_context)
-                            if error:
-                                context.parsing_errors.append(f"{file_path}: {error}")
+                            if parse_error:
+                                context.parsing_errors.append(f"{file_path}: {parse_error}")
                     except Exception as e:
-                        print(f"Failed to parse {file_path}: {e}")
+                        error(f"Failed to parse {file_path}: {e}")
                         context.parsing_errors.append(f"{file_path}: {e}")
         
         # Pre-compute script fields for all PMD and POD models to improve rule performance
@@ -201,9 +200,9 @@ class ModelParser:
             context.orchestrations[file_path] = orch_model
             from utils.file_path_utils import strip_uuid_prefix
             cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
-            print(f"Parsed Orchestration: {cleaned_filename}")
+            info(f"Parsed Orchestration: {cleaned_filename}")
         except Exception as e:
-            print(f"Failed to parse orchestration file {file_path}: {e}")
+            error(f"Failed to parse orchestration file {file_path}: {e}")
             raise
 
     def _parse_wqlquery_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -236,9 +235,9 @@ class ModelParser:
 
             from utils.file_path_utils import strip_uuid_prefix
             cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
-            print(f"Parsed WQLQuery: {cleaned_filename}")
+            info(f"Parsed WQLQuery: {cleaned_filename}")
         except Exception as e:
-            print(f"Failed to parse WQLQuery file {file_path}: {e}")
+            error(f"Failed to parse WQLQuery file {file_path}: {e}")
             raise
     
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -303,14 +302,14 @@ class ModelParser:
                 # Show cleaned filename for consistency with "Parsed Script" messages
                 from utils.file_path_utils import strip_uuid_prefix
                 cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
-                print(f"Parsed PMD: {cleaned_filename}")
+                info(f"Parsed PMD: {cleaned_filename}")
                 
             except json.JSONDecodeError as e:
-                print(f"JSON parsing failed for {file_path}: {e}")
+                error(f"JSON parsing failed for {file_path}: {e}")
                 raise
                 
         except Exception as e:
-            print(f"Failed to parse PMD file {file_path}: {e}")
+            error(f"Failed to parse PMD file {file_path}: {e}")
             raise
     
     def _parse_script_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -325,10 +324,10 @@ class ModelParser:
             # Show cleaned filename without UUID prefix for consistency
             from utils.file_path_utils import strip_uuid_prefix
             cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
-            print(f"Parsed Script: {cleaned_filename}")
+            info(f"Parsed Script: {cleaned_filename}")
             
         except Exception as e:
-            print(f"Failed to parse script file {file_path}: {e}")
+            error(f"Failed to parse script file {file_path}: {e}")
             raise
     
     def _parse_amd_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -349,14 +348,14 @@ class ModelParser:
                     source_content=content
                 )
                 context.amd = amd_model
-                print(f"Parsed AMD: {file_path}")
+                info(f"Parsed AMD: {file_path}")
                 
             except json.JSONDecodeError as e:
-                print(f"JSON parsing error in AMD file {file_path}: {e}")
+                error(f"JSON parsing error in AMD file {file_path}: {e}")
                 raise
                 
         except Exception as e:
-            print(f"Failed to parse AMD file {file_path}: {e}")
+            error(f"Failed to parse AMD file {file_path}: {e}")
             raise
     
     def _parse_pod_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -393,15 +392,15 @@ class ModelParser:
                 pod_model.set_hash_to_lines_mapping(hash_to_lines)
                 
                 context.pods[pod_model.podId] = pod_model
-                print(f"Parsed Pod: {pod_model.podId}")
+                info(f"Parsed Pod: {pod_model.podId}")
                 
             except json.JSONDecodeError as e:
                 # If preprocessing and parsing didn't work, fail
-                print(f"JSON parsing error in Pod file {file_path}: {e}")
+                error(f"JSON parsing error in Pod file {file_path}: {e}")
                 raise
                 
         except Exception as e:
-            print(f"Failed to parse Pod file {file_path}: {e}")
+            error(f"Failed to parse Pod file {file_path}: {e}")
             raise
 
     def _parse_smd_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -429,17 +428,16 @@ class ModelParser:
             
             # Add to context (only one SMD file allowed)
             if context.smd is not None:
-                print(f"Warning: Multiple SMD files found. Ignoring {file_path} (already have {context.smd.id})")
+                warn(f"Multiple SMD files found. Ignoring {file_path} (already have {context.smd.id})")
             else:
                 context.smd = smd_model
-                print(f"Parsed SMD: {smd_model.id}")
+                info(f"Parsed SMD: {smd_model.id}")
             
         except json.JSONDecodeError as e:
-            print(f"JSON parsing error in SMD file {file_path}: {e}")
+            error(f"JSON parsing error in SMD file {file_path}: {e}")
             raise
-            
         except Exception as e:
-            print(f"Failed to parse SMD file {file_path}: {e}")
+            error(f"Failed to parse SMD file {file_path}: {e}")
             raise
     
     def _precompute_script_fields(self, context: ProjectContext):
@@ -463,7 +461,7 @@ class ModelParser:
             script_fields = temp_rule.find_pod_script_fields(pod_model)
             context.set_cached_pod_script_fields(pod_id, script_fields)
         
-        print(f"Pre-computed script fields for {len(context.pmds)} PMD files and {len(context.pods)} POD files")
+        info(f"Pre-computed script fields for {len(context.pmds)} PMD files and {len(context.pods)} POD files")
     
     def _precompute_asts(self, context: ProjectContext):
         """Pre-compute ASTs for all script fields to avoid repeated parsing."""
@@ -532,7 +530,7 @@ class ModelParser:
                 except Exception as e:
                     error_count += 1
         
-        print(f"Pre-computed {ast_count} ASTs (errors: {error_count})")
+        info(f"Pre-computed {ast_count} ASTs (errors: {error_count})")
     
     def _initialize_analysis_context(self, context: ProjectContext, source_files_map: Dict[str, Any]):
         """

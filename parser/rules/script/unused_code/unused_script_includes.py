@@ -87,7 +87,8 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
                 )
                 
         except Exception as e:
-            print(f"Warning: Failed to analyze script includes in {pmd_model.file_path}: {e}")
+            from utils.console import warn
+            warn(f"Failed to analyze script includes in {pmd_model.file_path}: {e}")
 
     def _get_included_scripts(self, pmd_model: PMDModel) -> Set[str]:
         """Get included script files from PMD model."""

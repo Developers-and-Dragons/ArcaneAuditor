@@ -89,7 +89,8 @@ class PMDSectionOrderingRule(Rule):
             yield from self._check_section_ordering(actual_order, pmd_model)
             
         except Exception as e:
-            print(f"Warning: Failed to analyze section ordering in {pmd_model.file_path}: {e}")
+            from utils.console import warn
+            warn(f"Failed to analyze section ordering in {pmd_model.file_path}: {e}")
 
     def _extract_root_key_order(self, pmd_model: PMDModel) -> List[str]:
         """Extract the order of root-level keys from the PMD source."""

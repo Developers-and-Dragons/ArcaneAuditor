@@ -66,7 +66,8 @@ class ScriptRuleBase(Rule, ABC):
                         context
                     )
                 except Exception as e:
-                    print(f"Warning: Failed to analyze wqlquery {wql_model.file_path} field {field}: {e}")
+                    from utils.console import warn
+                    warn(f"Failed to analyze wqlquery {wql_model.file_path} field {field}: {e}")
     
     def _analyze_pmd(self, pmd_model: PMDModel, context) -> Generator[Finding, None, None]:
         """Analyze PMD file for script fields."""
@@ -89,7 +90,8 @@ class ScriptRuleBase(Rule, ABC):
                 context
             )
         except Exception as e:
-            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
+            from utils.console import warn
+            warn(f"Failed to analyze script file {script_model.file_path}: {e}")
     
     def _analyze_fields(self, model, script_fields: List[Tuple[str, str, str, int]], context=None) -> Generator[Finding, None, None]:
         """Analyze script fields from a model."""

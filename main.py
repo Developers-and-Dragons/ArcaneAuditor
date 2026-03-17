@@ -1,4 +1,5 @@
 import typer
+from typing import Optional
 import time
 from pathlib import Path
 from file_processing import FileProcessor
@@ -8,6 +9,7 @@ from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 from utils.arcane_paths import ensure_sample_rule_config
+from utils.console import set_quiet, info, success, warn, error, result
 from __version__ import __version__
 
 app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
@@ -31,11 +33,12 @@ def review_app(
     path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
     additional_files: list[Path] = typer.Argument(None, help="Additional files to analyze (optional)"),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
-    output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
+    output_format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: console (default), json (default with --ci), summary, or excel."),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
     show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
     fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)"),
+    ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, json format, default output file (overridable by explicit --format/--output)"),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
@@ -52,11 +55,16 @@ def review_app(
     - 2: Usage Error - Invalid config, bad file path, no files found, invalid format
     - 3: Runtime Error - Parsing failed, analysis crashed, unexpected errors
     """
+    # Effective settings: --ci preset with explicit args winning
+    effective_quiet = quiet or ci
+    effective_output_format = output_format if output_format is not None else ("json" if ci else "console")
+    effective_output_file = output_file if output_file is not None else (Path("arcane-auditor-results.json") if ci else None)
+    set_quiet(effective_quiet)
+
     # Start overall timing
     overall_start_time = time.time()
-    
-    if not quiet:
-        typer.echo(f"Starting review for '{path.name}'...")
+
+    info(f"Starting review for '{path.name}'...")
     
     # Load configuration using the layered configuration system
     config_start_time = time.time()
@@ -81,19 +89,18 @@ def review_app(
         else:
             config_display_name = "Built-in defaults"
         
-        if not quiet:
-            if source_info["type"] == "custom_file":
-                typer.echo(f"Using Custom ({source_info['name']}) configuration from {source_info['path']}")
-            else:
-                typer.echo(f"Using {config_display_name} configuration")
+        if source_info["type"] == "custom_file":
+            info(f"Using Custom ({source_info['name']}) configuration from {source_info['path']}")
+        else:
+            info(f"Using {config_display_name} configuration")
     except Exception as e:
-        typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
-        typer.echo("Try using --config with a valid configuration file, or run without --config for defaults")
+        error(f"Configuration Error: {e}")
+        error("Try using --config with a valid configuration file, or run without --config for defaults")
         raise typer.Exit(2)  # Exit code 2 for usage errors
-    
+
     config_time = time.time() - config_start_time
-    if show_timing and not quiet:
-        typer.echo(f"Configuration loading: {config_time:.2f}s")
+    if show_timing:
+        info(f"Configuration loading: {config_time:.2f}s")
     
     # Detect input type and process accordingly
     file_processing_start_time = time.time()
@@ -101,45 +108,36 @@ def review_app(
     
     try:
         if path.suffix == '.zip':
-            # ZIP file mode
-            typer.echo("Processing ZIP archive...")
+            info("Processing ZIP archive...")
             source_files_map = processor.process_zip_file(path)
         elif path.is_dir():
-            # Directory mode
-            typer.echo(f"Scanning directory: {path}")
+            info(f"Scanning directory: {path}")
             source_files_map = processor.process_directory(path)
         else:
-            # Individual file(s) mode
             files_to_process = [path]
             if additional_files:
                 files_to_process.extend(additional_files)
-            typer.echo(f"Processing {len(files_to_process)} individual file(s)...")
+            info(f"Processing {len(files_to_process)} individual file(s)...")
             source_files_map = processor.process_individual_files(files_to_process)
     except Exception as e:
-        typer.secho(f"File Processing Error: {e}", fg=typer.colors.RED)
+        error(f"File Processing Error: {e}")
         raise typer.Exit(2)  # Exit code 2 for usage errors
-    
+
     file_processing_time = time.time() - file_processing_start_time
-    typer.echo(f"Found {len(source_files_map)} relevant files to analyze")
+    info(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
-        typer.echo(f"File processing: {file_processing_time:.2f}s")
+        info(f"File processing: {file_processing_time:.2f}s")
 
     if not source_files_map:
-        typer.secho("No source files found to analyze.", fg=typer.colors.RED)
-        typer.echo("Ensure your input contains .pmd, .pod, .script, .amd, or .smd files")
+        error("No source files found to analyze.")
+        error("Ensure your input contains .pmd, .pod, .script, .amd, or .smd files")
         raise typer.Exit(2)  # Exit code 2 for usage errors
-        
-    # --- Next Step: Pass 'source_files_map' to the Parser ---
-    # For example:
-    # asts = parse_all_files(source_files_map)
-    # ... and so on.
-    
-    typer.echo("\nPipeline Input:")
-    for path_key, source_file in source_files_map.items():
-        typer.echo(f"  - Ready to parse: {path_key}")
 
-    # --- Parse Files into App File Models ---
-    typer.echo("Parsing files into App File models...")
+    info("\nPipeline Input:")
+    for path_key, source_file in source_files_map.items():
+        info(f"  - Ready to parse: {path_key}")
+
+    info("Parsing files into App File models...")
     parsing_start_time = time.time()
     try:
         pmd_parser = ModelParser()
@@ -155,198 +153,174 @@ def review_app(
         if context.amd: parsed_summary.append("AMD file")
         
         if parsed_summary:
-            typer.echo(f"Parsed: {', '.join(parsed_summary)}")
+            info(f"Parsed: {', '.join(parsed_summary)}")
         else:
-            typer.echo("No files were successfully parsed")
-        
+            info("No files were successfully parsed")
+
         if show_timing:
-            typer.echo(f"File parsing: {parsing_time:.2f}s")
-        
+            info(f"File parsing: {parsing_time:.2f}s")
+
     except Exception as e:
-        typer.secho(f"Parsing Error: {e}", fg=typer.colors.RED)
-        typer.echo("Check that your files are valid Workday Extend format")
+        error(f"Parsing Error: {e}")
+        error("Check that your files are valid Workday Extend format")
         raise typer.Exit(3)  # Exit code 3 for runtime errors
 
-    # --- Run Rules Analysis ---
-    typer.echo("Initializing rules engine...")
+    info("Initializing rules engine...")
     findings = []  # Initialize findings before try block
     try:
         rules_init_start_time = time.time()
         rules_engine = RulesEngine(config)
         rules_init_time = time.time() - rules_init_start_time
-        typer.echo(f"Loaded {len(rules_engine.rules)} validation rules")
+        info(f"Loaded {len(rules_engine.rules)} validation rules")
         if show_timing:
-            typer.echo(f"Rules engine initialization: {rules_init_time:.2f}s")
-        
-        typer.echo("Invoking analysis...")
+            info(f"Rules engine initialization: {rules_init_time:.2f}s")
+
+        info("Invoking analysis...")
         analysis_start_time = time.time()
         findings = rules_engine.run(context)
         analysis_time = time.time() - analysis_start_time
-        
+
         if findings:
-            typer.echo(f"Analysis complete. Found {len(findings)} issue(s).")
+            info(f"Analysis complete. Found {len(findings)} issue(s).")
         else:
-            typer.echo("Analysis complete. No issues found!")
-        
+            info("Analysis complete. No issues found!")
+
         if show_timing:
-            typer.echo(f"Analysis execution: {analysis_time:.2f}s")
-        
-        # Auto-detect format based on output file extension if not explicitly specified
-        if output_file and output_format == "console":  # Default format
-            file_ext = output_file.suffix.lower()
+            info(f"Analysis execution: {analysis_time:.2f}s")
+
+        # Auto-detect format based on effective output file extension if not explicitly specified
+        working_format = effective_output_format
+        if effective_output_file and effective_output_format == "console":
+            file_ext = effective_output_file.suffix.lower()
             if file_ext == '.xlsx':
-                output_format = "excel"
-                typer.echo("Auto-detected Excel format based on .xlsx extension")
+                working_format = "excel"
+                info("Auto-detected Excel format based on .xlsx extension")
             elif file_ext == '.json':
-                output_format = "json" 
-                typer.echo("Auto-detected JSON format based on .json extension")
-        
-        # Format output based on selected format
+                working_format = "json"
+                info("Auto-detected JSON format based on .json extension")
+
         try:
-            format_type = OutputFormat(output_format.lower())
+            format_type = OutputFormat(working_format.lower())
         except ValueError:
-            typer.secho(f"Invalid output format: {output_format}", fg=typer.colors.RED)
-            typer.echo("Valid formats: console, json, summary, excel")
+            error(f"Invalid output format: {working_format}")
+            error("Valid formats: console, json, summary, excel")
             raise typer.Exit(2)  # Exit code 2 for usage errors
-        
-        # Validate --single-tab flag (only applies to Excel format)
+
         if single_tab and format_type != OutputFormat.EXCEL:
-            typer.secho("Warning: --single-tab flag only applies to Excel format. Ignoring flag.", fg=typer.colors.YELLOW)
+            warn("Warning: --single-tab flag only applies to Excel format. Ignoring flag.")
             single_tab = False
         
         formatting_start_time = time.time()
         formatter = OutputFormatter(format_type)
         total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
         total_rules = len(rules_engine.rules)
-        
-        # Pass single_tab parameter only for Excel format
+
         if format_type == OutputFormat.EXCEL:
             formatted_output = formatter.format_results(findings, total_files, total_rules, context, None, None, single_tab)
         else:
             formatted_output = formatter.format_results(findings, total_files, total_rules, context)
         formatting_time = time.time() - formatting_start_time
-        
+
         if show_timing:
-            typer.echo(f"Output formatting: {formatting_time:.2f}s")
-        
-        # Output to file or console
-        if output_file:
+            info(f"Output formatting: {formatting_time:.2f}s")
+
+        # Output to file or console (effective_output_file from --output or --ci default)
+        if effective_output_file:
             if format_type == OutputFormat.EXCEL:
-                # For Excel, the formatter returns the file path
                 import shutil
                 try:
-                    shutil.move(formatted_output, str(output_file))
-                    typer.echo(f"Excel file written to: {output_file}")
+                    shutil.move(formatted_output, str(effective_output_file))
+                    info(f"Excel file written to: {effective_output_file}")
                 except Exception as e:
-                    typer.secho(f"Error moving Excel file: {e}", fg=typer.colors.RED)
-                    typer.echo(f"Excel file created at: {formatted_output}")
+                    error(f"Error moving Excel file: {e}")
+                    info(f"Excel file created at: {formatted_output}")
             else:
-                with open(output_file, 'w', encoding='utf-8') as f:
+                with open(effective_output_file, 'w', encoding='utf-8') as f:
                     f.write(formatted_output)
-                typer.echo(f"Results written to: {output_file}")
+                info(f"Results written to: {effective_output_file}")
         else:
             if format_type == OutputFormat.EXCEL:
-                typer.echo(f"Excel file created at: {formatted_output}")
+                info(f"Excel file created at: {formatted_output}")
             else:
-                typer.echo(formatted_output)
-                
+                result(formatted_output)
+
     except Exception as e:
-        typer.secho(f"Analysis Error: {e}", fg=typer.colors.RED)
-        typer.echo("This might be due to unsupported syntax or corrupted files")
+        error(f"Analysis Error: {e}")
+        error("This might be due to unsupported syntax or corrupted files")
         raise typer.Exit(3)  # Exit code 3 for analysis errors
     
-    # Calculate total time and show timing summary
     total_time = time.time() - overall_start_time
-    
+
     if show_timing:
-        typer.echo("\n" + "="*60)
-        typer.echo("TIMING SUMMARY")
-        typer.echo("="*60)
-        
-        # Calculate percentages
+        info("\n" + "="*60)
+        info("TIMING SUMMARY")
+        info("="*60)
         config_pct = (config_time / total_time) * 100 if total_time > 0 else 0
         file_proc_pct = (file_processing_time / total_time) * 100 if total_time > 0 else 0
         parsing_pct = (parsing_time / total_time) * 100 if total_time > 0 else 0
         rules_init_pct = (rules_init_time / total_time) * 100 if total_time > 0 else 0
         analysis_pct = (analysis_time / total_time) * 100 if total_time > 0 else 0
         formatting_pct = (formatting_time / total_time) * 100 if total_time > 0 else 0
-        
-        typer.echo(f"🕐 Total Analysis Time: {total_time:.2f}s")
-        typer.echo()
-        typer.echo("📈 Stage Breakdown:")
-        typer.echo(f"  Analysis Execution: {analysis_time:.2f}s ({analysis_pct:.1f}%)")
-        typer.echo(f"  File Parsing: {parsing_time:.2f}s ({parsing_pct:.1f}%)")
-        typer.echo(f"  File Processing: {file_processing_time:.2f}s ({file_proc_pct:.1f}%)")
-        typer.echo(f"  Output Formatting: {formatting_time:.2f}s ({formatting_pct:.1f}%)")
-        typer.echo(f"  Rules Engine Init: {rules_init_time:.2f}s ({rules_init_pct:.1f}%)")
-        typer.echo(f"  Configuration Loading: {config_time:.2f}s ({config_pct:.1f}%)")
-        
-        # Performance assessment
-        typer.echo()
-        typer.echo("Performance Assessment:")
+        info(f"Total Analysis Time: {total_time:.2f}s")
+        info("Stage Breakdown:")
+        info(f"  Analysis Execution: {analysis_time:.2f}s ({analysis_pct:.1f}%)")
+        info(f"  File Parsing: {parsing_time:.2f}s ({parsing_pct:.1f}%)")
+        info(f"  File Processing: {file_processing_time:.2f}s ({file_proc_pct:.1f}%)")
+        info(f"  Output Formatting: {formatting_time:.2f}s ({formatting_pct:.1f}%)")
+        info(f"  Rules Engine Init: {rules_init_time:.2f}s ({rules_init_pct:.1f}%)")
+        info(f"  Configuration Loading: {config_time:.2f}s ({config_pct:.1f}%)")
+        info("Performance Assessment:")
         if total_time < 30:
-            typer.echo("  Excellent performance (<30s)")
+            info("  Excellent performance (<30s)")
         elif total_time < 60:
-            typer.echo("  Good performance (<60s)")
+            info("  Good performance (<60s)")
         elif total_time < 120:
-            typer.echo("  Moderate performance (<2min)")
+            info("  Moderate performance (<2min)")
         else:
-            typer.echo("  Slow performance (>2min)")
-            typer.echo("  Consider using --timing to identify bottlenecks")
-        
-        # Bottleneck identification
+            info("  Slow performance (>2min)")
+            info("  Consider using --timing to identify bottlenecks")
         if analysis_pct > 70:
-            typer.echo("  Analysis execution is the primary bottleneck")
-            typer.echo("  Consider disabling CPU-intensive rules for faster analysis")
+            info("  Analysis execution is the primary bottleneck")
+            info("  Consider disabling CPU-intensive rules for faster analysis")
         elif parsing_pct > 30:
-            typer.echo("  File parsing is a significant bottleneck")
-            typer.echo("  Consider reducing parallel workers or file size limits")
-        
-        typer.echo("="*60)
+            info("  File parsing is a significant bottleneck")
+            info("  Consider reducing parallel workers or file size limits")
+        info("="*60)
     else:
-        typer.echo(f"\nTotal analysis time: {total_time:.2f}s")
-        typer.echo("Use --timing flag for detailed performance breakdown")
-    
-    # Set appropriate exit code based on findings (outside try block)
+        info(f"\nTotal analysis time: {total_time:.2f}s")
+        info("Use --timing flag for detailed performance breakdown")
+
     if findings:
         action_count = len([f for f in findings if f.severity == "ACTION"])
         advice_count = len([f for f in findings if f.severity == "ADVICE"])
-        
         if action_count > 0:
-            # ACTION issues always fail (code quality issues)
-            if not quiet:
-                typer.echo(f"Analysis completed with {action_count} ACTION issue(s)")
-                if source_info["type"] == "custom_file":
-                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
-                else:
-                    typer.echo(f"Configuration used: {config_display_name}")
-            raise typer.Exit(1)  # Exit code 1 for code quality issues
-        elif fail_on_advice and advice_count > 0:
-            # ADVICE issues fail only in CI mode (--fail-on-advice flag)
-            if not quiet:
-                typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
-                if source_info["type"] == "custom_file":
-                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
-                else:
-                    typer.echo(f"Configuration used: {config_display_name}")
-            raise typer.Exit(1)  # Exit code 1 for code quality issues
-        else:
-            # ADVICE issues in normal mode don't fail
-            if not quiet:
-                typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s)")
-                if source_info["type"] == "custom_file":
-                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
-                else:
-                    typer.echo(f"Configuration used: {config_display_name}")
-            raise typer.Exit(0)  # Exit code 0 for advice in normal mode
-    else:
-        if not quiet:
-            typer.echo("Analysis completed successfully - no issues found!")
+            info(f"Analysis completed with {action_count} ACTION issue(s)")
             if source_info["type"] == "custom_file":
-                typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                info(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
             else:
-                typer.echo(f"Configuration used: {config_display_name}")
-        raise typer.Exit(0)  # Exit code 0 for no issues
+                info(f"Configuration used: {config_display_name}")
+            raise typer.Exit(1)
+        elif fail_on_advice and advice_count > 0:
+            info(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
+            if source_info["type"] == "custom_file":
+                info(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+            else:
+                info(f"Configuration used: {config_display_name}")
+            raise typer.Exit(1)
+        else:
+            info(f"Analysis completed with {advice_count} ADVICE issue(s)")
+            if source_info["type"] == "custom_file":
+                info(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+            else:
+                info(f"Configuration used: {config_display_name}")
+            raise typer.Exit(0)
+    else:
+        success("Analysis completed successfully - no issues found!")
+        if source_info["type"] == "custom_file":
+            info(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+        else:
+            info(f"Configuration used: {config_display_name}")
+        raise typer.Exit(0)
 
 
 @app.command()
