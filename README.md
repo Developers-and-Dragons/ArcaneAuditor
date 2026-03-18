@@ -30,14 +30,14 @@ It analyzes:
 - ⚙️ Update-safe configuration layering
 - 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
----
-
-## 🚀 Quick Start — Desktop App
-
 **New in v1.5:** 
  * Orchestration support! Arcane Auditor now includes 6 additional validations for Orchestrations.
  * Linux CLI builds (tar.gz + SHA-256).
  * Docker definition files for CI/container workflows.
+---
+
+## 🚀 Quick Start — Desktop App
+
 
 ### 1. Download
 
