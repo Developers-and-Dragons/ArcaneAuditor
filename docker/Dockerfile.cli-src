@@ -1,6 +1,6 @@
 # Arcane Auditor CLI — run from source (CI / development)
-# Build: docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli-src .
-# Run:   docker run --rm -v "$(pwd)/myapp:/app/in:ro" arcane-auditor-cli-src review-app /app/in
+# Build: docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli .
+# Run:   docker run --rm -v "$PWD:/work" arcane-auditor-cli review-app /work/appfile.zip --ci
 
 FROM ubuntu:22.04
 
@@ -15,12 +15,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH"
 
+COPY . /app
 WORKDIR /app
-COPY . .
 
 # Pin Python and install dependencies (CLI-only; no desktop/web deps needed for run)
 RUN uv python install 3.12.6 && uv python pin 3.12.6 \
-    && uv venv .venv \
+    && uv venv .venv --python 3.12.6 \
     && uv pip install -r requirements.txt
 
-ENTRYPOINT ["uv", "run", "python", "main.py"]
+
+WORKDIR /work
+ENTRYPOINT ["uv", "run", "python", "/app/main.py"]

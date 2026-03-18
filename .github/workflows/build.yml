@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: 🧙 Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.6"
 
@@ -78,7 +78,7 @@ jobs:
           docker run --rm arcane-auditor-cli-smoke --help
 
       - name: 📦 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: arcane-auditor-${{ runner.os }}
           path: |
