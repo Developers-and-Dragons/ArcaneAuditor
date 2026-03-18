@@ -859,9 +859,7 @@ jobs:
 
       - name: 📦 Package Linux CLI (tar.gz + sha256)
         run: |
-          VERSION="${{ github.ref_name }}"
-          ARCH=$(uname -m)
-          ARCHIVE="ArcaneAuditorCLI-${VERSION}-linux-${ARCH}.tar.gz"
+          ARCHIVE="ArcaneAuditor_linux_CLI.tar.gz"
           cd dist
           tar czvf "../${ARCHIVE}" ArcaneAuditorCLI
           cd ..
@@ -871,9 +869,7 @@ jobs:
 
       - name: ✅ Validate packaging
         run: |
-          VERSION="${{ github.ref_name }}"
-          ARCH=$(uname -m)
-          ARCHIVE="ArcaneAuditorCLI-${VERSION}-linux-${ARCH}.tar.gz"
+          ARCHIVE="ArcaneAuditor_linux_CLI.tar.gz"
           test -f "${ARCHIVE}" || { echo "❌ Archive missing: ${ARCHIVE}"; exit 1; }
           test -f "${ARCHIVE}.sha256" || { echo "❌ Checksum missing: ${ARCHIVE}.sha256"; exit 1; }
           echo "✅ Packaging validated"
@@ -883,8 +879,8 @@ jobs:
         with:
           name: linux-cli
           path: |
-            ArcaneAuditorCLI-${{ github.ref_name }}-linux-*.tar.gz
-            ArcaneAuditorCLI-${{ github.ref_name }}-linux-*.tar.gz.sha256
+            ArcaneAuditor_linux_CLI.tar.gz
+            ArcaneAuditor_linux_CLI.tar.gz.sha256
 
 
   # 🚀 PUBLISH RELEASE ---------------------------------------------------------
@@ -939,8 +935,8 @@ jobs:
             - `ArcaneAuditor_macOS_CLI.zip` - Command-line tool bundle (signed & notarized)
             
             **Linux (CLI only):**
-            - `ArcaneAuditorCLI-<version>-linux-<arch>.tar.gz` - Command-line tool
-            - `ArcaneAuditorCLI-<version>-linux-<arch>.tar.gz.sha256` - SHA-256 checksum
+            - `ArcaneAuditor_linux_CLI.tar.gz` - Command-line tool
+            - `ArcaneAuditor_linux_CLI.tar.gz.sha256` - SHA-256 checksum
             
             **Using the CLI (macOS):**
             1. Download and extract `ArcaneAuditor_macOS_CLI.zip`
@@ -948,7 +944,7 @@ jobs:
             3. Optionally, add to PATH or create a symlink
             
             **Using the CLI (Linux):**
-            1. Download the `.tar.gz` for your architecture and verify with the `.sha256` file
+            1. Download `ArcaneAuditor_linux_CLI.tar.gz` and verify with `ArcaneAuditor_linux_CLI.tar.gz.sha256`
             2. Extract and run: `./ArcaneAuditorCLI --help`
             
             ### ✅ Verification
