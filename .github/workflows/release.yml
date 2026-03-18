@@ -828,11 +828,70 @@ jobs:
           retention-days: 7
 
 
+  # 🐧 LINUX CLI BUILD ---------------------------------------------------------
+  linux-cli-build:
+    name: 🐧 Linux CLI Build
+    runs-on: ubuntu-22.04
+    needs: []
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🧩 Install pinned Python
+        run: |
+          uv python install 3.12.6
+          uv python pin 3.12.6
+
+      - name: 🏗️ Build Linux CLI
+        run: bash ./scripts/build-linux-cli.sh
+
+      - name: ✅ Validate Linux CLI artifact
+        run: |
+          if [ ! -f dist/ArcaneAuditorCLI ]; then
+            echo "❌ Linux CLI artifact missing: dist/ArcaneAuditorCLI"
+            exit 1
+          fi
+          echo "✅ Linux CLI artifact present"
+          ls -l dist/ArcaneAuditorCLI
+
+      - name: 📦 Package Linux CLI (tar.gz + sha256)
+        run: |
+          VERSION="${{ github.ref_name }}"
+          ARCH=$(uname -m)
+          ARCHIVE="ArcaneAuditorCLI-${VERSION}-linux-${ARCH}.tar.gz"
+          cd dist
+          tar czvf "../${ARCHIVE}" ArcaneAuditorCLI
+          cd ..
+          sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+          echo "✅ Created ${ARCHIVE} and ${ARCHIVE}.sha256"
+          cat "${ARCHIVE}.sha256"
+
+      - name: ✅ Validate packaging
+        run: |
+          VERSION="${{ github.ref_name }}"
+          ARCH=$(uname -m)
+          ARCHIVE="ArcaneAuditorCLI-${VERSION}-linux-${ARCH}.tar.gz"
+          test -f "${ARCHIVE}" || { echo "❌ Archive missing: ${ARCHIVE}"; exit 1; }
+          test -f "${ARCHIVE}.sha256" || { echo "❌ Checksum missing: ${ARCHIVE}.sha256"; exit 1; }
+          echo "✅ Packaging validated"
+
+      - name: 📤 Upload Linux CLI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-cli
+          path: |
+            ArcaneAuditorCLI-${{ github.ref_name }}-linux-*.tar.gz
+            ArcaneAuditorCLI-${{ github.ref_name }}-linux-*.tar.gz.sha256
+
+
   # 🚀 PUBLISH RELEASE ---------------------------------------------------------
   publish:
     name: 🚀 Publish GitHub Release
     runs-on: ubuntu-latest
-    needs: [windows-sign, mac-build-sign]
+    needs: [windows-sign, mac-build-sign, linux-cli-build]
 
     steps:
       - uses: actions/checkout@v4
@@ -861,12 +920,13 @@ jobs:
             release-files/signed-windows/*.exe
             release-files/signed-macos/*.dmg
             release-files/signed-macos/ArcaneAuditor_macOS_CLI.zip
+            release-files/linux-cli/*
           draft: true
           prerelease: false
           body: |
             ## 🎉 Release ${{ github.ref_name }}
             
-            Fully signed and notarized release built from tag `${{ github.ref_name }}`.
+            Release built from tag `${{ github.ref_name }}`.
             
             ### 📦 Downloads
             
@@ -878,18 +938,24 @@ jobs:
             - `ArcaneAuditor_macOS_Desktop.dmg` - Desktop application installer (signed & notarized)
             - `ArcaneAuditor_macOS_CLI.zip` - Command-line tool bundle (signed & notarized)
             
+            **Linux (CLI only):**
+            - `ArcaneAuditorCLI-<version>-linux-<arch>.tar.gz` - Command-line tool
+            - `ArcaneAuditorCLI-<version>-linux-<arch>.tar.gz.sha256` - SHA-256 checksum
+            
             **Using the CLI (macOS):**
             1. Download and extract `ArcaneAuditor_macOS_CLI.zip`
             2. Run from the extracted folder: `./ArcaneAuditorCLI/ArcaneAuditorCLI --help`
             3. Optionally, add to PATH or create a symlink
             
-            ### ✅ Verification
+            **Using the CLI (Linux):**
+            1. Download the `.tar.gz` for your architecture and verify with the `.sha256` file
+            2. Extract and run: `./ArcaneAuditorCLI --help`
             
-            All binaries have been:
-            - ✅ Code signed with valid certificates
-            - ✅ Timestamped for long-term validity
-            - ✅ Notarized by Apple (macOS)
-            - ✅ Verified before release
+            ### ✅ Verification
+
+            - ✅ Windows binaries are code signed and timestamped
+            - ✅ macOS artifacts are signed, notarized, and verified
+            - ✅ Linux CLI includes a SHA-256 checksum for integrity verification
             
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
