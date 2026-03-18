@@ -17,8 +17,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.6"
 
@@ -48,7 +48,7 @@ jobs:
           }
 
       - name: 📦 Upload unsigned Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unsigned-windows
           path: dist/*.exe
@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: 📥 Download unsigned executables
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: unsigned-windows
           path: ./unsigned
@@ -175,7 +175,7 @@ jobs:
           Write-Host "   Verified: $verifiedCount"
 
       - name: 📤 Upload signed Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: signed-windows
           path: ./unsigned/*.exe
@@ -187,8 +187,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.6"
 
@@ -821,7 +821,7 @@ jobs:
 
       - name: 📎 Upload notarization logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: notarization-logs
           path: ./notary-logs/
@@ -835,8 +835,8 @@ jobs:
     needs: []
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.6"
 
@@ -879,7 +879,7 @@ jobs:
           echo "✅ Packaging validated"
 
       - name: 📤 Upload Linux CLI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-cli
           path: |
@@ -894,7 +894,7 @@ jobs:
     needs: [windows-sign, mac-build-sign, linux-cli-build]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: 📥 Download all artifacts
         uses: actions/download-artifact@v4
