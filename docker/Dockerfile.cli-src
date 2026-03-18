@@ -1,6 +1,6 @@
 # Arcane Auditor CLI — run from source (CI / development)
-# Build: docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli-src .
-# Run:   docker run --rm -v "$PWD:/work" arcane-auditor-cli-src review-app /work/appfile.zip --ci
+# Build: docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli .
+# Run:   docker run --rm -v "$PWD:/work" arcane-auditor-cli review-app /work/appfile.zip --ci
 
 FROM ubuntu:22.04
 

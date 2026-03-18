@@ -5,19 +5,19 @@ Definition files only. No image publishing or registry integration is configured
 ## Source-run vs binary-run
 
 | Image | Description | Use case |
-|-------|--------------|----------|
-| **cli-src** | Runs the CLI from source with `uv` and project dependencies. | CI, development, or when you don't have a built binary. |
-| **cli-binary** | Runs the built Linux CLI executable (single binary). Best for production-style runs or minimal images; uses local Linux build output or an extracted release binary. |
+|-------|-------------|----------|
+| **cli-src** | Runs the CLI from source using `uv` and project dependencies baked into the image. | Development, CI experimentation, or environments where you do not want to prebuild the Linux binary. |
+| **cli-binary** | Runs the built Linux CLI executable as a single binary. | CI, production-style usage, or minimal runtime images. |
 
 ## Build examples
 
 From the repository root:
 
 ```bash
-# Source-run (no pre-built binary needed)
-docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli-src .
+# Source-run (no prebuilt binary required)
+docker build -f docker/Dockerfile.cli-src -t arcane-auditor-cli .
 
-# Binary-run (requires dist/ArcaneAuditorCLI from a Linux build first)
+# Binary-run (requires a Linux-built CLI binary first)
 ./scripts/build-linux-cli.sh
 docker build -f docker/Dockerfile.cli-binary -t arcane-auditor-cli .
 ```
@@ -32,15 +32,13 @@ docker build -f docker/Dockerfile.cli-binary --build-arg BINARY_PATH=path/to/Arc
 
 ```bash
 # Help
-docker run --rm arcane-auditor-cli-src --help
-docker run --rm arcane-auditor-cli --help
+docker run --rm -v "$PWD:/work" -w /work arcane-auditor-cli --help
 
-# Analyze an app directory (mount it read-only)
-docker run --rm -v /path/to/myapp:/app/in:ro arcane-auditor-cli-src review-app /app/in
-docker run --rm -v /path/to/myapp:/app/in:ro arcane-auditor-cli review-app /app/in
+# Analyze a zip file
+docker run --rm -v "$PWD:/work" -w /work arcane-auditor-cli review-app /work/samples/templates.zip
 
 # CI preset (quiet, JSON, default output file)
-docker run --rm -v /path/to/myapp:/app/in:ro arcane-auditor-cli review-app /app/in --ci
+docker run --rm -v "$PWD:/work" -w /work arcane-auditor-cli review-app /work/samples/templates.zip --ci
 ```
 
 These are definition files only: you build and run images locally or in your own CI. No Docker registry or publish step is included in this repo.
