@@ -1,7 +1,7 @@
 # Arcane Auditor CLI — run from built Linux binary (release artifact)
 # Build: from repo root after building CLI: docker build -f docker/Dockerfile.cli-binary -t arcane-auditor-cli .
-#        binary path defaults to dist/ArcaneAuditorCLI (set BUILD_BINARY_PATH to override)
-# Run:   docker run --rm -v "$(pwd)/myapp:/app/in:ro" arcane-auditor-cli review-app /app/in
+#        binary path defaults to dist/ArcaneAuditorCLI (set BINARY_PATH to override)
+# Run:   docker run --rm -v "$PWD:/work" arcane-auditor-cli review-app /work/appfile.zip --ci
 
 FROM ubuntu:22.04
 
@@ -9,5 +9,5 @@ FROM ubuntu:22.04
 ARG BINARY_PATH=dist/ArcaneAuditorCLI
 COPY ${BINARY_PATH} /usr/local/bin/ArcaneAuditorCLI
 RUN chmod +x /usr/local/bin/ArcaneAuditorCLI
-
+WORKDIR /work
 ENTRYPOINT ["/usr/local/bin/ArcaneAuditorCLI"]
