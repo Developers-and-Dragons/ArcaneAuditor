@@ -43,7 +43,7 @@ class OutputFormatter:
     def __init__(self, format_type: OutputFormat = OutputFormat.CONSOLE):
         self.format_type = format_type
     
-    def format_results(self, findings: List[Finding], total_files: int = 0, total_rules: int = 0, 
+    def format_results(self, findings: List[Finding], total_files: int = 0, total_rules: int = 0,
                       context: Optional['ProjectContext'] = None, config_name: Optional[str] = None,
                       config_source: Optional[str] = None, single_tab: bool = False) -> str:
         """Format analysis results based on the selected format."""
@@ -86,7 +86,6 @@ class OutputFormatter:
         
         # Group findings by file
         findings_by_file = self._group_findings_by_file(findings)
-        
         output.append(f"🚨 **Found {len(findings)} issue(s):**")
         output.append("")
         
@@ -97,7 +96,6 @@ class OutputFormatter:
             
             # Group findings by severity within each file
             severity_groups = self._group_findings_by_severity(file_findings)
-            
             for severity, severity_findings in severity_groups.items():
                 emoji = self.SEVERITY_EMOJIS.get(severity, "❓")
                 output.append(f"  {emoji} **{severity}** ({len(severity_findings)} issue(s))")
@@ -113,10 +111,7 @@ class OutputFormatter:
                     output.append(f"    {severity_emoji} [{finding.rule_id}:{finding.line}] in `{file_display}`: {finding.message}")
                     output.append("")  # Add spacing between findings
             
-            output.append("")  # Empty line between files
-        
-        # Footer with helpful message
-        output.append("💡 **Tip:** Use `--config` to load custom config files or `--help` for more options.")
+            output.append("") # Empty line between files
         
         return "\n".join(output)
     
@@ -246,8 +241,6 @@ class OutputFormatter:
                     skipped = ", ".join(details['skipped_checks'])
                     lines.append(f"   • {rule_name} - {skipped} skipped ({details['reason']})")
                 lines.append("")
-            
-            lines.append("   💡 Provide AMD/SMD files for complete cross-file validation")
         
         lines.append("━" * 60)
         

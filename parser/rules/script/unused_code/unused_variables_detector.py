@@ -187,8 +187,19 @@ class UnusedVariableDetector(ScriptDetector):
                 used_vars.add(var_name)
         
         # Find variable usage in template literals
-        for node in ast.find_data('template_literal'):
-            template_vars = self._extract_variables_from_template(node)
+        # Template literals are parsed as literal_expression nodes containing TEMPLATE_LITERAL tokens
+        for node in ast.find_data('literal_expression'):
+            if hasattr(node, 'children') and node.children:
+                # Check if this literal_expression contains a TEMPLATE_LITERAL token
+                for child in node.children:
+                    if hasattr(child, 'type') and child.type == 'TEMPLATE_LITERAL':
+                        template_vars = self._extract_variables_from_template(child)
+                        used_vars.update(template_vars)
+                        break
+        
+        # Also check for template_literal_expression nodes (if preprocessed)
+        for node in ast.find_data('template_literal_expression'):
+            template_vars = self._extract_variables_from_template_expression(node)
             used_vars.update(template_vars)
         
         # Add global functions to used vars (they're available in all scopes)
@@ -277,25 +288,27 @@ class UnusedVariableDetector(ScriptDetector):
                 return identifier.value
         return ""
     
-    def _extract_variables_from_template(self, node: Any) -> Set[str]:
+    def _extract_variables_from_template(self, token: Any) -> Set[str]:
         """
-        Extract variable names from template literal interpolations.
+        Extract variable names from template literal token.
         
         PMD Script uses {{expression}} syntax for template interpolations.
-        This method parses the template literal content to find variable usage.
+        This method parses the template literal token value to find variable usage.
+        
+        Args:
+            token: A TEMPLATE_LITERAL token with a value like `The number is {{foo}}`
         """
         variables = set()
         
-        if not hasattr(node, 'children') or not node.children:
+        # Get the template literal content from the token value
+        if not hasattr(token, 'value'):
             return variables
         
-        # Get the template literal content
-        template_content = ""
-        for child in node.children:
-            if hasattr(child, 'value'):
-                template_content += child.value
-            elif hasattr(child, 'type') and child.type == 'TEMPLATE_LITERAL':
-                template_content += child.value
+        template_content = token.value
+        
+        # Remove the backticks if present
+        if template_content.startswith('`') and template_content.endswith('`'):
+            template_content = template_content[1:-1]
         
         if not template_content:
             return variables
@@ -319,5 +332,34 @@ class UnusedVariableDetector(ScriptDetector):
                 # Check if it looks like a variable name (alphanumeric, underscore, no spaces)
                 if part and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', part):
                     variables.add(part)
+        
+        return variables
+    
+    def _extract_variables_from_template_expression(self, node: Any) -> Set[str]:
+        """
+        Extract variable names from template_literal_expression nodes (preprocessed template literals).
+        
+        Template literal expressions have template_interpolation children that contain
+        the actual expressions with identifier_expression nodes.
+        
+        Args:
+            node: A template_literal_expression Tree node
+        """
+        variables = set()
+        
+        if not hasattr(node, 'children'):
+            return variables
+        
+        # Look for template_interpolation nodes
+        for child in node.children:
+            if hasattr(child, 'data') and child.data == 'template_interpolation':
+                # Extract identifiers from the interpolation expression
+                if hasattr(child, 'children') and child.children:
+                    expr_node = child.children[0]
+                    # Recursively find all identifier_expression nodes in the interpolation
+                    for identifier_node in expr_node.find_data('identifier_expression'):
+                        var_name = self._get_identifier_name(identifier_node)
+                        if var_name:
+                            variables.add(var_name)
         
         return variables

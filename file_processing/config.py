@@ -10,7 +10,7 @@ DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 DEFAULT_MAX_ZIP_SIZE = 500 * 1024 * 1024  # 500MB
 
 # Supported file extensions for Workday Extend
-DEFAULT_RELEVANT_EXTENSIONS = {".pod", ".pmd", ".script", ".amd", ".smd"}
+DEFAULT_RELEVANT_EXTENSIONS = {".pod", ".pmd", ".script", ".amd", ".smd", ".wqlquery", ".orchestration", ".suborchestration"}
 
 # Encoding settings
 DEFAULT_ENCODING = "utf-8"

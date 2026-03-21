@@ -70,11 +70,12 @@ class ScriptDetector(ABC):
     def _debug_line_calc(self, ast_line: int, line_offset: int, result: int, context: str = ""):
         """Helper to log line number calculations."""
         if self.DEBUG_LINE_NUMBERS:
-            print(f"[{self.__class__.__name__}] {context}")
-            print(f"   ast.line={ast_line}, line_offset={line_offset}")
-            print(f"   formula: {line_offset} + {ast_line} - 1 = {result}")
+            from utils.console import info
+            info(f"[{self.__class__.__name__}] {context}")
+            info(f"   ast.line={ast_line}, line_offset={line_offset}")
+            info(f"   formula: {line_offset} + {ast_line} - 1 = {result}")
             if hasattr(self, 'file_path'):
-                print(f"   file: {self.file_path}")
+                info(f"   file: {self.file_path}")
     
     def detect(self, ast: Any) -> List[Violation]:
         """

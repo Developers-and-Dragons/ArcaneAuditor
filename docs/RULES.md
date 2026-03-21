@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 42 mystical validation rules*
+*Ancient wisdom distilled into 48 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers don't detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **48 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers don't detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -50,6 +50,11 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [OnlyMaximumEffortRule](#onlymaximumeffortrule)
 - [PMDSectionOrderingRule](#pmdsectionorderingrule)
 - [PMDSecurityDomainRule](#pmdsecuritydomainrule)
+- [OrchestrationSecurityDomainRule](#orchestrationsecuritydomainrule)
+- [OrchestrationGlobalErrorHandlerRule](#orchestrationglobalerrorhandlerrule)
+- [OrchestrationApiStepErrorHandlerRule](#orchestrationapisteperrorhandlerrule)
+- [OrchestrationBranchOnConditionsNestingRule](#orchestrationbranchonconditionsnestingrule)
+- [OrchestratePreferExplicitDefaultAccessor](#orchestratepreferexplicitdefaultaccessor)
 - [StringBooleanRule](#stringbooleanrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
@@ -59,7 +64,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization
+- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, PMD organization, and orchestration (`.orchestration`, `.suborchestration`) validation
 
 ## Severity Levels
 
@@ -1419,6 +1424,21 @@ const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
 const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 ```
 
+**Configuration:**
+
+- **`allow_wid_in_task_report_link_fields`** (boolean, default: false): When true, hardcoded WIDs in the `wid` field (used by Workday task/report link functionality) are not reported. Leave false to flag all hardcoded WIDs; set true if your app uses task or report links that require a WID in that field.
+
+```json
+{
+  "HardcodedWidRule": {
+    "enabled": true,
+    "custom_settings": {
+      "allow_wid_in_task_report_link_fields": false
+    }
+  }
+}
+```
+
 ---
 
 ### HardcodedWorkdayAPIRule
@@ -1490,7 +1510,7 @@ Hardcoded workday.com URLs are not update safe and lack regional awareness. Usin
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files.*
+*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files. They also apply to orchestration and suborchestration files; some rules apply only to certain templates (e.g. security domain only to Sync/Async).*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1877,6 +1897,145 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 
 ---
 
+### OrchestrationSecurityDomainRule
+
+**Severity:** 🚨ACTION
+**Description:** Ensures Synchronous and Asynchronous orchestrations have a security domain defined
+**Applies to:** Sync and Async Orchestration templates only
+
+**Why This Matters:**
+
+Security domains control access to orchestrations in Workday. Sync and Async flows must define a security domain. Business Process Triggered, Integration, and Suborchestrations are not checked by this rule, as they do not currently support security domains.
+
+**What it catches:**
+
+- Sync/Async orchestrations with missing `securityDomains`
+
+**Example message:**
+
+Orchestration 'myFlow' must define a security domain (securityDomains).
+
+**Configuration:** No custom settings.
+
+---
+
+### OrchestrationGlobalErrorHandlerRule
+
+**Severity:** 🚨 ACTION
+**Description:** Ensures orchestrations have a global error handler with a log step (or Add Integration Message step for Integration templates).
+**Applies to:** Orchestration files only. Applies to Sync, Async, Business Process Triggered, and Integration templates. Suborchestrations are not checked because they do not support global handlers.
+
+**Why This Matters:**
+
+A global error handler is required when an uncaught error occurs or when a local (step-level) error handler propagates the error. The handler must contain a log step to record the failure (or an Add Integration Message step for Integration templates).
+
+**What it catches:**
+
+- Orchestrations (Sync, Async, BPT, Integration) with missing top-level (global) `errorHandler`
+- Orchestrations whose global error handler has no log step (or no Add Integration Message step for Integration templates)
+- Step-level error handlers alone do not satisfy this rule (e.g. a flow with only a step error handler still yields a finding)
+
+**Example message:**
+
+Orchestration 'myFlow' must have a global error handler.
+
+Orchestration 'myFlow' global error handler must contain a log step (or Add Integration Message step for Integration templates).
+
+**Configuration:** No custom settings.
+
+---
+
+### OrchestrationApiStepErrorHandlerRule
+
+**Severity:** 🚨 ACTION
+**Description:** Ensures every API step in an orchestration has a local (node-level) error handler with a log step (or Add Integration Message step for Integration templates).
+**Applies to:** All orchestration templates as well as suborchestrations. API steps are checked wherever they appear: on the main flow, inside loops, inside branch (if/else) bodies, and inside groups.
+
+**Why This Matters:**
+
+API steps (e.g. Send Http Request, Send Workday API Request) can fail for various reasons, including network or transient errors. A local error handler with a log step (or Add Integration Message for Integration templates) on each API step lets the flow record and handle failures explicitly.
+
+**What it catches:**
+
+- API steps without a node-level `errorHandler` (SendWwsPaginationApiRequest, SendHttpPaginationRequest, SendHttpRequest, SendWorkdayApiRequest, SendWorkdayRestApiPaginationRequest)
+- API steps whose error handler has no log step (or no Add Integration Message step for Integration templates)
+- Applies to steps on the main flow and inside loops, branches, and groups (including nested structures)
+
+**Example message:**
+
+API step 'SendHTTPRequest' must have a local error handler.
+
+API step 'SendHTTPRequest' error handler must contain a log step (or Add Integration Message step for Integration templates).
+
+**Configuration:** No custom settings.
+
+---
+
+### OrchestrationBranchOnConditionsNestingRule
+
+**Severity:** ℹ️ ADVICE
+**Description:** Limits Branch on Conditions nesting to 3 levels for readability; deeper nesting suggests extracting to a suborchestration. Reports based on top-level branches only.
+**Applies to:** All orchestration templates and suborchestrations.
+
+**Why This Matters:**
+
+Deeply nested Branch on Conditions make flows hard to follow. Keeping nesting to 3 levels and extracting logic to a suborchestration improves clarity. If a top-level branch’s children exceed the limit, the top-level branch is reported (one finding per top-level branch with its actual max depth).
+
+**What it catches:**
+
+- Top-level Branch on Conditions steps whose branch (if-branch or else-branch) nests BoC deeper than 3 levels
+- Each such branch is reported once with the actual max depth (e.g. 4, 5, or 6 levels)
+
+**Example message:**
+
+Branch on Conditions 'MyBoC' has a branch nested at 5 levels; consider extracting logic to a suborchestration to keep nesting to 3 levels or fewer.
+
+**Configuration:** No custom settings.
+
+---
+
+### OrchestratePreferExplicitDefaultAccessor
+
+**Severity:** ℹ️ ADVICE
+**Description:** Prefer default-capable accessors over exception-throwing accessors.
+**Applies to:** Orchestration and suborchestration expression fields (conditions, value expressions, etc.). Only the specific accessor functions listed below are flagged; other accessors (e.g. `bigDecimalAtJsonPath`) are not in scope.
+
+**Why This Matters:**
+
+Some Orchestrate accessor functions throw an exception when a value is not found. Prefer the paired default-capable accessor so missing values are handled explicitly, or validate first when the value is required. Making missing-value behavior explicit improves reliability and makes intent clear to other developers.
+
+**What it catches:**
+
+- Calls to exception-throwing accessors that have default-capable alternatives: `booleanAtJsonPath`, `numberAtJsonPath`, `objectAtJsonPath`, `stringAtJsonPath`, `bigDecimalAtXPath`, `booleanAtXPath`, `dateAtXPath`, `dateTimeAtXPath`, `numberAtXPath`, `stringAtXPath`, `xmlString`, `zonedDateTimeAtXPath`
+- The rule does **not** flag the safe alternatives (e.g. `stringAtJsonPathWithDefault`, `stringAtJsonPathOrEmptyString`) or accessors that have no default-capable alternative (e.g. `bigDecimalAtJsonPath`)
+
+**Where to fix:** Update the expression in the orchestration step where the finding is reported (the message includes a Location such as the step name and field). Replace the reported function with the suggested alternative and supply an explicit default, or validate that the value exists before calling.
+
+**Bad example:**
+
+```javascript
+// Throws if /name is missing
+data.asJSON().stringAtJsonPath("/name")
+data.asXML().numberAtXPath("//count")
+```
+
+**Good examples:**
+
+```javascript
+// Explicit default when value may be missing
+data.asJSON().stringAtJsonPathWithDefault("/name", "")
+data.asJSON().stringAtJsonPathOrEmptyString("/name")
+data.asXML().numberAtXPathWithDefault("//count", 0)
+```
+
+**Example message:**
+
+This expression uses "stringAtJsonPath", which throws an exception when the target value is not found. Prefer "stringAtJsonPathWithDefault" or "stringAtJsonPathOrEmptyString" so missing values are handled explicitly, or validate first if the value is required.
+
+**Configuration:** No custom settings.
+
+---
+
 ### WidgetIdRequiredRule
 
 **Severity:** 🚨ACTION
@@ -2255,9 +2414,14 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **WidgetIdRequiredRule**                 | Structure | 🚨 ACTION | ✅              | `excluded_widget_types`                               |
 | **WidgetIdLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedApplicationIdRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
-| **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | `allow_wid_in_task_report_link_fields`                 |
 | **PMDSectionOrderingRule**               | Structure | ℹ️ ADVICE | ✅              | `required_order`                                      |
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
+| **OrchestrationSecurityDomainRule**     | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationGlobalErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationApiStepErrorHandlerRule** | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **OrchestrationBranchOnConditionsNestingRule** | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **OrchestratePreferExplicitDefaultAccessor**   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
@@ -2311,7 +2475,7 @@ Each rule supports:
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **48 rules** across **2 categories**:
 
 - ✅ **Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **Structure Rules** - Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization

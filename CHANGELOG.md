@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.5.0] - 2026-03-17
+
+### Added
+
+- **Linux CLI Build & Release** - Official Linux CLI artifact for CI and headless environments.
+  - Single executable built with PyInstaller (onefile); distributed as `ArcaneAuditor_linux_CLI.tar.gz` with SHA-256 checksum.
+  - Built on Ubuntu 22.04 in GitHub Actions; included in tagged releases alongside Windows and macOS assets.
+- **Docker Definition Files** - Repo includes Dockerfiles for running the CLI in containers (definition files only; no prebuilt images published).
+  - `Dockerfile.cli-src` - Run CLI from source with `uv` (development/CI experimentation).
+  - `Dockerfile.cli-binary` - Run the built Linux CLI binary (minimal runtime, CI/production-style).
+  - See [docker/README.md](docker/README.md) for build and run examples.
+- **`--ci` CLI Preset** - One flag for CI/CD: quiet output, JSON format, and default output file (`arcane-auditor-results.json`); overridable with `--format` and `--output`.
+- **Orchestration Support** - Validation for `.orchestration` and `.suborchestration` files; rule count increased to 48 with orchestration-specific rules (security domains, error handlers, branching, expression best practices).
+- **Linux Configuration Paths** - Documented config locations for Linux CLI: `~/.config/ArcaneAuditor/config/rules/teams/` and `~/.config/ArcaneAuditor/config/rules/personal/`.
+
+### Changed
+
+- **README (v1.5)** - Updated for Linux CLI download/usage, Docker subsection, interface table (CLI on Windows, macOS, Linux), and configuration paths; Quick Start highlights v1.5 features.
+- **Release Workflow** - Added Linux CLI job; release artifact naming: `ArcaneAuditor_linux_CLI.tar.gz` and `ArcaneAuditor_linux_CLI.tar.gz.sha256`.
+
+### Fixed
+- **Closes #53** - Finding text fix
+- **Closes #52** - Control character (tab) not escaped properly
+- **Closes #19** - CLI quiet flag...noisy
+- **Closes #12** - Security domains on Orchs (validation rule)
+- **Closes #11** - Orch support!
+
+---
+
 ## [v1.4.0] - 2025-12-02
 
 ### Added

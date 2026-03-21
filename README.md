@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.5.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 [![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
@@ -12,13 +12,14 @@
 
 ## ✨ Overview
 
-Arcane Auditor channels ancient wisdom through **42 validation rules** to reveal subtle code quality issues invisible to compilers but obvious to master developers.
+Arcane Auditor channels ancient wisdom through **48 validation rules** to reveal subtle code quality issues invisible to compilers but obvious to master developers.
 
 It analyzes:
 
 - **📄 PMD** — Page definitions with embedded scripts and endpoints
 - **🧩 Pod** — Reusable widget components
 - **📜 Script** — Function libraries and utilities
+- **🔄 Orchestration** — All templates + suborchestrations
 - **🗝️ AMD / 🔒 SMD** — Application and security manifests
 
 **Key Traits**
@@ -29,12 +30,14 @@ It analyzes:
 - ⚙️ Update-safe configuration layering
 - 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
+**New in v1.5:** 
+ * Orchestration support! Arcane Auditor now includes 6 additional validations for Orchestrations.
+ * Linux CLI builds (tar.gz + SHA-256).
+ * Docker definition files for CI/container workflows.
 ---
 
 ## 🚀 Quick Start — Desktop App
 
-**New in v1.4:** Arcane Auditor now supports managing rule configurations, right in the app UI! Create new configs, enable/disable rules, and change severities.
-In addition, you can also now browse the rules grimoire, right from the UI!
 
 ### 1. Download
 
@@ -46,6 +49,7 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 | 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag **Arcane Auditor.app** to Applications |
 | ⚙️**Windows (CLI)**   | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                     |
 | ⚙️**macOS (CLI)**     | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                   |
+| 🐧**Linux (CLI)**     | `ArcaneAuditor_linux_CLI.tar.gz`                | CLI only; verify with included `ArcaneAuditor_linux_CLI.tar.gz.sha256` |
 
 > 🧩 **Note for macOS users:**
 > The first time you open the app or CLI, macOS Gatekeeper may show
@@ -67,10 +71,10 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 
 ### 3. Analyze
 
-Drag and drop your Extend app ZIP or individual files (`.pmd`, `.pod`, `.script`, `.amd`, `.smd`).
+Drag and drop your Extend app ZIP or individual files (`.pmd`, `.pod`, `.script`, `.orchestration`, `.suborchestration`, `.amd`, `.smd`).
 Results appear faster than a polymorph spell — download Excel reports as needed.
 
-**Includes:** 42 rules, configuration presets, Excel export — fully self-contained.
+**Includes:** 48 rules, configuration presets, Excel export — fully self-contained.
 
 > 💡 **Windows SmartScreen Notice**
 > Even with code signing, Windows SmartScreen may show “Windows protected your PC” until the app builds download reputation with Microsoft.
@@ -81,10 +85,10 @@ Results appear faster than a polymorph spell — download Excel reports as neede
 
 ## 🧩 Interfaces at a Glance
 
-| Interface             | Best For             | Launch                                    | Highlights                             |
-| --------------------- | -------------------- | ----------------------------------------- | -------------------------------------- |
-| 🖥️**Desktop** | Everyone             | Native app                                | Clean UI, drag-and-drop, fast analysis |
-| ⚔️**CLI**     | CI/CD and automation | `ArcaneAuditorCLI review-app myapp.zip` | Scriptable, Excel/JSON output          |
+| Interface             | Best For                    | Launch                                    | Highlights                             |
+| --------------------- | --------------------------- | ----------------------------------------- | -------------------------------------- |
+| 🖥️**Desktop** | Everyone                    | Native app (Windows/macOS)                 | Clean UI, drag-and-drop, fast analysis |
+| ⚔️**CLI**     | CI/CD, automation, Docker   | `ArcaneAuditorCLI review-app myapp.zip` | Windows, macOS, Linux; Excel/JSON     |
 
 <details>
 <summary>📸 Screenshots</summary>
@@ -113,6 +117,7 @@ For automation, CI/CD pipelines, and power users who prefer the terminal:
 
 - **Windows:** `ArcaneAuditorCLI.exe`
 - **macOS:** `ArcaneAuditor_macOS_CLI.zip` (unzip to get `ArcaneAuditorCLI`)
+- **Linux (CLI only):** `ArcaneAuditor_linux_CLI.tar.gz` and matching `ArcaneAuditor_linux_CLI.tar.gz.sha256`
 
 **Usage:**
 
@@ -120,15 +125,29 @@ For automation, CI/CD pipelines, and power users who prefer the terminal:
 # Analyze an app
 ArcaneAuditorCLI review-app myapp.zip
 
-# Use custom configuration
+# Use specific configuration
 ArcaneAuditorCLI review-app myapp.zip --config production-ready
 
-# Export to Excel
+# Export results to Excel
 ArcaneAuditorCLI review-app myapp.zip --format excel --output report.xlsx
 
-# Export to JSON for CI/CD
+# CI/CD: one flag for quiet, JSON, and default output file (arcane-auditor-results.json)
+ArcaneAuditorCLI review-app myapp.zip --ci
+
+# Or specify format/output explicitly
 ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
 ```
+
+**For CI/CD pipelines:** use `--ci` to enable a preset that is quiet (no status chatter), outputs JSON, and writes to a default file (`arcane-auditor-results.json`) unless you pass `--output`. You can still override with `--format` or `--output` when needed.
+
+**Using the Linux CLI:**
+
+1. Download the `.tar.gz` from [Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases).
+2. Verify the archive: `sha256sum -c ArcaneAuditor_linux_CLI.tar.gz.sha256`
+3. Extract: `tar xzf ArcaneAuditor_linux_CLI.tar.gz`
+4. Run: `./ArcaneAuditorCLI review-app myapp.zip` (or add to PATH).
+
+**Docker (definition files only):** The repo includes Dockerfiles for running the CLI from source (`Dockerfile.cli-src`) or from the built Linux binary (`Dockerfile.cli-binary`). These are definition files only — no prebuilt images are published. Build and run locally or in your CI; use a `/work` (or similar) mount for the app under analysis. See [docker/README.md](docker/README.md) for build and run examples.
 
 **Exit Codes for CI/CD:**
 
@@ -151,9 +170,11 @@ Arcane Auditor uses a **layered, update-safe configuration** system:
 2. **Team Configuration**
    - Windows: `%AppData%\ArcaneAuditor\config\rules\teams\`
    - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`
+   - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/teams/`
 3. **Personal Configuration**
    - Windows: `%AppData%\ArcaneAuditor\config\rules\personal\`
    - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`
+   - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/personal/`
 4. **Command-line overrides** (highest priority)
 
 **Example personal config:**
@@ -181,15 +202,15 @@ ArcaneAuditorCLI review-app myapp.zip --config my-config
 
 ## 🧠 Validation Rules
 
-Arcane Auditor enforces **42 rules** across two realms:
+Arcane Auditor enforces **48 rules** across two realms:
 
-### 📜 Script Quality (23)
+### 📜 Script Quality (22)
 
 Complexity limits • long-function checks • unused variables/functions • naming • magic numbers • descriptive parameters
 
-### 🗝️ Structural Integrity (19)
+### 🗝️ Structural Integrity (26)
 
-Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks
+Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks • orchestration (error handlers, security domains, branching, expression best practices)
 
 > 📖 See full details: [Rule Documentation](docs/RULES.md)
 
@@ -240,7 +261,7 @@ cd ArcaneAuditor
 uv sync
 ```
 
-**UV** automatically installs and manages Python (tested with **Python 3.12.6**) — no manual setup required.More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
+**UV** automatically installs and manages Python (tested with **Python 3.12.6**) — no manual setup required. More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
 
 > 📖 For development setup, building executables, and contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
@@ -259,6 +280,7 @@ Contributions are welcome! Submit pull requests against the **`develop`** branch
 - [Rule Documentation](docs/RULES.md)
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Custom Rules Guide](docs/CUSTOM_RULES.md)
+- [Docker (CLI)](docker/README.md) — source-run and binary-run images for CI/containers
 
 ---
 

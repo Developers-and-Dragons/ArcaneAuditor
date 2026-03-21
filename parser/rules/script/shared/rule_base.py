@@ -32,17 +32,42 @@ class ScriptRuleBase(Rule, ABC):
     
     def analyze(self, context) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
+        pmds = getattr(context, "pmds", None) or {}
+        pods = getattr(context, "pods", None) or {}
+        scripts = getattr(context, "scripts", None) or {}
+        wqlqueries = getattr(context, "wqlqueries", None) or {}
         # Analyze PMD files
-        for pmd in context.pmds.values():
+        for pmd in pmds.values():
             yield from self._analyze_pmd(pmd, context)
         
         # Analyze POD files
-        for pod in context.pods.values():
+        for pod in pods.values():
             yield from self._analyze_pod(pod, context)
+
+        # Analyze WQL query files (offset/limit/query fields only)
+        for wql_model in wqlqueries.values():
+            yield from self._analyze_wqlquery(wql_model, context)
         
         # Analyze script files
-        for script in context.scripts.values():
+        for script in scripts.values():
             yield from self._analyze_script(script, context)
+
+    def _analyze_wqlquery(self, wql_model, context=None) -> Generator[Finding, None, None]:
+        """Analyze .wqlquery file for script fields in query/offset/limit."""
+        for field in ("query", "offset", "limit"):
+            value = getattr(wql_model, field, None)
+            if isinstance(value, str) and "<%" in value and "%>" in value:
+                try:
+                    yield from self._check(
+                        value,
+                        f"wqlquery.{field}",
+                        wql_model.file_path,
+                        1,
+                        context
+                    )
+                except Exception as e:
+                    from utils.console import warn
+                    warn(f"Failed to analyze wqlquery {wql_model.file_path} field {field}: {e}")
     
     def _analyze_pmd(self, pmd_model: PMDModel, context) -> Generator[Finding, None, None]:
         """Analyze PMD file for script fields."""
@@ -65,7 +90,8 @@ class ScriptRuleBase(Rule, ABC):
                 context
             )
         except Exception as e:
-            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
+            from utils.console import warn
+            warn(f"Failed to analyze script file {script_model.file_path}: {e}")
     
     def _analyze_fields(self, model, script_fields: List[Tuple[str, str, str, int]], context=None) -> Generator[Finding, None, None]:
         """Analyze script fields from a model."""

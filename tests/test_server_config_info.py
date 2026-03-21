@@ -1,5 +1,6 @@
 import importlib
 import json
+from unittest.mock import MagicMock
 
 from web.services import config_loader
 
@@ -30,6 +31,25 @@ def test_get_dynamic_config_info_normalizes_rules(monkeypatch, tmp_path):
         },
     }
 
+    # Create fake rule classes for mocking
+    class FakeRuleA:
+        AVAILABLE_SETTINGS = {}
+        DOCUMENTATION = {}
+    
+    class FakeRuleB:
+        AVAILABLE_SETTINGS = {}
+        DOCUMENTATION = {}
+    
+    # Set the class names correctly
+    FakeRuleA.__name__ = "RuleA"
+    FakeRuleB.__name__ = "RuleB"
+    
+    fake_rules = [FakeRuleA(), FakeRuleB()]
+    
+    # Mock RulesEngine to return our fake rules
+    mock_engine = MagicMock()
+    mock_engine.rules = fake_rules
+    
     monkeypatch.setattr(
         config_loader_module,
         "get_config_dirs",
@@ -41,6 +61,7 @@ def test_get_dynamic_config_info_normalizes_rules(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(config_loader_module, "get_new_rule_default_enabled", lambda: False)
     monkeypatch.setattr(config_loader_module, "get_production_rules", lambda: production_rules)
+    monkeypatch.setattr(config_loader_module, "RulesEngine", lambda config: mock_engine)
 
     config_info = config_loader_module.get_dynamic_config_info()
 

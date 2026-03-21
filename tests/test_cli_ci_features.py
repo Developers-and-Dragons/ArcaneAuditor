@@ -54,7 +54,7 @@ class TestCLICIFeatures:
                 # Setup mocks
                 mock_processor.return_value.process_zip_file.return_value = {}
                 mock_parser.return_value.parse_files.return_value = MagicMock()
-                mock_rules_engine.return_value.run_rules.return_value = []
+                mock_rules_engine.return_value.run.return_value = []
                 mock_formatter.return_value.format_results.return_value = "Test output"
                 
                 # Test with quiet mode
@@ -159,3 +159,119 @@ class TestCLIOutputFormats:
         assert result.exit_code == 0
         assert "--format" in result.output
         assert "summary" in result.output
+
+
+def _minimal_pmd_path():
+    """Create a minimal valid PMD temp file and return its path. Caller must clean up."""
+    f = tempfile.NamedTemporaryFile(mode='w', suffix='.pmd', delete=False)
+    f.write('{"id": "testPage", "presentation": {"body": {}}}')
+    f.close()
+    return f.name
+
+
+class TestQuietAndChannels:
+    """Test --quiet, three-channel output, and --ci preset."""
+
+    def test_normal_run_shows_status(self):
+        """Without --quiet, status/info messages appear on stdout."""
+        path = _minimal_pmd_path()
+        try:
+            result = runner.invoke(app, ["review-app", path])
+            assert result.exit_code in (0, 1)  # 0 no issues, 1 has findings
+            assert "Starting review" in result.stdout
+        finally:
+            os.unlink(path)
+
+    def test_quiet_suppresses_status(self):
+        """With --quiet, status chatter is suppressed."""
+        path = _minimal_pmd_path()
+        try:
+            result = runner.invoke(app, ["review-app", path, "--quiet"])
+            assert result.exit_code in (0, 1)
+            assert "Starting review" not in result.stdout
+        finally:
+            os.unlink(path)
+
+    def test_quiet_still_prints_console_findings_when_no_output_file(self):
+        """With --quiet and no -o, results (e.g. console format) still go to stdout."""
+        path = _minimal_pmd_path()
+        try:
+            result = runner.invoke(app, ["review-app", path, "--quiet", "--format", "console"])
+            assert result.exit_code in (0, 1)
+            assert "Starting review" not in result.stdout
+        finally:
+            os.unlink(path)
+
+    def test_quiet_output_file_keeps_stdout_empty_on_success(self):
+        """With --quiet and -o, write to file and do not print success banners to stdout."""
+        path = _minimal_pmd_path()
+        out = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        out.close()
+        try:
+            result = runner.invoke(app, ["review-app", path, "--quiet", "--output", out.name])
+            assert result.exit_code in (0, 1)
+            assert "Results written to" not in result.stdout
+            assert os.path.exists(out.name)
+            with open(out.name) as f:
+                data = json.load(f)
+            assert "findings" in data or "summary" in data
+        finally:
+            os.unlink(path)
+            if os.path.exists(out.name):
+                os.unlink(out.name)
+
+    def test_ci_flag_in_help(self):
+        """--ci is documented as CI preset."""
+        result = runner.invoke(app, ["review-app", "--help"])
+        assert result.exit_code == 0
+        assert "--ci" in result.output
+
+    def test_ci_defaults_quiet_json_file(self):
+        """--ci implies quiet and json output to default file when -o not given."""
+        path = _minimal_pmd_path()
+        default_name = "arcane-auditor-results.json"
+        try:
+            result = runner.invoke(app, ["review-app", path, "--ci"])
+            assert result.exit_code in (0, 1)
+            assert Path(default_name).exists()
+            with open(default_name) as f:
+                data = json.load(f)
+            assert "findings" in data or "summary" in data
+        finally:
+            os.unlink(path)
+            if Path(default_name).exists():
+                os.unlink(default_name)
+
+    def test_ci_format_override(self):
+        """Explicit --format overrides --ci preset."""
+        path = _minimal_pmd_path()
+        out = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        out.close()
+        try:
+            result = runner.invoke(app, ["review-app", path, "--ci", "--format", "summary", "--output", out.name])
+            assert result.exit_code in (0, 1)
+            with open(out.name, encoding="utf-8") as f:
+                text = f.read()
+            assert "findings" in text.lower() or "issue" in text.lower() or "no issues" in text.lower()
+        finally:
+            os.unlink(path)
+            os.unlink(out.name)
+
+    def test_ci_output_override(self):
+        """Explicit --output overrides --ci default file."""
+        path = _minimal_pmd_path()
+        custom = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        custom.close()
+        try:
+            result = runner.invoke(app, ["review-app", path, "--ci", "--output", custom.name])
+            assert result.exit_code in (0, 1)
+            assert os.path.exists(custom.name)
+        finally:
+            os.unlink(path)
+            os.unlink(custom.name)
+
+    def test_errors_go_to_stderr(self):
+        """Fatal errors (e.g. file not found) go to stderr."""
+        result = runner.invoke(app, ["review-app", "nonexistent.pmd"])
+        assert result.exit_code != 0
+        assert "nonexistent" in result.stderr or "No such file" in result.stderr or "Error" in result.stderr

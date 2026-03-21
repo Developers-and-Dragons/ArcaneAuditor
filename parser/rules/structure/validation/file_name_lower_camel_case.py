@@ -89,6 +89,11 @@ helperFunctions.script  // ✅ lowerCamelCase
         # Check SMD file
         if context.smd:
             yield from self._check_filename(context.smd.file_path)
+
+        # Check WQL query files
+        if hasattr(context, "wqlqueries"):
+            for wql_model in context.wqlqueries.values():
+                yield from self._check_filename(wql_model.file_path)
     
     def _check_filename(self, file_path: str) -> Generator[Finding, None, None]:
         """

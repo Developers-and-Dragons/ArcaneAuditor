@@ -1,7 +1,7 @@
 """Unit tests for FileNameLowerCamelCaseRule."""
 
 from parser.rules.structure.validation.file_name_lower_camel_case import FileNameLowerCamelCaseRule
-from parser.models import PMDModel, PodModel, ScriptModel, AMDModel, SMDModel, ProjectContext
+from parser.models import PMDModel, PodModel, ScriptModel, AMDModel, SMDModel, ProjectContext, WQLQueryModel
 
 
 class TestFileNameLowerCamelCaseRule:
@@ -174,6 +174,39 @@ class TestFileNameLowerCamelCaseRule:
         assert len(findings) == 2
         assert any("My_Page.pmd" in f.message for f in findings)
         assert any("Footer_Pod.pod" in f.message for f in findings)
+
+    def test_valid_wqlquery_filename(self):
+        """Test that valid lowerCamelCase WQL query filenames pass."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+
+        wql_model = WQLQueryModel(
+            id="getWorkersHiredAfter",
+            parameters=[],
+            query="SELECT worker FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers)",
+            file_path="getWorkersHiredAfter.wqlquery"
+        )
+        context.wqlqueries = {"getWorkersHiredAfter": wql_model}
+
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0
+
+    def test_invalid_wqlquery_filename(self):
+        """Test that invalid WQL query filenames are flagged."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+
+        wql_model = WQLQueryModel(
+            id="getWorkersHiredAfter",
+            parameters=[],
+            query="SELECT worker FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers)",
+            file_path="Get_Workers_Hired_After.wqlquery"
+        )
+        context.wqlqueries = {"getWorkersHiredAfter": wql_model}
+
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "Get_Workers_Hired_After.wqlquery" in findings[0].message
 
     def test_filename_with_numbers_valid(self):
         """Test that filenames with numbers following lowerCamelCase are valid."""

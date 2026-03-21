@@ -11,6 +11,7 @@ from . import rules
 from .rules.base import Rule, Finding
 from .config import ArcaneAuditorConfig
 from utils.arcane_paths import get_rule_dirs
+from utils.console import info, error
 
 class RulesEngine:
     """Discovers, loads, and runs all analysis rules."""
@@ -45,7 +46,7 @@ class RulesEngine:
                 module = __import__(name, fromlist="dummy")
                 self._extract_rules_from_module(module, discovered_rules, "built-in")
             except Exception as e:
-                print(f"[RulesEngine] Error loading built-in rule {name}: {e}")
+                error(f"[RulesEngine] Error loading built-in rule {name}: {e}")
 
     def _load_user_rules(self, discovered_rules: List[Rule]) -> None:
         """Load user rules from custom directories."""
@@ -65,7 +66,7 @@ class RulesEngine:
                                 spec.loader.exec_module(mod)
                                 self._extract_rules_from_module(mod, discovered_rules, "user")
                         except Exception as e:
-                            print(f"[RulesEngine] Error loading user rule {file} from {rule_dir}: {e}")
+                            error(f"[RulesEngine] Error loading user rule {file} from {rule_dir}: {e}")
 
     def _extract_rules_from_module(self, module, discovered_rules: List[Rule], rule_type: str) -> None:
         """Extract and instantiate rules from a module."""
@@ -81,13 +82,12 @@ class RulesEngine:
                 
                 # Check if rule is enabled in configuration using class name
                 if self.config.is_rule_enabled(member_obj.__name__):
-                    print(f"[RulesEngine] Discovered {rule_type} rule: {member_obj.__name__}")
+                    info(f"[RulesEngine] Discovered {rule_type} rule: {member_obj.__name__}")
                     rule_instance = member_obj()
-                    # Apply configuration overrides
                     self._apply_rule_config(rule_instance)
                     discovered_rules.append(rule_instance)
                 else:
-                    print(f"[RulesEngine] Skipping disabled {rule_type} rule: {member_obj.__name__}")
+                    info(f"[RulesEngine] Skipping disabled {rule_type} rule: {member_obj.__name__}")
     
     def _apply_rule_config(self, rule: Rule) -> None:
         """Apply configuration overrides to a rule instance."""
@@ -97,7 +97,7 @@ class RulesEngine:
             configured_severity = self.config.get_rule_severity(rule.__class__.__name__, original_severity)
             if configured_severity != original_severity:
                 rule.SEVERITY = configured_severity
-                print(f"[CONFIG] Override severity for {rule.__class__.__name__}: {original_severity} -> {configured_severity}")
+                info(f"[CONFIG] Override severity for {rule.__class__.__name__}: {original_severity} -> {configured_severity}")
         
         # Apply custom settings if the rule supports it
         custom_settings = self.config.get_rule_settings(rule.__class__.__name__)
@@ -117,22 +117,20 @@ class RulesEngine:
         """
         all_findings = []
         if not self.rules:
-            print("No rules were found to run.")
+            info("No rules were found to run.")
             return []
-            
-        print(f"\nRunning {len(self.rules)} rule(s)...")
-        
-        # For small rule counts, use serial processing to avoid overhead
+
+        info(f"\nRunning {len(self.rules)} rule(s)...")
+
         if len(self.rules) <= 5:
-            print("Using serial rule execution (small rule count)")
+            info("Using serial rule execution (small rule count)")
             for rule in self.rules:
                 try:
-                    # The 'analyze' method is a generator, so we consume it into a list.
                     findings_from_rule = list(rule.analyze(context))
                     if findings_from_rule:
                         all_findings.extend(findings_from_rule)
                 except Exception as e:
-                    print(f"Rule {rule.__class__.__name__} failed: {e}")
+                    error(f"Rule {rule.__class__.__name__} failed: {e}")
         else:
             # Use parallel processing for larger rule sets
             max_workers = min(8, len(self.rules))  # Cap at 8 workers for rules
@@ -152,7 +150,7 @@ class RulesEngine:
                         if findings_from_rule:
                             all_findings.extend(findings_from_rule)
                     except Exception as e:
-                        print(f"Error running rule {rule.__class__.__name__}: {e}")
+                        error(f"Error running rule {rule.__class__.__name__}: {e}")
         
         return all_findings
     
@@ -161,5 +159,5 @@ class RulesEngine:
         try:
             return list(rule.analyze(context))
         except Exception as e:
-            print(f"Rule {rule.__class__.__name__} failed: {e}")
+            error(f"Rule {rule.__class__.__name__} failed: {e}")
             return []

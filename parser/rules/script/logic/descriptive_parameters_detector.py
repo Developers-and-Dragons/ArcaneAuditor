@@ -700,7 +700,8 @@ class DescriptiveParameterDetector(ScriptDetector):
             violations.extend(self._find_violations_by_pattern(lines))
             
         except Exception as e:
-            print(f"Warning: Error in pattern-based parameter analysis: {e}")
+            from utils.console import warn
+            warn(f"Error in pattern-based parameter analysis: {e}")
         
         return violations
 

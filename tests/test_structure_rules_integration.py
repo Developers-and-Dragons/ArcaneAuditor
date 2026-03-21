@@ -11,6 +11,12 @@ from parser.rules.structure.validation.footer_pod_required import FooterPodRequi
 from parser.rules.structure.validation.string_boolean import StringBooleanRule
 from parser.rules.structure.validation.hardcoded_wid import HardcodedWidRule
 from parser.rules.structure.validation.pmd_security_domain import PMDSecurityDomainRule
+from parser.rules.structure.validation.orchestration_security_domain import OrchestrationSecurityDomainRule
+from parser.rules.structure.validation.orchestration_global_error_handler import OrchestrationGlobalErrorHandlerRule
+from parser.rules.structure.validation.orchestration_api_step_error_handler import OrchestrationApiStepErrorHandlerRule
+from parser.rules.structure.validation.orchestration_branch_on_conditions_nesting import OrchestrationBranchOnConditionsNestingRule
+from parser.rules.structure.validation.orchestration_verbose_boolean_check_rule import OrchestrationVerboseBooleanCheckRule
+from parser.rules.structure.validation.orchestrate_prefer_explicit_default_accessor import OrchestratePreferExplicitDefaultAccessor
 from parser.rules.base import Finding
 from parser.models import ProjectContext, PMDModel, PMDPresentation
 
@@ -46,6 +52,12 @@ class TestAllStructureRulesIntegration:
             StringBooleanRule(),
             HardcodedWidRule(),
             PMDSecurityDomainRule(),
+            OrchestrationSecurityDomainRule(),
+            OrchestrationGlobalErrorHandlerRule(),
+            OrchestrationApiStepErrorHandlerRule(),
+            OrchestrationBranchOnConditionsNestingRule(),
+            OrchestrationVerboseBooleanCheckRule(),
+            OrchestratePreferExplicitDefaultAccessor(),
         ]
         
         # Test that all rules have required attributes
@@ -55,7 +67,7 @@ class TestAllStructureRulesIntegration:
             assert hasattr(rule, 'SEVERITY')
             assert hasattr(rule, 'analyze')
             # ID is now either RULE000 (base class) or class name (ValidationRule)
-            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule')
+            assert rule.ID in ('RULE000', 'WidgetIdLowerCamelCaseRule', 'EndpointNameLowerCamelCaseRule', 'HardcodedWidRule', 'OrchestrationSecurityDomainRule', 'OrchestrationGlobalErrorHandlerRule', 'OrchestrationApiStepErrorHandlerRule', 'OrchestrationBranchOnConditionsNestingRule', 'OrchestrationVerboseBooleanCheckRule', 'OrchestratePreferExplicitDefaultAccessor')
     
     def test_all_rules_analyze_method(self):
         """Test that all rules can analyze without errors."""
@@ -69,6 +81,12 @@ class TestAllStructureRulesIntegration:
             StringBooleanRule(),
             HardcodedWidRule(),
             PMDSecurityDomainRule(),
+            OrchestrationSecurityDomainRule(),
+            OrchestrationGlobalErrorHandlerRule(),
+            OrchestrationApiStepErrorHandlerRule(),
+            OrchestrationBranchOnConditionsNestingRule(),
+            OrchestrationVerboseBooleanCheckRule(),
+            OrchestratePreferExplicitDefaultAccessor(),
         ]
         
         # Test that all rules can analyze without throwing exceptions

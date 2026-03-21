@@ -37,6 +37,11 @@ def server_ctx(monkeypatch, tmp_path):
     monkeypatch.setattr("utils.preferences_manager.get_new_rule_default_enabled", lambda: False)
     monkeypatch.setattr("utils.config_normalizer.get_production_rules", lambda: production_rules)
     
+    # Mock the runtime rules list to return our test rules
+    # This is needed because normalize_config_rules uses runtime_rule_names as the source of truth
+    def fake_get_runtime_rules_list():
+        return ["RuleA", "RuleB"]
+    
     # Clear cache first
     from utils import config_normalizer
     if hasattr(config_normalizer, '_load_production_rules'):
@@ -49,6 +54,9 @@ def server_ctx(monkeypatch, tmp_path):
     importlib.reload(configs)
     # Reload server last - when it reloads, it will re-include the routers
     server_module = importlib.reload(server)
+    
+    # Patch the runtime rules list AFTER reloading so the reloaded module uses it
+    monkeypatch.setattr(configs, "_get_runtime_rules_list", fake_get_runtime_rules_list)
 
     # Seed configs
     with (personal_dir / "alpha.json").open("w", encoding="utf-8") as handle:

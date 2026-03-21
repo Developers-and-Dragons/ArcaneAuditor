@@ -19,7 +19,7 @@ class TestModelParser:
     
     def test_init(self):
         """Test parser initialization."""
-        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd'}
+        assert self.parser.supported_extensions == {'.pmd', '.script', '.amd', '.pod', '.smd', '.wqlquery', '.orchestration', '.suborchestration'}
     
     def test_parse_files_empty_map(self):
         """Test parsing empty source files map."""
@@ -236,6 +236,134 @@ class TestModelParser:
         # Should raise JSONDecodeError when JSON parsing fails
         with pytest.raises(json.JSONDecodeError):
             self.parser._parse_amd_file("app.amd", mock_file, context)
+
+    def test_parse_wqlquery_file_json_success(self):
+        """Test successful JSON parsing of WQL query file."""
+        wql_content = json.dumps({
+            "id": "getWorkersHiredAfter",
+            "parameters": ["locationId", "hireDate", "offsetParam", "limitParam"],
+            "query": "SELECT worker FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers) WHERE location in (\"<% locationId %>\")",
+            "offset": "<% const offset = offsetParam; offset %>",
+            "limit": "<% limitParam %>"
+        })
+
+        mock_file = Mock()
+        mock_file.content = wql_content
+
+        context = ProjectContext()
+        self.parser._parse_single_file("getWorkersHiredAfter.wqlquery", mock_file, context)
+
+        assert hasattr(context, "wqlqueries")
+        assert "getWorkersHiredAfter" in context.wqlqueries
+        wql_model = context.wqlqueries["getWorkersHiredAfter"]
+        assert wql_model.id == "getWorkersHiredAfter"
+        assert wql_model.parameters == ["locationId", "hireDate", "offsetParam", "limitParam"]
+        assert "<% locationId %>" in wql_model.query
+        assert "<% limitParam %>" in wql_model.limit
+
+    def test_parse_orchestration_file_sync(self):
+        """Test successful parsing of .orchestration file (Synchronous flow)."""
+        orch_content = '{"flowVersion":"3.3.0","_type":"Flow","_value":{"id":{"_type":"String","_value":"sync-id-1"},"name":{"_type":"Identifier","_value":"mySyncFlow"},"type":{"_type":"FlowType","_value":".maya.FlowSync"},"start":{},"end":{},"nodes":{"_type":["List","Node"],"_value":[]},"securityDomains":{"_type":["Opt",["List","String"]],"_value":null}}}'
+        mock_file = Mock()
+        mock_file.content = orch_content
+        context = ProjectContext()
+        self.parser._parse_single_file("mySync.orchestration", mock_file, context)
+        assert hasattr(context, "orchestrations")
+        assert len(context.orchestrations) == 1
+        orch = list(context.orchestrations.values())[0]
+        assert orch.flow_type == ".maya.FlowSync"
+        assert orch.name == "mySyncFlow"
+        assert orch.id == "sync-id-1"
+        assert orch.security_domains is None
+        assert "nodes" in orch.raw_value
+
+    def test_parse_orchestration_file_integration(self):
+        """Test successful parsing of .orchestration file (Integration flow)."""
+        orch_content = '{"flowVersion":"3.3.0","_type":"Flow","_value":{"id":{"_type":"String","_value":"o4i-id-1"},"name":{"_type":"Identifier","_value":"myIntegration"},"type":{"_type":"FlowType","_value":".maya.IntegrationFrameworkTrigger"},"start":{},"end":{},"nodes":{"_type":["List","Node"],"_value":[]},"securityDomains":{"_type":["Opt",["List","String"]],"_value":null}}}'
+        mock_file = Mock()
+        mock_file.content = orch_content
+        context = ProjectContext()
+        self.parser._parse_single_file("o4i.orchestration", mock_file, context)
+        assert "o4i.orchestration" in context.orchestrations
+        orch = context.orchestrations["o4i.orchestration"]
+        assert orch.flow_type == ".maya.IntegrationFrameworkTrigger"
+        assert orch.name == "myIntegration"
+
+    def test_parse_suborchestration_file(self):
+        """Test successful parsing of .suborchestration file (FlowSubflow)."""
+        suborch_content = json.dumps({
+            "flowVersion": "3.3.0",
+            "_type": "Flow",
+            "_value": {
+                "id": {"_type": "String", "_value": "sub-id-1"},
+                "name": {"_type": "Identifier", "_value": "subOrch"},
+                "type": {"_type": "FlowType", "_value": ".maya.FlowSubflow"},
+                "start": {"_type": "StartSubflow", "_value": {"parameters": {"_type": ["List", "ExprParameter"], "_value": []}}},
+                "end": {"_type": "EndSubflow", "_value": {"exports": {"_type": ["List", "Assignment"], "_value": []}}},
+                "nodes": {"_type": ["List", "Node"], "_value": []},
+                "securityDomains": {"_type": ["Opt", ["List", "String"]], "_value": None},
+            },
+        })
+        mock_file = Mock()
+        mock_file.content = suborch_content
+        context = ProjectContext()
+        self.parser._parse_single_file("subOrch.suborchestration", mock_file, context)
+        assert hasattr(context, "orchestrations")
+        assert "subOrch.suborchestration" in context.orchestrations
+        orch = context.orchestrations["subOrch.suborchestration"]
+        assert orch.flow_type == ".maya.FlowSubflow"
+        assert orch.name == "subOrch"
+        assert "start" in orch.raw_value
+        start = orch.raw_value["start"]
+        assert isinstance(start, dict) and start.get("_type") == "StartSubflow"
+
+    def test_parse_orchestration_file_with_security_domains(self):
+        """Test parsing orchestration with non-empty securityDomains."""
+        orch_content = json.dumps({
+            "flowVersion": "3.3.0",
+            "_type": "Flow",
+            "_value": {
+                "id": {"_type": "String", "_value": "async-1"},
+                "name": {"_type": "Identifier", "_value": "asyncFull"},
+                "type": {"_type": "FlowType", "_value": ".maya.FlowAsync"},
+                "start": {},
+                "end": {},
+                "nodes": {"_type": ["List", "Node"], "_value": []},
+                "securityDomains": {
+                    "_type": ["Opt", ["List", "String"]],
+                    "_value": {
+                        "_type": ["List", "String"],
+                        "_value": [{"_type": "String", "_value": "OrchSecurityDomain"}],
+                    },
+                },
+            },
+        })
+        mock_file = Mock()
+        mock_file.content = orch_content
+        context = ProjectContext()
+        self.parser._parse_single_file("asyncFull.orchestration", mock_file, context)
+        orch = context.orchestrations["asyncFull.orchestration"]
+        assert orch.security_domains == ["OrchSecurityDomain"]
+
+    def test_parse_orchestration_file_multiline_normalization(self):
+        """Test that pretty-printed (multi-line) orchestration parses identically to single-line."""
+        single_line = '{"flowVersion":"3.3.0","_type":"Flow","_value":{"id":{"_type":"String","_value":"norm-id"},"name":{"_type":"Identifier","_value":"normFlow"},"type":{"_type":"FlowType","_value":".maya.FlowSync"},"start":{},"end":{},"nodes":{"_type":["List","Node"],"_value":[]},"securityDomains":{"_type":["Opt",["List","String"]],"_value":null}}}'
+        pretty = json.dumps(json.loads(single_line), indent=2)
+        assert "\n" in pretty
+        mock_single = Mock()
+        mock_single.content = single_line
+        mock_pretty = Mock()
+        mock_pretty.content = pretty
+        context_single = ProjectContext()
+        context_pretty = ProjectContext()
+        self.parser._parse_single_file("a.orchestration", mock_single, context_single)
+        self.parser._parse_single_file("b.orchestration", mock_pretty, context_pretty)
+        o_single = list(context_single.orchestrations.values())[0]
+        o_pretty = list(context_pretty.orchestrations.values())[0]
+        assert o_single.flow_type == o_pretty.flow_type == ".maya.FlowSync"
+        assert o_single.name == o_pretty.name == "normFlow"
+        assert o_single.security_domains == o_pretty.security_domains
+        assert "nodes" in o_pretty.raw_value
     
     def test_parse_single_file_pmd(self):
         """Test single file parsing for PMD files."""

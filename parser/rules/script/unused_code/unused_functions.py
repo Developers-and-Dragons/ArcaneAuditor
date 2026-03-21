@@ -315,7 +315,8 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
             return False
             
         except Exception as e:
-            print(f"Exception in _is_function_assignment: {e}")
+            from utils.console import warn
+            warn(f"Exception in _is_function_assignment: {e}")
             return False
     
     def _extract_function_from_assignment(self, assignment_node) -> str:

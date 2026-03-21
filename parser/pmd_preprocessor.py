@@ -475,6 +475,18 @@ class PMDPreprocessor:
                         else:
                             escaped_parts.append(char)
                         i += 1
+                    elif char == '\t':
+                        # Same logic for tab - literal tabs in script blocks break JSON parsing
+                        backslash_count = 0
+                        j = i - 1
+                        while j >= 0 and script_content[j] == '\\':
+                            backslash_count += 1
+                            j -= 1
+                        if backslash_count % 2 == 0:
+                            escaped_parts.append('\\t')
+                        else:
+                            escaped_parts.append(char)
+                        i += 1
                     else:
                         escaped_parts.append(char)
                         i += 1
@@ -491,6 +503,38 @@ class PMDPreprocessor:
                 i += 1
         
         return ''.join(result)
+
+
+def preprocess_wqlquery_content(content: str) -> str:
+    """
+    Escape literal newlines and tabs in .wqlquery "query", "offset", and "limit"
+    string values so the file is valid JSON (like PMD preprocessing for script blocks).
+    """
+    spans = []
+    for key in ('query', 'offset', 'limit'):
+        pattern = re.escape(f'"{key}"') + r'\s*:\s*"'
+        for m in re.finditer(pattern, content):
+            value_start = m.end()
+            i = value_start
+            while i < len(content):
+                if content[i] == '\\' and i + 1 < len(content):
+                    i += 2
+                    continue
+                if content[i] == '"':
+                    value_end = i
+                    inner = content[value_start:value_end]
+                    inner_escaped = (
+                        inner.replace('\n', '\\n')
+                        .replace('\r', '\\r')
+                        .replace('\t', '\\t')
+                    )
+                    spans.append((value_start, value_end, inner_escaped))
+                    break
+                i += 1
+    result = content
+    for value_start, value_end, inner_escaped in sorted(spans, key=lambda x: -x[0]):
+        result = result[:value_start] + inner_escaped + result[value_end:]
+    return result
 
 
 def preprocess_pmd_content(content: str) -> Tuple[str, dict, Dict[str, List[List[int]]]]:

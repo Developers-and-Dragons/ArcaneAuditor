@@ -14,17 +14,17 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest, macos-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: 📥 Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: 🧙 Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.6"
 
@@ -59,8 +59,26 @@ jobs:
           mkdir -p build-logs
           bash ./scripts/build.sh 2>&1 | tee build-logs/build_macos.log
 
+      # 🐧 LINUX CLI BUILD
+      - name: 🏗️ Build (Linux CLI)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting Linux CLI build"
+          mkdir -p build-logs
+          bash ./scripts/build-linux-cli.sh 2>&1 | tee build-logs/build_linux.log
+
+      # 🐧 Optional: Docker cli-binary smoke (Linux only)
+      - name: 🐳 Docker cli-binary smoke (--help)
+        if: runner.os == 'Linux'
+        shell: bash
+        continue-on-error: true
+        run: |
+          docker build -f docker/Dockerfile.cli-binary -t arcane-auditor-cli-smoke .
+          docker run --rm arcane-auditor-cli-smoke --help
+
       - name: 📦 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: arcane-auditor-${{ runner.os }}
           path: |

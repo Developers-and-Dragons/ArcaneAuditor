@@ -3,7 +3,7 @@
 
 import pytest
 from parser.rules.script.core.var_usage import ScriptVarUsageRule
-from parser.models import ProjectContext, PMDModel, ScriptModel
+from parser.models import ProjectContext, PMDModel, ScriptModel, WQLQueryModel
 
 
 class TestScriptVarUsageRule:
@@ -61,6 +61,23 @@ var helper = function() {
         assert all(f.rule_id == "ScriptVarUsageRule" for f in findings)
         assert all("var" in f.message.lower() for f in findings)
         assert all("const" in f.message.lower() or "let" in f.message.lower() for f in findings)
+
+    def test_analyze_wqlquery_offset_with_var_declaration(self):
+        """Test analysis when a WQL query offset contains 'var' declarations."""
+        wql_model = WQLQueryModel(
+            id="getWorkersHiredAfter",
+            parameters=["offsetParam"],
+            query="SELECT worker FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers)",
+            offset="<% var offset = offsetParam; offset %>",
+            limit="<% offsetParam %>",
+            file_path="getWorkersHiredAfter.wqlquery",
+            source_content='{"id":"getWorkersHiredAfter","offset":"<% var offset = offsetParam; offset %>"}'
+        )
+        self.context.wqlqueries["getWorkersHiredAfter"] = wql_model
+
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert findings[0].rule_id == "ScriptVarUsageRule"
 
 
 if __name__ == '__main__':

@@ -37,8 +37,7 @@ pyz = PYZ(a.pure)
 
 IS_MAC = sys.platform == "darwin"
 IS_WIN = sys.platform.startswith("win")
-
-ONEFILE_MODE = IS_WIN  # onefile for Windows, onedir for macOS
+IS_LINUX = sys.platform.startswith("linux")
 
 # ---------------------------------------------------------------------------
 # macOS build: onedir mode (signable)
@@ -76,7 +75,7 @@ if IS_MAC:
 # ---------------------------------------------------------------------------
 # Windows build: onefile mode
 # ---------------------------------------------------------------------------
-else:
+elif IS_WIN:
     exe = EXE(
         pyz,
         a.scripts,
@@ -96,3 +95,28 @@ else:
         target_arch=None,
         icon='assets/icons/aa-windows.ico',
     )
+
+# ---------------------------------------------------------------------------
+# Linux build: onefile mode (no icon)
+# ---------------------------------------------------------------------------
+elif IS_LINUX:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='ArcaneAuditorCLI',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+    )
+else:
+    raise SystemExit(f"Unsupported platform for CLI build: {sys.platform}")

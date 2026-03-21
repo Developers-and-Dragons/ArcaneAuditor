@@ -49,9 +49,9 @@ class StringConcatDetector(ScriptDetector):
                 
                 # Use the utility method to create a better message
                 if function_name:
-                    issue_description = f"uses string concatenation with + operator in function '{function_name}': '{concat_text}'. Consider using PMD template strings with backticks and {{ }} syntax instead (e.g., `Hello {{name}}!`)."
+                    issue_description = f"uses string concatenation with + operator in function '{function_name}': '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
                 else:
-                    issue_description = f"uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{ }} syntax instead (e.g., `Hello {{name}}!`)."
+                    issue_description = f"uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
                 message = Rule._create_endpoint_message(field_path, field_name, issue_description)
                 
                 yield Violation(
