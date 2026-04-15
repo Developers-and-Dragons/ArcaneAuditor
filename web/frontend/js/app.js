@@ -14,6 +14,8 @@ class ArcaneAuditorApp {
         this.expandedFiles = new Set();
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
+        this.sourceSelectionMode = null; // 'zip' | 'files' | 'folder'
+        this.selectedDirectoryPath = null;
         this.currentFilters = {
             severity: 'all',
             fileType: 'all',
@@ -82,6 +84,7 @@ class ArcaneAuditorApp {
         if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
             window.addEventListener('pywebviewready', () => {
                 try {
+                    this.syncDesktopBrowseMenu();
                     this.updatePreferencesPromise = this.loadUpdatePreferences();
                     this.updatePreferencesPromise
                         .catch(err => console.error('Failed to refresh update preferences:', err))
@@ -108,21 +111,54 @@ class ArcaneAuditorApp {
             filesInput.addEventListener('change', (e) => this.handleFilesSelect(e));
         }
 
-        // Button click handlers for file selection
-        const chooseFileBtn = document.getElementById('choose-file-btn');
-        if (chooseFileBtn) {
-            chooseFileBtn.addEventListener('click', (e) => {
+        // Browse menu: one entry point for ZIP, files, or project folder (desktop)
+        const browseBtn = document.getElementById('browse-source-btn');
+        const browseMenu = document.getElementById('browse-source-menu');
+        const browseZip = document.getElementById('browse-menu-zip');
+        const browseFiles = document.getElementById('browse-menu-files');
+        const browseFolder = document.getElementById('browse-menu-folder');
+
+        this.syncDesktopBrowseMenu();
+
+        if (browseBtn && browseMenu) {
+            browseBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const isHidden = browseMenu.classList.contains('hidden');
+                if (isHidden) {
+                    browseMenu.classList.remove('hidden');
+                    browseMenu.setAttribute('aria-hidden', 'false');
+                    browseBtn.setAttribute('aria-expanded', 'true');
+                } else {
+                    this.closeBrowseMenu();
+                }
+            });
+        }
+
+        if (browseZip && fileInput) {
+            browseZip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeBrowseMenu();
                 fileInput.click();
             });
         }
-        
-        const chooseFilesBtn = document.getElementById('choose-files-btn');
-        if (chooseFilesBtn) {
-            chooseFilesBtn.addEventListener('click', (e) => {
+        if (browseFiles && filesInput) {
+            browseFiles.addEventListener('click', (e) => {
                 e.stopPropagation();
+                this.closeBrowseMenu();
                 filesInput.click();
             });
+        }
+        if (browseFolder) {
+            browseFolder.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeBrowseMenu();
+                this.pickProjectFolder();
+            });
+        }
+
+        document.addEventListener('click', () => this.closeBrowseMenu());
+        if (browseMenu) {
+            browseMenu.addEventListener('click', (e) => e.stopPropagation());
         }
 
         // Upload button listeners
@@ -600,6 +636,8 @@ class ArcaneAuditorApp {
                     return;
                 }
                 // Single ZIP file - proceed with upload
+                this.sourceSelectionMode = 'zip';
+                this.selectedDirectoryPath = null;
                 this.selectedFiles = [zipFiles[0]];
                 this.uploadedFileName = zipFiles[0].name;
                 this.uploadFile(zipFiles[0]); // Auto-upload ZIP files
@@ -611,6 +649,8 @@ class ArcaneAuditorApp {
                 });
                 
                 if (validFiles.length > 0) {
+                    this.sourceSelectionMode = 'files';
+                    this.selectedDirectoryPath = null;
                     this.selectedFiles = validFiles;
                     this.uploadedFileName = null; // Don't set for individual files
                     this.updateSelectedFilesDisplay(); // Show files in list for individual files
@@ -626,6 +666,8 @@ class ArcaneAuditorApp {
         const file = event.target.files[0];
         if (file) {
             if (file.name.endsWith('.zip')) {
+                this.sourceSelectionMode = 'zip';
+                this.selectedDirectoryPath = null;
                 // ZIP files should auto-upload immediately
                 this.uploadedFileName = file.name;
                 this.uploadFile(file);
@@ -639,6 +681,8 @@ class ArcaneAuditorApp {
     handleFilesSelect(event) {
         const files = Array.from(event.target.files);
         if (files.length > 0) {
+            this.sourceSelectionMode = 'files';
+            this.selectedDirectoryPath = null;
             // Don't set uploadedFileName for individual files
             this.uploadedFileName = null;
             this.selectedFiles = files;
@@ -646,10 +690,87 @@ class ArcaneAuditorApp {
         }
     }
 
+    closeBrowseMenu() {
+        const browseMenu = document.getElementById('browse-source-menu');
+        const browseBtn = document.getElementById('browse-source-btn');
+        if (browseMenu) {
+            browseMenu.classList.add('hidden');
+            browseMenu.setAttribute('aria-hidden', 'true');
+        }
+        if (browseBtn) {
+            browseBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    syncDesktopBrowseMenu() {
+        const el = document.getElementById('browse-menu-folder');
+        if (!el) {
+            return;
+        }
+        // Class "hidden" alone does not apply display:none here (no global .hidden rule).
+        // Use the boolean `hidden` attribute so the row is actually suppressed in web browsers.
+        const desktop =
+            typeof window !== 'undefined' &&
+            window.pywebview &&
+            window.pywebview.api &&
+            typeof window.pywebview.api.select_project_folder === 'function';
+        el.hidden = !desktop;
+    }
+
+    async pickProjectFolder() {
+        if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.select_project_folder !== 'function') {
+            this.showError('Folder analysis is only available in the desktop app.');
+            return;
+        }
+        let res;
+        try {
+            res = await window.pywebview.api.select_project_folder();
+        } catch (err) {
+            this.showError(err && err.message ? err.message : 'Could not open folder picker');
+            return;
+        }
+        if (!res || !res.success) {
+            if (res && res.cancelled) {
+                return;
+            }
+            this.showError(res && res.error ? res.error : 'Could not select folder');
+            return;
+        }
+        this.sourceSelectionMode = 'folder';
+        this.selectedDirectoryPath = res.path;
+        this.selectedFiles = [];
+        this.uploadedFileName = null;
+        this.updateSelectedFilesDisplay();
+    }
+
     updateSelectedFilesDisplay() {
         const selectedFilesList = document.getElementById('selected-files-list');
         const selectedFilesContainer = document.getElementById('files-list-content');
         
+        if (this.sourceSelectionMode === 'folder' && this.selectedDirectoryPath) {
+            selectedFilesList.style.display = 'block';
+            selectedFilesContainer.textContent = '';
+            const row = document.createElement('div');
+            row.className = 'selected-file selected-folder';
+            const icon = document.createElement('span');
+            icon.className = 'file-icon';
+            icon.textContent = '📂';
+            const detail = document.createElement('div');
+            detail.className = 'selected-folder-detail';
+            const pathEl = document.createElement('span');
+            pathEl.className = 'file-name';
+            pathEl.textContent = this.selectedDirectoryPath;
+            const hint = document.createElement('span');
+            hint.className = 'file-size browse-folder-hint';
+            hint.textContent = 'Recursive scan for Extend source files';
+            detail.appendChild(pathEl);
+            detail.appendChild(hint);
+            row.appendChild(icon);
+            row.appendChild(detail);
+            selectedFilesContainer.appendChild(row);
+            return;
+        }
+
         if (this.selectedFiles.length === 0) {
             selectedFilesList.style.display = 'none';
             return;
@@ -723,6 +844,11 @@ class ArcaneAuditorApp {
     }
 
     async uploadAndAnalyze() {
+        if (this.sourceSelectionMode === 'folder' && this.selectedDirectoryPath) {
+            await this.analyzeDirectoryFromFolder();
+            return;
+        }
+
         if (this.selectedFiles.length === 0) {
             const message = 'Please select a file or files to analyze';
             if (DialogManager && typeof DialogManager.showAlert === 'function') {
@@ -774,6 +900,54 @@ class ArcaneAuditorApp {
         } catch (error) {
             console.error('Upload error:', error);
             this.showError(`Upload failed: ${error.message}`);
+        }
+    }
+
+    async analyzeDirectoryFromFolder() {
+        if (!this.selectedDirectoryPath) {
+            return;
+        }
+        if (!this.configManager.selectedConfig) {
+            const message = 'Please select a configuration';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
+            return;
+        }
+
+        this.showLoading();
+        try {
+            this.updateLoadingMessage('Starting analysis…');
+            const response = await fetch('/api/analyze-directory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    directory: this.selectedDirectoryPath,
+                    config: this.configManager.selectedConfig
+                })
+            });
+
+            if (!response.ok) {
+                let detail = `HTTP ${response.status}`;
+                try {
+                    const errBody = await response.json();
+                    if (errBody.detail) {
+                        detail = typeof errBody.detail === 'string' ? errBody.detail : JSON.stringify(errBody.detail);
+                    }
+                } catch {
+                    detail = await response.text();
+                }
+                throw new Error(detail);
+            }
+
+            const result = await response.json();
+            const jobId = result.job_id;
+            this.pollJobStatus(jobId);
+        } catch (error) {
+            console.error('Directory analysis error:', error);
+            this.showError(`Analysis failed: ${error.message}`);
         }
     }
 
@@ -907,6 +1081,8 @@ class ArcaneAuditorApp {
         this.currentResult = null;
         this.uploadedFileName = null;
         this.selectedFiles = [];
+        this.sourceSelectionMode = null;
+        this.selectedDirectoryPath = null;
         
         // Reset file inputs
         const fileInput = document.getElementById('file-input');

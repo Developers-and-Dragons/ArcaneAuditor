@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.6.0] - 2026-04-14
+
+### Added
+
+- **Desktop folder analysis** — In the desktop app, **Browse… → Project folder…** selects a local directory; analysis uses the same recursive directory processing as the CLI, preserving relative paths (including duplicate filenames in different subfolders). Gated API (`POST /api/analyze-directory`) enabled only for the desktop shell.
+
+### Changed
+
+- **Upload UI** — Single **Browse…** menu for ZIP archive, source files, or project folder (folder option on desktop only).
+
+---
+
 ## [v1.5.0] - 2026-03-17
 
 ### Added

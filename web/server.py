@@ -72,6 +72,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Desktop shell enables local directory analysis; default off for standalone web server.
+app.state.allow_directory_analysis = False
+
 
 # Mount static files at /static to avoid conflicts with API routes
 if is_frozen():

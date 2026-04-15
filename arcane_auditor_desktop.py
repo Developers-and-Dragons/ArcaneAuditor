@@ -152,6 +152,21 @@ class Api:
 
         return payload
 
+    def select_project_folder(self):
+        """Open a native folder picker. Returns the selected directory path or cancellation."""
+        global window
+        try:
+            win = window
+            if win is None:
+                return {'success': False, 'error': 'Window not ready'}
+            paths = win.create_file_dialog(webview.FileDialog.FOLDER)
+            if paths is None or (isinstance(paths, (tuple, list)) and len(paths) == 0):
+                return {'success': False, 'error': 'cancelled', 'cancelled': True}
+            first = paths[0] if isinstance(paths, (tuple, list)) else paths
+            return {'success': True, 'path': str(first)}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
 
 def show_immediate_splash():
     """Create and show a minimal splash screen with logo"""
@@ -252,6 +267,8 @@ def main():
         from utils.arcane_paths import is_frozen
         from web.server import app, load_web_config, ensure_sample_rule_config
         import uvicorn
+
+        app.state.allow_directory_analysis = True
         
         DEFAULT_HOST = "127.0.0.1"
 

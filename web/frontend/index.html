@@ -113,17 +113,28 @@
                         <p id="upload-config-hint">
                             <span>📜</span> Analyzing with <strong id="upload-config-name">...</strong> rules
                         </p>
-                        <div class="upload-buttons">
-                            <button type="button" class="btn btn-primary" id="choose-file-btn">
-                                Choose ZIP File
+                        <div class="upload-buttons browse-source-wrap">
+                            <button type="button" class="btn btn-primary" id="browse-source-btn" aria-haspopup="true" aria-expanded="false">
+                                Browse…
                             </button>
-                            <button type="button" class="btn btn-secondary" id="choose-files-btn">
-                                Choose Individual Files
-                            </button>
+                            <div id="browse-source-menu" class="browse-dropdown hidden" role="menu" aria-hidden="true">
+                                <button type="button" class="browse-menu-item" id="browse-menu-zip" role="menuitem">
+                                    <span class="browse-menu-title">ZIP archive</span>
+                                    <span class="browse-menu-hint">Single packaged application</span>
+                                </button>
+                                <button type="button" class="browse-menu-item" id="browse-menu-files" role="menuitem">
+                                    <span class="browse-menu-title">Source files…</span>
+                                    <span class="browse-menu-hint">Pick multiple files</span>
+                                </button>
+                                <button type="button" class="browse-menu-item browse-menu-item-desktop" id="browse-menu-folder" hidden role="menuitem">
+                                    <span class="browse-menu-title">Project folder…</span>
+                                    <span class="browse-menu-hint">Recursive scan (desktop)</span>
+                                </button>
+                            </div>
                         </div>
                         <input type="file" id="file-input" accept=".zip" style="display: none;">
                         <input type="file" id="files-input" accept=".pmd,.pod,.amd,.smd,.script,.wqlquery,.orchestration,.suborchestration" multiple style="display: none;">
-                        <p class="upload-hint">Supported: ZIP files or individual .pmd, .pod, .amd, .smd, .script, .wqlquery, .orchestration, .suborchestration files</p>
+                        <p class="upload-hint">Supported: ZIP, individual source files, or a project folder (desktop). Or use Browse to pick a type.</p>
                         
                         <!-- Selected Files List -->
                         <div id="selected-files-list" class="selected-files-list" style="display: none;">

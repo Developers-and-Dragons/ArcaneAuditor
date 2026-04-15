@@ -1,6 +1,6 @@
 [project]
 name = "arcane-auditor"
-version = "1.5.0"
+version = "1.6.0"
 description = "A mystical code review tool for Workday Extend applications - part of Developers and Dragons"
 license = "MIT"
 readme = "README.md"

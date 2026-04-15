@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.6.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 [![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
@@ -30,8 +30,11 @@ It analyzes:
 - ⚙️ Update-safe configuration layering
 - 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
-**New in v1.5:** 
- * Orchestration support! Arcane Auditor now includes 6 additional validations for Orchestrations.
+**New in v1.6:**
+ * **Desktop: analyze a project folder** — pick a directory on disk for recursive analysis (same model as the CLI), with a Browse menu for ZIP, files, or folder.
+
+**Earlier highlights (v1.5):**
+ * Orchestration support — additional validations for orchestrations.
  * Linux CLI builds (tar.gz + SHA-256).
  * Docker definition files for CI/container workflows.
 ---

@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Global job management for async analysis
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
@@ -28,7 +28,9 @@ class AnalysisJob:
         self.start_time = None
         self.end_time = None
         self.thread = None
-        self.is_zip = True  # True for ZIP files, False for individual files
+        self.is_zip = True  # True for ZIP files, False for individual files or directory
+        self.is_directory = False  # True when analyzing a local folder (desktop)
+        self.directory_path: Optional[Path] = None
         self.individual_files = []  # List of Path objects for individual files
     
     def to_dict(self):
@@ -81,7 +83,9 @@ def cleanup_old_jobs():
         
         for job_id in jobs_to_remove:
             job = analysis_jobs.pop(job_id)
-            # Clean up any remaining temporary files
+            # Clean up any remaining temporary files (never delete user directory sources)
+            if getattr(job, "is_directory", False):
+                continue
             if job.is_zip and job.zip_path and job.zip_path.exists():
                 job.zip_path.unlink()
                 print(f"Cleaned up remaining ZIP file: {job.zip_path.name}")
@@ -108,7 +112,9 @@ def run_analysis_background(job: AnalysisJob):
         file_processing_start = time.time()
         processor = FileProcessor()
         
-        if job.is_zip:
+        if getattr(job, "is_directory", False) and job.directory_path:
+            source_files_map = processor.process_directory(job.directory_path)
+        elif job.is_zip:
             # ZIP file mode
             source_files_map = processor.process_zip_file(job.zip_path)
             
