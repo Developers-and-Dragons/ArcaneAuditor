@@ -707,11 +707,14 @@ class ArcaneAuditorApp {
         if (!el) {
             return;
         }
-        if (window.pywebview) {
-            el.classList.remove('hidden');
-        } else {
-            el.classList.add('hidden');
-        }
+        // Class "hidden" alone does not apply display:none here (no global .hidden rule).
+        // Use the boolean `hidden` attribute so the row is actually suppressed in web browsers.
+        const desktop =
+            typeof window !== 'undefined' &&
+            window.pywebview &&
+            window.pywebview.api &&
+            typeof window.pywebview.api.select_project_folder === 'function';
+        el.hidden = !desktop;
     }
 
     async pickProjectFolder() {

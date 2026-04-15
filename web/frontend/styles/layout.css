@@ -177,6 +177,11 @@
     background: var(--bg-tertiary);
 }
 
+/* Override flex display when row is suppressed (HTML hidden attribute). */
+.browse-menu-item[hidden] {
+    display: none !important;
+}
+
 .browse-menu-title {
     font-weight: 600;
     font-size: 0.95rem;
