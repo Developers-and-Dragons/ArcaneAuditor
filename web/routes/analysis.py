@@ -8,7 +8,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import FileResponse
 
 from pydantic import BaseModel
@@ -33,6 +33,60 @@ class JobStatusResponse(BaseModel):
     start_time: Optional[float] = None
     end_time: Optional[float] = None
     config: Optional[str] = None
+
+
+class AnalyzeDirectoryRequest(BaseModel):
+    """Request body for analyzing a local directory (desktop-only API)."""
+    directory: str
+    config: str = "default"
+
+
+@router.post("/api/analyze-directory")
+async def analyze_directory(request: Request, body: AnalyzeDirectoryRequest):
+    """
+    Analyze all relevant source files under a directory (recursive).
+
+    Enabled only when the app runs in the desktop shell (local trust model).
+    Uses the same extension filter as CLI directory analysis.
+    """
+    if not getattr(request.app.state, "allow_directory_analysis", False):
+        raise HTTPException(status_code=403, detail="Directory analysis is not enabled")
+
+    raw = (body.directory or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="No directory path provided")
+
+    dir_path = Path(raw).expanduser().resolve()
+    if not dir_path.exists():
+        raise HTTPException(status_code=400, detail=f"Directory not found: {raw}")
+    if not dir_path.is_dir():
+        raise HTTPException(status_code=400, detail=f"Not a directory: {raw}")
+
+    config_info = get_dynamic_config_info()
+    if body.config not in config_info:
+        raise HTTPException(status_code=400, detail=f"Invalid configuration: {body.config}")
+
+    selected_config_info = config_info[body.config]
+    actual_config_path = selected_config_info["path"]
+    config_source = selected_config_info.get("source", "built-in")
+
+    job_id = str(uuid.uuid4())
+    job = AnalysisJob(job_id, None, actual_config_path, config_source)
+    job.is_zip = False
+    job.is_directory = True
+    job.directory_path = dir_path
+    job.individual_files = []
+
+    with job_lock:
+        analysis_jobs[job_id] = job
+
+    job.thread = threading.Thread(target=run_analysis_background, args=(job,))
+    job.thread.daemon = True
+    job.thread.start()
+
+    cleanup_old_jobs()
+
+    return {"job_id": job_id, "status": "queued", "config": actual_config_path}
 
 
 @router.post("/api/upload")

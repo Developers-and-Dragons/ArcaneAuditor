@@ -133,6 +133,79 @@
     min-width: 150px;
 }
 
+.browse-source-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.browse-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    margin-top: 6px;
+    min-width: 280px;
+    padding: 8px 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.browse-dropdown.hidden {
+    display: none;
+}
+
+.browse-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 12px 18px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.browse-menu-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.browse-menu-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.browse-menu-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.selected-folder {
+    align-items: flex-start;
+}
+
+.selected-folder-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.selected-folder .file-name {
+    word-break: break-all;
+}
+
+.browse-folder-hint {
+    font-style: italic;
+}
+
 /* Selected Files List */
 .selected-files-list {
     margin-top: 20px;
