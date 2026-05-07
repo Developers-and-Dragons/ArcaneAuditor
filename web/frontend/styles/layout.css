@@ -35,6 +35,40 @@
     transform: translateY(-1px);
 }
 
+/* Rerun Analysis Button (Results Action) */
+.btn-rerun {
+    color: #ffffff;
+    border: 1px solid rgba(22, 163, 74, 0.55);
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+[data-theme="dark"] .btn-rerun {
+    border-color: rgba(52, 211, 153, 0.45);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-rerun:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+[data-theme="dark"] .btn-rerun:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
+
+.btn-rerun:active {
+    transform: translateY(0);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.btn-rerun:focus-visible {
+    outline: 2px solid rgba(34, 197, 94, 0.55);
+    outline-offset: 2px;
+}
+
+[data-theme="dark"] .btn-rerun:focus-visible {
+    outline-color: rgba(52, 211, 153, 0.55);
+}
+
 /* Upload Section */
 .upload-section {
     margin-top: 0; /* Already 0, but ensure it stays 0 */

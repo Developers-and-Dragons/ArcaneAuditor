@@ -141,7 +141,7 @@
                             <h4>Selected Files:</h4>
                             <div id="files-list-content"></div>
                             <button type="button" class="btn btn-primary" id="upload-files-btn" style="margin-top: 10px;">
-                                Upload & Analyze
+                                Run Analysis
                             </button>
                         </div>
                     </div>
@@ -296,14 +296,14 @@
                 <div class="results-header">
                     <h3>📊 Analysis Results</h3>
                     <div class="results-actions">
-                        <button class="btn btn-secondary" onclick="downloadResults()">
+                        <button class="btn btn-secondary" onclick="downloadResults()" title="Download the analysis results to an Excel file">
                             📥 Download Excel
                         </button>
-                        <button class="btn btn-secondary" id="rerun-analysis-btn" onclick="rerunAnalysis()" style="display: none;">
-                            🔁 Re-run Analysis
+                        <button class="btn btn-rerun" id="rerun-analysis-btn" onclick="rerunAnalysis()" style="display: none;" title="Analyze the same selected code files again">
+                            🔁 Analyze Again 
                         </button>
-                        <button class="btn btn-primary" onclick="resetInterface()">
-                            🔄 Analyze Another
+                        <button class="btn btn-primary" onclick="resetInterface()" title="Return to the start screen to choose different code">
+                            📂 Choose Different Code
                         </button>
                     </div>
                 </div>
