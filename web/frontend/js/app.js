@@ -397,7 +397,14 @@ class ArcaneAuditorApp {
         }
         
         this.resultsManager.renderResults();
-        
+
+        // Show Re-run button only in desktop folder mode (reads from disk, no re-upload needed)
+        const rerunBtn = document.getElementById('rerun-analysis-btn');
+        if (rerunBtn) {
+            const canRerun = this.sourceSelectionMode === 'folder' && this.selectedDirectoryPath;
+            rerunBtn.style.display = canRerun ? 'inline-flex' : 'none';
+        }
+
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
     }
@@ -1063,6 +1070,12 @@ class ArcaneAuditorApp {
         this.resultsManager.collapseAllFiles();
     }
 
+    rerunAnalysis() {
+        if (this.sourceSelectionMode === 'folder' && this.selectedDirectoryPath) {
+            this.analyzeDirectoryFromFolder();
+        }
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
         
@@ -1092,6 +1105,10 @@ class ArcaneAuditorApp {
         
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
+
+        // Hide re-run button
+        const rerunBtn = document.getElementById('rerun-analysis-btn');
+        if (rerunBtn) rerunBtn.style.display = 'none';
         
         // Reset renderers
         this.resultsManager.resetForNewUpload();
@@ -1240,6 +1257,10 @@ window.resetInterface = function() {
 
 window.downloadResults = function() {
     app.downloadResults();
+};
+
+window.rerunAnalysis = function() {
+    app.rerunAnalysis();
 };
 
 window.toggleTheme = function() {
