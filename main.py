@@ -1,6 +1,7 @@
 import typer
 from typing import Optional
 import json
+import os
 import time
 from pathlib import Path
 from file_processing import FileProcessor
@@ -41,6 +42,11 @@ def review_app(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)"),
     ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, JSON format, default output file (overridable by explicit --format/--output)"),
     agent: bool = typer.Option(False, "--agent", help="Agent preset: quiet, JSON to stdout. Mutually exclusive with --ci and non-JSON --format."),
+    rules_filter: Optional[str] = typer.Option(None, "--rules", help="Comma-separated list of rule IDs to run (others skipped). Unknown rule -> exit 2."),
+    exclude_rules: Optional[str] = typer.Option(None, "--exclude-rules", help="Comma-separated list of rule IDs to skip. Unknown rule -> exit 2."),
+    severity_filter: Optional[str] = typer.Option(None, "--severity", help="Filter findings by severity (ACTION or ADVICE)."),
+    fix_strategy_filter: Optional[str] = typer.Option(None, "--fix-strategy", help="Filter findings by fix_strategy (comma-separated: mechanical,localized,naming_required,cascading_rename,refactor,design_decision)."),
+    files_glob: Optional[str] = typer.Option(None, "--files", help="Glob pattern (fnmatch) limiting which input files are parsed (e.g. '*.pmd', '**/foo*')."),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
@@ -143,6 +149,15 @@ def review_app(
         error(f"File Processing Error: {e}")
         raise typer.Exit(2)  # Exit code 2 for usage errors
 
+    if files_glob:
+        import fnmatch
+        before = len(source_files_map)
+        source_files_map = {
+            k: v for k, v in source_files_map.items()
+            if fnmatch.fnmatch(k, files_glob) or fnmatch.fnmatch(os.path.basename(k), files_glob)
+        }
+        info(f"--files '{files_glob}' kept {len(source_files_map)}/{before} files")
+
     file_processing_time = time.time() - file_processing_start_time
     info(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
@@ -191,6 +206,21 @@ def review_app(
         rules_init_start_time = time.time()
         rules_engine = RulesEngine(config)
         rules_init_time = time.time() - rules_init_start_time
+
+        if rules_filter or exclude_rules:
+            available_ids = {r.__class__.__name__ for r in rules_engine.rules}
+            include_set = {x.strip() for x in rules_filter.split(",")} if rules_filter else None
+            exclude_set = {x.strip() for x in exclude_rules.split(",")} if exclude_rules else set()
+            unknown = ((include_set or set()) | exclude_set) - available_ids
+            if unknown:
+                error(f"Unknown rule(s): {', '.join(sorted(unknown))}")
+                raise typer.Exit(2)
+            rules_engine.rules = [
+                r for r in rules_engine.rules
+                if (include_set is None or r.__class__.__name__ in include_set)
+                and r.__class__.__name__ not in exclude_set
+            ]
+
         info(f"Loaded {len(rules_engine.rules)} validation rules")
         if show_timing:
             info(f"Rules engine initialization: {rules_init_time:.2f}s")
@@ -199,6 +229,26 @@ def review_app(
         analysis_start_time = time.time()
         findings = rules_engine.run(context)
         analysis_time = time.time() - analysis_start_time
+
+        if severity_filter:
+            sev = severity_filter.upper()
+            if sev not in {"ACTION", "ADVICE"}:
+                error(f"Invalid severity: {severity_filter}. Valid: ACTION, ADVICE")
+                raise typer.Exit(2)
+            findings = [f for f in findings if f.severity == sev]
+
+        if fix_strategy_filter:
+            from parser.rules.base import FixStrategy
+            valid = {fs.value for fs in FixStrategy}
+            wanted = {s.strip().lower() for s in fix_strategy_filter.split(",")}
+            unknown = wanted - valid
+            if unknown:
+                error(f"Invalid fix_strategy value(s): {', '.join(sorted(unknown))}. Valid: {', '.join(sorted(valid))}")
+                raise typer.Exit(2)
+            findings = [
+                f for f in findings
+                if (f.fix_strategy.value if hasattr(f.fix_strategy, "value") else str(f.fix_strategy)) in wanted
+            ]
 
         if findings:
             info(f"Analysis complete. Found {len(findings)} issue(s).")
@@ -264,6 +314,10 @@ def review_app(
             else:
                 result(formatted_output)
 
+    except typer.Exit:
+        # Validation failures (e.g. unknown filter values) carry their own exit
+        # code; don't remap them to the generic analysis-error code.
+        raise
     except Exception as e:
         error(f"Analysis Error: {e}")
         error("This might be due to unsupported syntax or corrupted files")
