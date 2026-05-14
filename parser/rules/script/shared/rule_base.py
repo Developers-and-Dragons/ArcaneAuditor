@@ -131,7 +131,8 @@ class ScriptRuleBase(Rule, ABC):
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    file_path=file_path
+                    file_path=file_path,
+                    suggested_replacement=violation.suggested_replacement,
                 )
     
     def _extract_variable_from_empty_expression(self, node) -> str:

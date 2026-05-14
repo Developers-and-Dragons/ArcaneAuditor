@@ -36,7 +36,8 @@ class VarUsageDetector(ScriptDetector):
                     
                     yield Violation(
                         message=message,
-                        line=line_number
+                        line=line_number,
+                        suggested_replacement="let",
                     )
         
         # Find all for_var_statement nodes (for loops with var declarations)
@@ -54,7 +55,8 @@ class VarUsageDetector(ScriptDetector):
                         
                         yield Violation(
                             message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for loop. Consider using 'let' or 'const' instead.",
-                            line=line_number
+                            line=line_number,
+                            suggested_replacement="let",
                         )
         
         # Find all for_var_in_statement nodes (for-in loops with var declarations)
@@ -67,5 +69,6 @@ class VarUsageDetector(ScriptDetector):
             
             yield Violation(
                 message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for-in loop. Consider using 'let' or 'const' instead.",
-                line=line_number
+                line=line_number,
+                suggested_replacement="let",
             )

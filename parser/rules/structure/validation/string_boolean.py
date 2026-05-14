@@ -81,5 +81,6 @@ class StringBooleanRule(StructureRuleBase):
                 yield self._create_finding(
                     message=f"Field '{field_name}' has string value '{string_value}' instead of boolean {string_value}. Use boolean {string_value} instead of string '{string_value}'.",
                     file_path=model.file_path,
-                    line=line_num
+                    line=line_num,
+                    suggested_replacement=string_value,
                 )

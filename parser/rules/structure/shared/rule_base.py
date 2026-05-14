@@ -86,13 +86,15 @@ class StructureRuleBase(Rule, ABC):
         """Visit orchestration model - can be overridden by subclasses."""
         yield from ()
     
-    def _create_finding(self, message: str, file_path: str, line: int = 1) -> Finding:
+    def _create_finding(self, message: str, file_path: str, line: int = 1,
+                        suggested_replacement: Optional[str] = None) -> Finding:
         """Create a finding with consistent formatting."""
         return Finding(
             rule=self,
             message=message,
             line=line,
-            file_path=file_path
+            file_path=file_path,
+            suggested_replacement=suggested_replacement,
         )
     
     # Unified line calculation methods

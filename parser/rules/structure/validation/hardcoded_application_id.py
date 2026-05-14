@@ -117,7 +117,8 @@ const appId = site.applicationId; // ✅ Use site.applicationId
                         yield self._create_finding(
                             message=f"Hardcoded applicationId '{app_id}' found in AMD dataProvider. Use site.applicationId instead.",
                             file_path=amd_model.file_path,
-                            line=1  # AMD doesn't have line-level source tracking
+                            line=1,  # AMD doesn't have line-level source tracking
+                            suggested_replacement="site.applicationId",
                         )
     
     def _check_source_content_for_app_id(self, source_content: str, app_id: str, file_path: str) -> Generator[Finding, None, None]:
@@ -150,7 +151,8 @@ const appId = site.applicationId; // ✅ Use site.applicationId
             yield self._create_finding(
                 message=f"Hardcoded applicationId '{app_id}' found. Use site.applicationId instead.",
                 file_path=file_path,
-                line=line_num
+                line=line_num,
+                suggested_replacement="site.applicationId",
             )
     
     def _check_string_values_for_app_id(self, model: Any, app_id: str, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
@@ -198,5 +200,6 @@ const appId = site.applicationId; // ✅ Use site.applicationId
             yield self._create_finding(
                 message=f"Hardcoded applicationId '{app_id}' found in {field_name}. Use site.applicationId instead.",
                 file_path=file_path,
-                line=line_num
+                line=line_num,
+                suggested_replacement="site.applicationId",
             )
