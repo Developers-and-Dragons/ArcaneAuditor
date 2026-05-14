@@ -351,6 +351,27 @@
     background: var(--bg-secondary);
 }
 
+/* Clickable rule_id in the finding header — opens the Grimoire entry. */
+.finding-rule-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.finding-rule-link:hover,
+.finding-rule-link:focus {
+    color: #9333ea; /* purple-600 */
+    text-decoration-style: solid;
+    outline: none;
+}
+[data-theme="dark"] .finding-rule-link:hover,
+[data-theme="dark"] .finding-rule-link:focus {
+    color: #c084fc; /* purple-400 */
+}
+
 .finding {
     padding: 15px 0;
     border-bottom: 1px solid var(--border-light);
