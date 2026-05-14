@@ -109,12 +109,15 @@ export const Templates = {
      * built-in (read-only) configs where the per-row controls aren't shown.
      */
     ruleListHeader(isBuiltIn) {
-        if (isBuiltIn) return '';
+        // Built-in (read-only) presets show the same columns minus the Settings
+        // column — there's no Configure button to label. Severity, Agent Fix
+        // Strategy, and Enabled are rendered as read-only badges below.
+        const settingsCol = isBuiltIn ? '' : `<div class="rule-list-header-col rule-list-header-configure">Settings</div>`;
         return `
             <div class="rule-list-header" aria-hidden="false">
                 <div class="rule-list-header-name">Rule</div>
                 <div class="rule-list-header-controls">
-                    <div class="rule-list-header-col rule-list-header-configure">Settings</div>
+                    ${settingsCol}
                     <div class="rule-list-header-col rule-list-header-severity">Severity</div>
                     <div class="rule-list-header-col rule-list-header-fix-strategy">
                         Agent Fix Strategy
@@ -201,6 +204,11 @@ export const Templates = {
                                 <option value="cascading_rename" ${fixStrategy === 'cascading_rename' ? 'selected' : ''}>cascading_rename</option>
                                 <option value="design_decision" ${fixStrategy === 'design_decision' ? 'selected' : ''}>design_decision</option>
                             </select>
+                        ` : ''}
+                        ${isBuiltIn ? `
+                            <span class="rule-readonly-badge rule-severity-${severity.toLowerCase()}" title="Default severity for this rule (read-only)">${severity}</span>
+                            <span class="rule-readonly-badge rule-fix-strategy-${fixStrategy}" title="Default fix strategy for this rule (read-only)">${fixStrategy}</span>
+                            <span class="rule-readonly-enabled ${isEnabled ? 'enabled' : 'disabled'}" title="${isEnabled ? 'Enabled' : 'Disabled'} in this preset">${isEnabled ? '✓' : '✕'}</span>
                         ` : ''}
                         ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}
                         ${!isBuiltIn ? `

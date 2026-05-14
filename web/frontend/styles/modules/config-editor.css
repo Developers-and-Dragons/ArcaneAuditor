@@ -334,6 +334,63 @@
 .rule-list-header-fix-strategy { width: 160px; }
 .rule-list-header-toggle { width: 56px; }
 
+/* Read-only badges shown in built-in (preset) config views.
+   They occupy the same column widths as the editable controls so the header
+   labels line up. Color classes (`rule-severity-*` and `rule-fix-strategy-*`)
+   provide text color via the rules defined elsewhere. */
+.rule-readonly-badge {
+    display: inline-block;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid currentColor;
+    background: transparent;
+    cursor: default;
+    user-select: none;
+}
+.rule-readonly-badge.rule-severity-advice,
+.rule-readonly-badge.rule-severity-action { width: 100px; }
+.rule-readonly-badge[class*="rule-fix-strategy-"] { width: 160px; }
+
+/* Color overrides for read-only badges (the existing rule-severity-select /
+   rule-fix-strategy-select rules are scoped to <select> elements). */
+.rule-readonly-badge.rule-severity-advice { color: #1d4ed8; }
+.rule-readonly-badge.rule-severity-action { color: #c2410c; }
+[data-theme="dark"] .rule-readonly-badge.rule-severity-advice { color: #38bdf8; }
+[data-theme="dark"] .rule-readonly-badge.rule-severity-action { color: #fbbf24; }
+
+.rule-readonly-badge.rule-fix-strategy-mechanical { color: #15803d; }
+.rule-readonly-badge.rule-fix-strategy-localized { color: #0f766e; }
+.rule-readonly-badge.rule-fix-strategy-naming_required { color: #b45309; }
+.rule-readonly-badge.rule-fix-strategy-cascading_rename { color: #7e22ce; }
+.rule-readonly-badge.rule-fix-strategy-design_decision { color: #475569; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-mechanical { color: #4ade80; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-localized { color: #2dd4bf; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-naming_required { color: #fbbf24; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-cascading_rename { color: #c084fc; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-design_decision { color: #cbd5e1; }
+
+/* Read-only enabled indicator (replaces the toggle switch in preset views). */
+.rule-readonly-enabled {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 22px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+}
+.rule-readonly-enabled.enabled { color: #15803d; }
+.rule-readonly-enabled.disabled { color: #94a3b8; }
+[data-theme="dark"] .rule-readonly-enabled.enabled { color: #4ade80; }
+[data-theme="dark"] .rule-readonly-enabled.disabled { color: #64748b; }
+
 /* Info button inside a column-header cell (Agent Fix Strategy column). */
 .fix-strategy-help-btn {
     margin-left: 6px;
