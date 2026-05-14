@@ -151,7 +151,7 @@ class TestCLIOutputFormats:
         result = runner.invoke(app, ["review-app", "--help"])
         assert result.exit_code == 0
         assert "--format" in result.output
-        assert "json" in result.output
+        assert "json" in result.output.lower()
 
     def test_summary_output_format(self):
         """Test that summary output format is available."""

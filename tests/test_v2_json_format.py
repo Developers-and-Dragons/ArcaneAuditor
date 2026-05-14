@@ -111,6 +111,51 @@ class TestFindingShape:
         assert result["findings"][0]["snippet"] is None
 
 
+class TestSnippetLookupAcrossModelTypes:
+    """Snippet population must work for every model type the parser produces,
+    not just PMD/POD. ScriptModel stores source on ``.source`` (not
+    ``.source_content``) — easy to overlook."""
+
+    def test_snippet_for_script_file(self):
+        from parser.models import ScriptModel
+        from parser.rules.script.core.var_usage import ScriptVarUsageRule
+
+        ctx = ProjectContext()
+        ctx.scripts["s"] = ScriptModel(
+            file_path="s.script",
+            source="line1\nvar x = 1;\nline3",
+        )
+        findings = list(ScriptVarUsageRule().analyze(ctx))
+        assert len(findings) == 1
+        result = _format(findings, context=ctx)
+        snippet = result["findings"][0]["snippet"]
+        assert snippet is not None
+        assert "var x = 1" in snippet
+
+    def test_snippet_for_amd_file(self):
+        from parser.models import AMDModel
+        from parser.rules.structure.validation.hardcoded_application_id import (
+            HardcodedApplicationIdRule,
+        )
+
+        ctx = ProjectContext()
+        ctx.smd = SMDModel(
+            id="app", applicationId="app_xyz", siteId="s", file_path="x.smd"
+        )
+        ctx.amd = AMDModel(
+            routes={},
+            dataProviders=[{"key": "k", "value": "https://api/app_xyz/foo"}],
+            file_path="x.amd",
+            source_content='{\n  "dataProviders": [{"value": "https://api/app_xyz/foo"}]\n}',
+        )
+        findings = list(HardcodedApplicationIdRule().analyze(ctx))
+        amd_findings = [f for f in findings if f.file_path == "x.amd"]
+        assert amd_findings, "expected at least one AMD finding for setup sanity"
+        result = _format(amd_findings, context=ctx)
+        # AMD source_content is in the lookup, so snippet should be populated.
+        assert result["findings"][0]["snippet"] is not None
+
+
 class TestSummaryCountsByActualSeverity:
     def test_action_advice_counts(self):
         ctx = ProjectContext()

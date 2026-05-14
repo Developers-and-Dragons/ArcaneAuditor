@@ -194,18 +194,34 @@ class OutputFormatter:
         return json.dumps(result, indent=2)
 
     def _build_source_content_lookup(self, context: Optional['ProjectContext']) -> Dict[str, str]:
-        """Map file_path -> source_content for snippet population."""
+        """Map file_path -> source_content for snippet population.
+
+        Walks every parsed-model collection in the context. ScriptModel stores
+        raw source on ``.source`` (no ``.source_content``); all other models
+        use ``.source_content``. Single-instance models (amd, smd) are also
+        included. Keys are stored both raw and uuid-stripped so findings can
+        match either form.
+        """
         lookup: Dict[str, str] = {}
         if not context:
             return lookup
-        for collection_name in ("pmds", "pods"):
-            collection = getattr(context, collection_name, None) or {}
-            for model in collection.values():
-                source = getattr(model, "source_content", None)
-                file_path = getattr(model, "file_path", None)
-                if source and file_path:
-                    lookup[file_path] = source
-                    lookup[strip_uuid_prefix(file_path)] = source
+
+        def _index(model):
+            file_path = getattr(model, "file_path", None)
+            if not file_path:
+                return
+            source = getattr(model, "source_content", None) or getattr(model, "source", None)
+            if not source:
+                return
+            lookup[file_path] = source
+            lookup[strip_uuid_prefix(file_path)] = source
+
+        for collection_name in ("pmds", "pods", "scripts", "wqlqueries", "orchestrations"):
+            for model in (getattr(context, collection_name, None) or {}).values():
+                _index(model)
+        for single in (getattr(context, "amd", None), getattr(context, "smd", None)):
+            if single is not None:
+                _index(single)
         return lookup
     
     def _group_findings_by_file(self, findings: List[Finding]) -> Dict[str, List[Finding]]:

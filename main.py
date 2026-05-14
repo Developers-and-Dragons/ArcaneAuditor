@@ -33,12 +33,13 @@ def review_app(
     path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
     additional_files: list[Path] = typer.Argument(None, help="Additional files to analyze (optional)"),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
-    output_format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: console (default), json (default with --ci), summary, or excel."),
+    output_format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: console (default), JSON (default with --ci), summary, or excel."),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
     show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
     fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)"),
-    ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, json format, default output file (overridable by explicit --format/--output)"),
+    ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, JSON format, default output file (overridable by explicit --format/--output)"),
+    agent: bool = typer.Option(False, "--agent", help="Agent preset: quiet, JSON to stdout. Mutually exclusive with --ci and non-JSON --format."),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
@@ -55,10 +56,28 @@ def review_app(
     - 2: Usage Error - Invalid config, bad file path, no files found, invalid format
     - 3: Runtime Error - Parsing failed, analysis crashed, unexpected errors
     """
-    # Effective settings: --ci preset with explicit args winning
-    effective_quiet = quiet or ci
-    effective_output_format = output_format if output_format is not None else ("json" if ci else "console")
-    effective_output_file = output_file if output_file is not None else (Path("arcane-auditor-results.json") if ci else None)
+    # --agent preset: quiet, json to stdout. Mutually exclusive with --ci and
+    # incompatible with non-json --format.
+    if agent and ci:
+        error("--agent and --ci are mutually exclusive")
+        raise typer.Exit(2)
+    if agent and output_format is not None and output_format.lower() != "json":
+        error("--agent requires --format json (or omit --format)")
+        raise typer.Exit(2)
+
+    # Effective settings: --agent / --ci presets with explicit args winning.
+    effective_quiet = quiet or ci or agent
+    if agent:
+        effective_output_format = "json"
+    elif output_format is not None:
+        effective_output_format = output_format
+    else:
+        effective_output_format = "json" if ci else "console"
+    # --agent goes to stdout; --ci writes a default file unless overridden.
+    if agent:
+        effective_output_file = output_file
+    else:
+        effective_output_file = output_file if output_file is not None else (Path("arcane-auditor-results.json") if ci else None)
     set_quiet(effective_quiet)
 
     # Start overall timing
