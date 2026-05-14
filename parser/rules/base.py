@@ -1,9 +1,34 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Generator, Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from ..models import ProjectContext, PMDModel, PodModel
 from lark import Tree
 import re
+
+
+class FixStrategy(str, Enum):
+    """How amenable a rule's violations are to automated fixing by an AI agent.
+
+    Values are str-enums so they serialize cleanly to JSON.
+    """
+    MECHANICAL = "mechanical"              # Pure textual rewrite, narrow blast radius
+    LOCALIZED = "localized"                # Narrow rewrite, no cascade
+    NAMING_REQUIRED = "naming_required"    # Agent must invent a meaningful identifier
+    CASCADING_RENAME = "cascading_rename"  # Touches multiple files / references
+    REFACTOR = "refactor"                  # Multi-step rewrite
+    DESIGN_DECISION = "design_decision"    # Requires human judgment
+
+
+class Category(str, Enum):
+    """Broad classification for grouping/filtering rules."""
+    SCRIPT = "script"
+    STRUCTURE = "structure"
+    ENDPOINT = "endpoint"
+    WIDGET = "widget"
+    ORCHESTRATION = "orchestration"
+    CUSTOM = "custom"
+
 
 @dataclass
 class Finding:
@@ -29,7 +54,14 @@ class Rule(ABC):
     ID: str = "RULE000"
     DESCRIPTION: str = "This is a base rule."
     SEVERITY: str = "ADVICE" # Can be 'ADVICE', 'ACTION'
-    
+
+    # Broad category for filtering/grouping. Default STRUCTURE; ScriptRuleBase overrides to SCRIPT.
+    CATEGORY: Category = Category.STRUCTURE
+
+    # How amenable this rule's violations are to AI-agent auto-fixing.
+    # Default DESIGN_DECISION (safest — agents should not auto-attempt).
+    FIX_STRATEGY: FixStrategy = FixStrategy.DESIGN_DECISION
+
     # Dictionary defining available custom settings.
     # If empty, the rule does not support custom configuration.
     AVAILABLE_SETTINGS: Dict[str, Any] = {}

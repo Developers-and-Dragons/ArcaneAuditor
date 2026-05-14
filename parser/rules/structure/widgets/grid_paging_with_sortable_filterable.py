@@ -8,7 +8,7 @@ This rule checks PMD and POD grid widgets.
 """
 from typing import Generator, Dict, Any
 
-from ...base import Finding
+from ...base import Finding, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -29,6 +29,7 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
     ID = "GridPagingWithSortableFilterableRule"
     DESCRIPTION = "Detects grids with paging and sortableAndFilterable columns which can cause performance issues"
     SEVERITY = "ACTION"
+    CATEGORY = Category.WIDGET
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -8,7 +8,7 @@ This rule checks both inbound and outbound endpoints.
 """
 from typing import Generator
 
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -26,6 +26,8 @@ class OnlyMaximumEffortRule(StructureRuleBase):
     ID = "OnlyMaximumEffortRule"
     DESCRIPTION = "Ensures endpoints do not use bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

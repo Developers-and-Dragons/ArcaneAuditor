@@ -1,5 +1,5 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
@@ -7,9 +7,11 @@ from ..shared import StructureRuleBase
 
 class EndpointFailOnStatusCodesRule(StructureRuleBase):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
-    
+
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -1,5 +1,5 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
@@ -8,10 +8,12 @@ from ..shared import StructureRuleBase
 
 class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     """Validates that endpoint names follow lowerCamelCase convention (style guide)."""
-    
+
     ID = "EndpointNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

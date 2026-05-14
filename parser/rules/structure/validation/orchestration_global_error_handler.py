@@ -1,7 +1,7 @@
 """Rule to require a global error handler for orchestrations (Sync, Async, BPT, Integration)."""
 
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_error_handler_utils import (
@@ -41,6 +41,8 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
     ID = "OrchestrationGlobalErrorHandlerRule"
     DESCRIPTION = "Ensures orchestrations have a global error handler with a log step (or Add Integration Message for Integration templates)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.REFACTOR
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

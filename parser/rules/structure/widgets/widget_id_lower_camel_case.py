@@ -1,5 +1,5 @@
 from typing import Generator, List
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
@@ -8,10 +8,12 @@ from ..shared import StructureRuleBase
 
 class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     """Validates that widget IDs follow lowerCamelCase convention (style guide)."""
-    
+
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.WIDGET
+    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

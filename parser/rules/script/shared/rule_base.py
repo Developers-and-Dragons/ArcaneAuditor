@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, Generator, List, Tuple
-from ...base import Rule, Finding
+from ...base import Rule, Finding, Category
 from ....models import PMDModel, PodModel, ScriptModel
 from .violation import Violation
 from .detector import ScriptDetector
@@ -10,7 +10,9 @@ from .detector import ScriptDetector
 
 class ScriptRuleBase(Rule, ABC):
     """Base class for script analysis rules with unified structure."""
-    
+
+    CATEGORY = Category.SCRIPT
+
     # Subclasses must define these
     DETECTOR: type[ScriptDetector]
     

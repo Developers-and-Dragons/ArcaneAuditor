@@ -1,7 +1,7 @@
 """Rule to require non-empty security domains for Sync and Async orchestrations."""
 
 from typing import Generator
-from ...base import Finding, Rule
+from ...base import Finding, Rule, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 
@@ -17,6 +17,7 @@ class OrchestrationSecurityDomainRule(StructureRuleBase):
     ID = "OrchestrationSecurityDomainRule"
     DESCRIPTION = "Ensures Synchronous and Asynchronous orchestrations have a security domain defined"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ORCHESTRATION
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

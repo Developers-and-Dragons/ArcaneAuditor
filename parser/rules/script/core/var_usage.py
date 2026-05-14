@@ -1,5 +1,6 @@
 """Script variable usage rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .var_usage_detector import VarUsageDetector
 
@@ -9,6 +10,7 @@ class ScriptVarUsageRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts use 'let' or 'const' instead of 'var' (best practice)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     DETECTOR = VarUsageDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

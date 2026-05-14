@@ -11,7 +11,7 @@ Example:
 import re
 from typing import Generator
 
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -30,6 +30,7 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     ID = "MultipleStringInterpolatorsRule"
     DESCRIPTION = "Detects multiple string interpolators in a single string which should use template literals instead"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -1,5 +1,6 @@
 """Script variable naming rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .variable_naming_detector import VariableNamingDetector
 
@@ -9,6 +10,7 @@ class ScriptVariableNamingRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures variables follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
     DETECTOR = VariableNamingDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

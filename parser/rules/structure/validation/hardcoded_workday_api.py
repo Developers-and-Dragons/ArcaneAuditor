@@ -4,7 +4,7 @@
 import re
 from typing import Generator, List, Dict, Any
 from parser.rules.structure.shared.rule_base import StructureRuleBase
-from parser.rules.base import Finding
+from parser.rules.base import Finding, FixStrategy
 from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
 
 
@@ -14,6 +14,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
     ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

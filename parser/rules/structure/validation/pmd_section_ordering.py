@@ -1,14 +1,15 @@
 from typing import Generator, List, Dict, Any
-from ...base import Rule, Finding
+from ...base import Rule, Finding, FixStrategy
 from ....models import ProjectContext, PMDModel
 import json
 
 
 class PMDSectionOrderingRule(Rule):
     """Validates that PMD file sections follow the configured ordering."""
-    
+
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {
         'section_order': {'type': 'list', 'default': ['id', 'securityDomains', 'include', 'script', 'endPoints', 'onSubmit', 'outboundData', 'onLoad', 'presentation'], 'description': 'Required order of PMD file root-level sections'}
     }

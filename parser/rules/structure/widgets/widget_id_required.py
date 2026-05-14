@@ -8,7 +8,7 @@ Note: Basic structural validation (missing required fields, etc.) is handled by 
 This tool focuses on structure and naming compliance for code reviewers.
 """
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ...common import PMDLineUtils
 from ..shared import StructureRuleBase
@@ -16,9 +16,11 @@ from ..shared import StructureRuleBase
 
 class WidgetIdRequiredRule(StructureRuleBase):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
-    
+
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.WIDGET
+    FIX_STRATEGY = FixStrategy.NAMING_REQUIRED
     AVAILABLE_SETTINGS = {
         'excluded_widget_types': {'type': 'list', 'default': [], 'description': 'Additional widget types to exclude from ID requirements'}
     }

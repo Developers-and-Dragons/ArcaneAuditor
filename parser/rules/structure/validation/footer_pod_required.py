@@ -1,5 +1,5 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
@@ -7,9 +7,10 @@ from ..shared import StructureRuleBase
 
 class FooterPodRequiredRule(StructureRuleBase):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
-    
+
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

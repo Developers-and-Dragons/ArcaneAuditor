@@ -1,7 +1,7 @@
 """Rule to limit Branch on Conditions nesting depth in orchestrations."""
 
 from typing import Any, Generator, List, Optional, Tuple
-from ...base import Finding
+from ...base import Finding, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 
@@ -91,6 +91,7 @@ class OrchestrationBranchOnConditionsNestingRule(StructureRuleBase):
     ID = "OrchestrationBranchOnConditionsNestingRule"
     DESCRIPTION = "Limits Branch on Conditions nesting to 3 levels for readability; deeper nesting suggests extracting to a suborchestration"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ORCHESTRATION
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

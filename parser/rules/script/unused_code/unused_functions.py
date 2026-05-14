@@ -2,7 +2,7 @@
 
 from typing import Generator, Set, List, Tuple
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from .unused_functions_detector import UnusedFunctionsDetector
 
 
@@ -11,6 +11,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures functions are not declared but never used"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = UnusedFunctionsDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

@@ -1,5 +1,6 @@
 """Script nested array search rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .nested_array_search_detector import NestedArraySearchDetector
 
@@ -9,6 +10,7 @@ class ScriptNestedArraySearchRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects nested array search patterns that cause severe performance issues"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.REFACTOR
     DETECTOR = NestedArraySearchDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

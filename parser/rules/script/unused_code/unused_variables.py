@@ -2,7 +2,7 @@
 
 from typing import Generator, Set
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel
 from .unused_variables_detector import UnusedVariableDetector
 
@@ -12,6 +12,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = UnusedVariableDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

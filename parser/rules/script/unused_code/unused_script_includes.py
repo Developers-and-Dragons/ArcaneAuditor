@@ -2,7 +2,7 @@
 
 from typing import Generator, Set, Any
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel
 from .unused_script_includes_detector import ScriptUnusedIncludesRuleDetector
 
@@ -12,6 +12,7 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = ScriptUnusedIncludesRuleDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

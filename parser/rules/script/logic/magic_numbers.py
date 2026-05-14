@@ -2,7 +2,7 @@
 
 from ...script.shared import ScriptRuleBase
 from .magic_number_detector import MagicNumberDetector
-from ...base import Finding
+from ...base import Finding, FixStrategy
 
 
 class ScriptMagicNumberRule(ScriptRuleBase):
@@ -10,6 +10,7 @@ class ScriptMagicNumberRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.NAMING_REQUIRED
     DETECTOR = MagicNumberDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

@@ -8,7 +8,7 @@ Note: Outbound endpoints are not checked as the performance impact is different.
 """
 from typing import Generator
 
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -27,6 +27,8 @@ class NoIsCollectionOnEndpointsRule(StructureRuleBase):
     ID = "NoIsCollectionOnEndpointsRule"
     DESCRIPTION = "Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

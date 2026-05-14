@@ -1,14 +1,15 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
 
 class StringBooleanRule(StructureRuleBase):
     """Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans."""
-    
+
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

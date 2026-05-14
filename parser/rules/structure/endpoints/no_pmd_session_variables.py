@@ -9,7 +9,7 @@ This rule only checks outbound endpoints (not inbound).
 """
 from typing import Generator
 
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -28,6 +28,8 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
     ID = "NoPMDSessionVariablesRule"
     DESCRIPTION = "Detects outboundVariable endpoints with variableScope: session which can cause performance degradation"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

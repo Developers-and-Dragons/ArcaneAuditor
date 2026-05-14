@@ -1,13 +1,15 @@
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
 
 class EndpointBaseUrlTypeRule(StructureRuleBase):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
-    
+
     DESCRIPTION = "Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -1,7 +1,7 @@
 """Rule to flag redundant boolean wrapper expressions in orchestrations (if (X) true else false / if (X) false else true)."""
 
 from typing import Any, Generator, Optional, Tuple, Union
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
@@ -98,6 +98,8 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
         "This appears in a condition on a given step where the return values for true and false are true and false respectively."
     )
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

@@ -9,7 +9,7 @@ A WID can be identified as a 32 character long string that is alphanumeric.
 """
 import re
 from typing import Generator, Any
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, ProjectContext, WQLQueryModel
 from ..shared import StructureRuleBase
 
@@ -27,6 +27,7 @@ class HardcodedWidRule(StructureRuleBase):
     ID = "HardcodedWidRule"
     DESCRIPTION = "Detects hardcoded WID values that should be configured in app attributes"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {
         'allow_wid_in_task_report_link_fields': {
             'type': 'bool',

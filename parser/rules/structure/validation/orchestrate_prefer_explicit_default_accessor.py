@@ -3,7 +3,7 @@
 import re
 from typing import Any, Generator, List, Tuple, Union
 
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_path_utils import (
@@ -42,6 +42,8 @@ class OrchestratePreferExplicitDefaultAccessor(StructureRuleBase):
     ID = "OrchestratePreferExplicitDefaultAccessor"
     DESCRIPTION = "Prefer default-capable functions over exception-throwing functions"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

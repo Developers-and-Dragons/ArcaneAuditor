@@ -1,5 +1,6 @@
 """Script array method usage rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .array_method_usage_detector import ArrayMethodUsageDetector
 
@@ -9,6 +10,7 @@ class ScriptArrayMethodUsageRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = ArrayMethodUsageDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

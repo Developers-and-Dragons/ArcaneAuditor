@@ -1,7 +1,7 @@
 """Rule to require a local error handler on every API step in orchestrations."""
 
 from typing import Generator, List, Any
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_error_handler_utils import (
@@ -104,6 +104,8 @@ class OrchestrationApiStepErrorHandlerRule(StructureRuleBase):
     ID = "OrchestrationApiStepErrorHandlerRule"
     DESCRIPTION = "Ensures every API step has a local error handler with a log step (or Add Integration Message for Integration templates)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.REFACTOR
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

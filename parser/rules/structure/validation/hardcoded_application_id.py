@@ -14,7 +14,7 @@ Only the dataProviders[*].value fields are checked for hardcoded applicationId.
 import re
 from typing import Generator, List, Dict, Any, Optional
 
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, AMDModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -34,6 +34,7 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     ID = "HardcodedApplicationIdRule"
     DESCRIPTION = "Detects hardcoded applicationId values that should be replaced with site.applicationId"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.MECHANICAL
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

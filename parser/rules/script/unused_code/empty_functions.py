@@ -1,5 +1,6 @@
 """Script empty function rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .empty_function_detector import EmptyFunctionDetector
 
@@ -9,6 +10,7 @@ class ScriptEmptyFunctionRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures functions have actual implementation (not empty bodies)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = EmptyFunctionDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

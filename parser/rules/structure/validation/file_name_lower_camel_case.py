@@ -8,7 +8,7 @@ import re
 import os
 from typing import Generator
 
-from ...base import Finding, Rule
+from ...base import Finding, Rule, FixStrategy
 from ....models import ProjectContext
 from utils.file_path_utils import strip_uuid_prefix
 
@@ -16,21 +16,22 @@ from utils.file_path_utils import strip_uuid_prefix
 class FileNameLowerCamelCaseRule(Rule):
     """
     Validates that all file names follow lowerCamelCase naming convention.
-    
+
     This rule checks:
     - PMD files
     - POD files
     - Script files
     - AMD file
     - SMD file
-    
+
     Valid pattern: starts with lowercase letter, followed by letters/numbers
     Examples: myPage.pmd, helperFunctions.script, myApp_abcdef.amd, myApp_abcdef.smd
     """
-    
+
     ID = "FileNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures all file names follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -1,7 +1,7 @@
 """Script dead code rule using unified architecture."""
 
 from typing import Generator, Dict, Any
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ...script.shared import ScriptRuleBase
 from .script_dead_code_detector import ScriptDeadCodeDetector
 
@@ -11,6 +11,7 @@ class ScriptDeadCodeRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects and removes dead code from standalone script files"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.LOCALIZED
     DETECTOR = ScriptDeadCodeDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
