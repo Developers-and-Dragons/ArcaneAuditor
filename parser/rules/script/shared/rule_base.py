@@ -65,7 +65,8 @@ class ScriptRuleBase(Rule, ABC):
                         f"wqlquery.{field}",
                         wql_model.file_path,
                         1,
-                        context
+                        context,
+                        path=field,
                     )
                 except Exception as e:
                     from utils.console import warn
@@ -99,11 +100,11 @@ class ScriptRuleBase(Rule, ABC):
         """Analyze script fields from a model."""
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and field_value.strip():
-                check_result = self._check(field_value, field_name, model.file_path, line_offset, context)
+                check_result = self._check(field_value, field_name, model.file_path, line_offset, context, path=field_path)
                 if check_result is not None:
                     yield from check_result
-    
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None) -> Generator[Finding, None, None]:
         """Check script content using the detector."""
         # Strip <% %> tags from script content if present
         clean_script_content = self._strip_script_tags(script_content)
@@ -126,13 +127,17 @@ class ScriptRuleBase(Rule, ABC):
         # Convert violations to findings
         # Handle both List[Violation] and Generator[Violation, None, None]
         if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
+            from utils.jsonpath import dotted_to_jsonpath
             for violation in violations:
+                # Violation-level path overrides the field-level path when supplied.
+                dotted = violation.path if violation.path else path
                 yield Finding(
                     rule=self,
                     message=violation.message,
                     line=violation.line,
                     file_path=file_path,
                     suggested_replacement=violation.suggested_replacement,
+                    path=dotted_to_jsonpath(dotted),
                 )
     
     def _extract_variable_from_empty_expression(self, node) -> str:

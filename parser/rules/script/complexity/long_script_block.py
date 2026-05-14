@@ -113,7 +113,7 @@ const formatWorkerData = function(data) {
         # by ScriptLongFunctionRule, not ScriptLongBlockRule
         yield from []
     
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None):
         """Override to pass custom settings to detector."""
         # Strip <% %> tags from script content if present
         clean_script_content = self._strip_script_tags(script_content)
@@ -130,11 +130,14 @@ const formatWorkerData = function(data) {
         
         # Convert violations to findings
         if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
+            from utils.jsonpath import dotted_to_jsonpath
+            jsonpath = dotted_to_jsonpath(path)
             for violation in violations:
                 if violation is not None:
                     yield Finding(
                         rule=self,
                         message=violation.message,
                         line=violation.line,
-                        file_path=file_path
+                        file_path=file_path,
+                        path=jsonpath,
                     )

@@ -188,7 +188,8 @@ Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`
             yield self._create_finding(
                 message=f"Widget of type '{widget_type}'{path_description} is missing required 'id' field.",
                 file_path=file_path,
-                line=line_number
+                line=line_number,
+                path=widget_path or None,
             )
 
     def _is_in_id_exempt_container(self, widget_path: str, container_name: str = None) -> bool:

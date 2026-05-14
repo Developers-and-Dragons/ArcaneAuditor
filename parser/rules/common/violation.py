@@ -11,6 +11,7 @@ class Violation:
     line: int
     metadata: Optional[Dict[str, Any]] = None
     suggested_replacement: Optional[str] = None
+    path: Optional[str] = None
     
     def __post_init__(self):
         """Ensure metadata is always a dict."""

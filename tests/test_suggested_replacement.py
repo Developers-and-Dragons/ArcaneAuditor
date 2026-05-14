@@ -1,4 +1,4 @@
-"""Step 5 contract: mechanical rules populate `suggested_replacement` on Finding.
+"""Mechanical rules populate `suggested_replacement` on Finding.
 
 Three rules opt in initially — the unambiguous cases. Other mechanical rules
 will be wired up incrementally; their Findings stay `None` for now.

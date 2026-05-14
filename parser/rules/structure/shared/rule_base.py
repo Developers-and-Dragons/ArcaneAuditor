@@ -87,14 +87,22 @@ class StructureRuleBase(Rule, ABC):
         yield from ()
     
     def _create_finding(self, message: str, file_path: str, line: int = 1,
-                        suggested_replacement: Optional[str] = None) -> Finding:
-        """Create a finding with consistent formatting."""
+                        suggested_replacement: Optional[str] = None,
+                        path: Optional[str] = None) -> Finding:
+        """Create a finding with consistent formatting.
+
+        ``path`` may be an internal dotted form (``body.children.0.id``); it is
+        converted to JSONPath (``$.body.children[0].id``) here so rule code
+        keeps its existing path conventions.
+        """
+        from utils.jsonpath import dotted_to_jsonpath
         return Finding(
             rule=self,
             message=message,
             line=line,
             file_path=file_path,
             suggested_replacement=suggested_replacement,
+            path=dotted_to_jsonpath(path),
         )
     
     # Unified line calculation methods
