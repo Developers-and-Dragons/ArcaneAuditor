@@ -1,5 +1,6 @@
 import typer
 from typing import Optional
+import json
 import time
 from pathlib import Path
 from file_processing import FileProcessor
@@ -355,21 +356,62 @@ def generate_config(
     typer.echo("You can now edit this file to enable/disable rules and customize settings.")
 
 
+def _rule_to_dict(rule, config) -> dict:
+    """Serialize a Rule instance for machine-readable introspection commands."""
+    rule_name = rule.__class__.__name__
+    category = getattr(rule, "CATEGORY", None)
+    fix_strategy = getattr(rule, "FIX_STRATEGY", None)
+    return {
+        "rule_id": rule_name,
+        "category": category.value if hasattr(category, "value") else str(category),
+        "severity": config.get_rule_severity(rule_name, rule.SEVERITY),
+        "fix_strategy": fix_strategy.value if hasattr(fix_strategy, "value") else str(fix_strategy),
+        "description": getattr(rule, "DESCRIPTION", ""),
+        "enabled": config.is_rule_enabled(rule_name),
+        "available_settings": dict(getattr(rule, "AVAILABLE_SETTINGS", {}) or {}),
+    }
+
+
 @app.command()
-def list_rules():
+def list_rules(
+    output_format: Optional[str] = typer.Option(
+        None, "--format", "-f",
+        help="Output format: text (default, human-readable) or json (sorted by rule_id, machine-readable).",
+    ),
+):
     """
     List all available rules and their current status.
     """
     config = ArcaneAuditorConfig()
+
+    # Quiet mode for JSON: suppress rule-discovery info() chatter that would pollute stdout.
+    if output_format and output_format.lower() == "json":
+        set_quiet(True)
+
+    rules_engine = RulesEngine(config)
+    discovered_rules = rules_engine.rules
+
+    if output_format is not None:
+        fmt = output_format.lower()
+        if fmt == "json":
+            payload = [
+                _rule_to_dict(r, config)
+                for r in sorted(discovered_rules, key=lambda r: r.__class__.__name__)
+            ]
+            for entry in payload:
+                entry["available_settings"] = {
+                    k: (v.value if hasattr(v, "value") else v)
+                    for k, v in entry["available_settings"].items()
+                }
+            typer.echo(json.dumps(payload, indent=2))
+            return
+        elif fmt != "text":
+            error(f"Invalid format: {output_format}. Valid: text, json")
+            raise typer.Exit(2)
+
     typer.echo("Available rules:")
     typer.echo("=" * 80)
-    
-    # Use the rules engine to discover all available rules dynamically
-    rules_engine = RulesEngine(config)
-    
-    # Get all discovered rules
-    discovered_rules = rules_engine.rules
-    
+
     if not discovered_rules:
         typer.echo("No rules discovered.")
         return
@@ -431,6 +473,25 @@ def list_rules():
             typer.echo()
     
     typer.echo(f"Total: {len(discovered_rules)} rules discovered")
+
+
+@app.command()
+def describe_rule(
+    rule_id: str = typer.Argument(..., help="Rule class name, e.g. ScriptVarUsageRule."),
+):
+    """Print full machine-readable metadata for a single rule (JSON)."""
+    set_quiet(True)
+    config = ArcaneAuditorConfig()
+    rules_engine = RulesEngine(config)
+    rule = next((r for r in rules_engine.rules if r.__class__.__name__ == rule_id), None)
+    if rule is None:
+        error(f"Unknown rule: {rule_id}")
+        raise typer.Exit(2)
+    payload = _rule_to_dict(rule, config)
+    documentation = getattr(rule, "DOCUMENTATION", {}) or {}
+    for key in ("why", "catches", "examples", "recommendation"):
+        payload[key] = documentation.get(key, "" if key != "catches" else [])
+    typer.echo(json.dumps(payload, indent=2))
 
 
 @app.command()
