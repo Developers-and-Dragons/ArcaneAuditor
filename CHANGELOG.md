@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0] - 2026-05-13
+
+**Breaking schema change.** The JSON output format is now v2, with nested `location` and several new per-finding fields. Tools consuming the v1 JSON shape will need to update.
+
+### Added
+
+- **`--agent` CLI preset** — Single flag for AI agents: implies quiet, JSON to stdout, no default output file. Mutually exclusive with `--ci`; rejects non-JSON `--format`.
+- **v2 JSON schema** — Top-level `schema_version: "2.0"`. Each finding now carries `category`, `fix_strategy`, `snippet`, `suggested_replacement`, `finding_id`, and a nested `location` object (`file_path`, `line`, `column`, `end_line`, `end_column`, `path`).
+- **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD), stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
+- **`suggested_replacement`** — Drop-in textual token for mechanical fixes. Currently wired on `ScriptVarUsageRule` (`let`), `HardcodedApplicationIdRule` (`site.applicationId`), `StringBooleanRule` (the unquoted boolean literal).
+- **`finding_id`** — Stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix still join on the same identifier.
+- **`fix_strategy` rule metadata** — Every concrete rule declares one of: `mechanical`, `localized`, `naming_required`, `cascading_rename`, `refactor`, `design_decision`. Drives agent auto-fix decisions.
+- **`category` rule metadata** — Broad classification for filtering: `script`, `structure`, `endpoint`, `widget`, `orchestration`, `custom`.
+- **`list-rules --format json`** — Machine-readable rule catalog. Default text format unchanged.
+- **`describe-rule <RuleId>`** — Full machine-readable metadata for one rule, including the four `DOCUMENTATION` keys (`why`, `catches`, `examples`, `recommendation`).
+- **Filter flags on `review-app`** — `--rules R1,R2`, `--exclude-rules R3`, `--severity ACTION|ADVICE`, `--fix-strategy mechanical,localized,...`, `--files <glob>`. Rule filters narrow the rules list before running; severity/fix-strategy filter findings post-run; `--files` filters input before parsing. Unknown values exit with code 2.
+- **`SKILL.md`** — Agent-facing usage doc at the repo root. Cross-vendor convention (Claude Code, Codex, Cursor).
+- **`agent-help` command** — Prints `SKILL.md` so frozen-binary distributions can install the skill via `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`. Install hint shown only on TTY, never piped into the file.
+- **Deterministic finding order** — All output is sorted by `(file_path, line, rule_id, message)` for reproducible runs.
+
+### Changed
+
+- **JSON output schema (BREAKING)** — `file_path` and `line` are no longer top-level on each finding; they're nested inside `location`. Top-level adds `schema_version`. Update consumers accordingly.
+
+---
+
 ## [v1.6.0] - 2026-04-14
 
 ### Added
