@@ -18,6 +18,7 @@ a = Analysis(
     pathex=[os.path.abspath(".")],
     binaries=[],
     datas=[
+    ("SKILL.md", "."),
     ("config/rules/presets", "config/rules/presets"),
     ("parser/rules/script", "parser/rules/script"),
     ("parser/rules/structure", "parser/rules/structure"),

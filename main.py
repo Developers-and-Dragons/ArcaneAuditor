@@ -530,6 +530,33 @@ def list_rules(
 
 
 @app.command()
+def agent_help():
+    """Print SKILL.md — agent-facing usage docs. Pipe to your agent's skills directory to install (e.g. `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`)."""
+    set_quiet(True)
+    # importlib.resources keeps this working inside a PyInstaller bundle, where
+    # __file__ doesn't reliably point at on-disk SKILL.md.
+    try:
+        from importlib.resources import files
+        text = (files("arcane_auditor_resources") / "SKILL.md").read_text(encoding="utf-8")
+    except (ModuleNotFoundError, FileNotFoundError):
+        # Dev / source-tree fallback: read directly from repo root.
+        skill_path = Path(__file__).resolve().parent / "SKILL.md"
+        text = skill_path.read_text(encoding="utf-8")
+    typer.echo(text)
+    # Only show the install hint when humans are watching — piping to a file
+    # must produce a clean SKILL.md without self-referential install
+    # instructions baked into the installed copy.
+    import sys
+    if sys.stdout.isatty():
+        typer.echo(
+            "\n---\n"
+            "To install as an agent skill, pipe this output to your harness's skills folder, e.g.:\n"
+            "  mkdir -p ~/.claude/skills/arcane-auditor\n"
+            "  arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md"
+        )
+
+
+@app.command()
 def describe_rule(
     rule_id: str = typer.Argument(..., help="Rule class name, e.g. ScriptVarUsageRule."),
 ):
