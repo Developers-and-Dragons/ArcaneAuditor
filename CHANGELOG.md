@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD), stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
 - **`suggested_replacement`** — Drop-in textual token for mechanical fixes. Currently wired on `ScriptVarUsageRule` (`let`), `HardcodedApplicationIdRule` (`site.applicationId`), `StringBooleanRule` (the unquoted boolean literal).
 - **`finding_id`** — Stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix still join on the same identifier.
-- **`fix_strategy` rule metadata** — Every concrete rule declares one of: `mechanical`, `localized`, `naming_required`, `cascading_rename`, `refactor`, `design_decision`. Drives agent auto-fix decisions.
+- **`fix_strategy` rule metadata** — Every concrete rule declares one of: `mechanical`, `localized`, `naming_required`, `cascading_rename`, `design_decision`. Drives agent auto-fix decisions.
 - **`category` rule metadata** — Broad classification for filtering: `script`, `structure`, `endpoint`, `widget`, `orchestration`, `custom`.
 - **`list-rules --format json`** — Machine-readable rule catalog. Default text format unchanged.
 - **`describe-rule <RuleId>`** — Full machine-readable metadata for one rule, including the four `DOCUMENTATION` keys (`why`, `catches`, `examples`, `recommendation`).

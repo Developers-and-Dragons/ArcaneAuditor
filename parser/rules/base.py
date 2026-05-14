@@ -16,8 +16,7 @@ class FixStrategy(str, Enum):
     LOCALIZED = "localized"                # Narrow rewrite, no cascade
     NAMING_REQUIRED = "naming_required"    # Agent must invent a meaningful identifier
     CASCADING_RENAME = "cascading_rename"  # Touches multiple files / references
-    REFACTOR = "refactor"                  # Multi-step rewrite
-    DESIGN_DECISION = "design_decision"    # Requires human judgment
+    DESIGN_DECISION = "design_decision"    # Requires human judgment (incl. multi-step rewrites)
 
 
 class Category(str, Enum):

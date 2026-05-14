@@ -10,7 +10,7 @@ class ScriptFunctionReturnConsistencyRule(ScriptRuleBase):
 
     DESCRIPTION = "Functions should have consistent return patterns - either all code paths return a value or none do"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.REFACTOR
+    FIX_STRATEGY = FixStrategy.DESIGN_DECISION
     DETECTOR = ReturnConsistencyDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

@@ -42,7 +42,7 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
     DESCRIPTION = "Ensures orchestrations have a global error handler with a log step (or Add Integration Message for Integration templates)"
     SEVERITY = "ACTION"
     CATEGORY = Category.ORCHESTRATION
-    FIX_STRATEGY = FixStrategy.REFACTOR
+    FIX_STRATEGY = FixStrategy.DESIGN_DECISION
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

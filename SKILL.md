@@ -72,8 +72,7 @@ arcane-auditor review-app <path> --agent --fix-strategy mechanical
 | `localized` | Narrow rewrite, no cascade | Safe to auto-apply with verification |
 | `naming_required` | Agent must invent a meaningful identifier | Attempt; flag for human review |
 | `cascading_rename` | Touches multiple files / references | Attempt with caution; verify references |
-| `refactor` | Multi-step rewrite | Attempt; require human approval |
-| `design_decision` | Requires human judgment | Surface as comment; do not auto-fix |
+| `design_decision` | Requires human judgment (incl. multi-step rewrites) | Surface as comment; do not auto-fix |
 
 ## Loop strategy
 
