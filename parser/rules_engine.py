@@ -98,7 +98,15 @@ class RulesEngine:
             if configured_severity != original_severity:
                 rule.SEVERITY = configured_severity
                 info(f"[CONFIG] Override severity for {rule.__class__.__name__}: {original_severity} -> {configured_severity}")
-        
+
+        # Override fix_strategy if configured
+        if hasattr(rule, 'FIX_STRATEGY'):
+            original_strategy = rule.FIX_STRATEGY
+            configured_strategy = self.config.get_rule_fix_strategy(rule.__class__.__name__, original_strategy)
+            if configured_strategy != original_strategy:
+                rule.FIX_STRATEGY = configured_strategy
+                info(f"[CONFIG] Override fix_strategy for {rule.__class__.__name__}: {original_strategy.value} -> {configured_strategy.value}")
+
         # Apply custom settings if the rule supports it
         custom_settings = self.config.get_rule_settings(rule.__class__.__name__)
         if custom_settings and hasattr(rule, 'apply_settings'):

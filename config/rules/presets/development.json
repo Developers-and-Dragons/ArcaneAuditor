@@ -3,16 +3,19 @@
     "ScriptComplexityRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "ScriptFunctionParameterCountRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "ScriptLongFunctionRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {
         "skip_comments": false,
         "skip_blank_lines": false
@@ -21,6 +24,7 @@
     "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {
         "max_lines": 30,
         "skip_comments": false,
@@ -30,6 +34,7 @@
     "ScriptNestingLevelRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {
         "max_nesting_level": 4
       }
@@ -37,61 +42,73 @@
     "ScriptConsoleLogRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "ScriptVarUsageRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "ScriptDeadCodeRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "ScriptVariableNamingRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "ScriptFunctionParameterNamingRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "ScriptArrayMethodUsageRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "ScriptNestedArraySearchRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "refactor",
       "custom_settings": {}
     },
     "ScriptMagicNumberRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "naming_required",
       "custom_settings": {}
     },
     "ScriptFunctionReturnConsistencyRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "refactor",
       "custom_settings": {}
     },
     "ScriptStringConcatRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "ScriptVerboseBooleanCheckRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "ScriptDescriptiveParameterRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "naming_required",
       "custom_settings": {
         "allowed_single_letters": []
       }
@@ -99,51 +116,61 @@
     "ScriptEmptyFunctionRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "ScriptUnusedFunctionRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "ScriptUnusedFunctionParametersRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "ScriptUnusedVariableRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "ScriptUnusedIncludesRule": {
       "enabled": false,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "EndpointNameLowerCamelCaseRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "ScriptOnSendSelfDataRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "EndpointBaseUrlTypeRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "naming_required",
       "custom_settings": {
         "excluded_widget_types": []
       }
@@ -151,43 +178,61 @@
     "WidgetIdLowerCamelCaseRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "FooterPodRequiredRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "StringBooleanRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "PMDSectionOrderingRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {
-        "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
+        "section_order": [
+          "id",
+          "securityDomains",
+          "include",
+          "script",
+          "endPoints",
+          "onSubmit",
+          "outboundData",
+          "onLoad",
+          "presentation"
+        ]
       }
     },
     "HardcodedApplicationIdRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "HardcodedWidRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "EmbeddedImagesRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "PMDSecurityDomainRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {
         "strict": false
       }
@@ -195,66 +240,79 @@
     "HardcodedWorkdayAPIRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "FileNameLowerCamelCaseRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "cascading_rename",
       "custom_settings": {}
     },
     "NoIsCollectionOnEndpointsRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "OnlyMaximumEffortRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "NoPMDSessionVariablesRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "MultipleStringInterpolatorsRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "localized",
       "custom_settings": {}
     },
     "GridPagingWithSortableFilterableRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestrationSecurityDomainRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestrationGlobalErrorHandlerRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "refactor",
       "custom_settings": {}
     },
     "OrchestrationApiStepErrorHandlerRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "refactor",
       "custom_settings": {}
     },
     "OrchestrationBranchOnConditionsNestingRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestrationVerboseBooleanCheckRule": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     },
     "OrchestratePreferExplicitDefaultAccessor": {
       "enabled": true,
       "severity_override": null,
+      "fix_strategy_override": "mechanical",
       "custom_settings": {}
     }
   }

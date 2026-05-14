@@ -38,10 +38,10 @@ def test_get_cached_health_respects_caching(monkeypatch):
         call_count["value"] += 1
         return {
             "update_available": False,
-            "latest_version": "2.0.0",
+            "latest_version": "99.0.0",
             "current_version": __version__,
             "error": None,
-            "release_url": f"{RELEASES_BASE}/tag/v2.0.0",
+            "release_url": f"{RELEASES_BASE}/tag/v99.0.0",
         }
 
     monkeypatch.setattr("utils.update_checker.check_for_updates", fake_check)
@@ -53,18 +53,18 @@ def test_get_cached_health_respects_caching(monkeypatch):
 
     payload1 = get_cached_health(force=True)
     assert call_count["value"] == 1
-    assert payload1["update_info"]["latest_version"] == "2.0.0"
+    assert payload1["update_info"]["latest_version"] == "99.0.0"
     assert payload1["update_info"]["update_available"] is True
-    assert payload1["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v2.0.0"
+    assert payload1["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v99.0.0"
 
     monkeypatch.setattr(time, "time", lambda: 1001.0)
     payload2 = get_cached_health()
 
     assert call_count["value"] == 1
-    assert payload2["update_info"]["latest_version"] == "2.0.0"
-    assert payload2["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v2.0.0"
+    assert payload2["update_info"]["latest_version"] == "99.0.0"
+    assert payload2["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v99.0.0"
 
-    monkeypatch.setattr(updater_module, "__version__", "2.0.0")
+    monkeypatch.setattr(updater_module, "__version__", "99.0.0")
     payload3 = get_cached_health()
     assert payload3["update_info"]["update_available"] is False
 
