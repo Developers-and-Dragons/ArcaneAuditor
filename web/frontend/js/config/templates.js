@@ -116,9 +116,38 @@ export const Templates = {
                 <div class="rule-list-header-controls">
                     <div class="rule-list-header-col rule-list-header-configure">Settings</div>
                     <div class="rule-list-header-col rule-list-header-severity">Severity</div>
-                    <div class="rule-list-header-col rule-list-header-fix-strategy">Agent Fix Strategy</div>
+                    <div class="rule-list-header-col rule-list-header-fix-strategy">
+                        Agent Fix Strategy
+                        <button type="button" class="fix-strategy-help-btn" data-action="toggle-fix-strategy-help" title="What do these values mean?" aria-label="What do these values mean?">ⓘ</button>
+                    </div>
                     <div class="rule-list-header-col rule-list-header-toggle">Enabled</div>
                 </div>
+            </div>
+            ${this.fixStrategyHelp()}
+        `;
+    },
+
+    /**
+     * Inline help card for the Agent Fix Strategy column. Visible by default,
+     * dismissible (state persisted), reopenable via the ⓘ button on the header.
+     */
+    fixStrategyHelp() {
+        // Always closed on render; in-memory toggle only.
+        return `
+            <div class="fix-strategy-help" data-fix-strategy-help hidden>
+                <button type="button" class="fix-strategy-help-close" data-action="dismiss-fix-strategy-help" title="Close" aria-label="Close">✖</button>
+                <div class="fix-strategy-help-title">
+                    <strong>Note:</strong> Arcane Auditor does <strong>not</strong> change your code. This setting is metadata: if you point an AI agent at Arcane Auditor's output, the agent reads each finding's fix strategy to decide how (or whether) to apply a fix.
+                    <br><br>
+                    <strong>Agent Fix Strategy</strong> — how amenable a rule's findings are to automated fixing by an AI agent. Set per rule; agents read this to decide which findings are safe to auto-apply.
+                </div>
+                <ul class="fix-strategy-help-list">
+                    <li class="rule-fix-strategy-mechanical"><span class="fix-strategy-chip">mechanical</span> Pure textual rewrite, narrow blast radius. Safe to auto-apply.</li>
+                    <li class="rule-fix-strategy-localized"><span class="fix-strategy-chip">localized</span> Narrow rewrite, no cascade. Safe to auto-apply with verification.</li>
+                    <li class="rule-fix-strategy-naming_required"><span class="fix-strategy-chip">naming_required</span> Agent must invent a meaningful identifier. Attempt; flag for human review.</li>
+                    <li class="rule-fix-strategy-cascading_rename"><span class="fix-strategy-chip">cascading_rename</span> Touches multiple files / references. Attempt with caution; verify references.</li>
+                    <li class="rule-fix-strategy-design_decision"><span class="fix-strategy-chip">design_decision</span> Requires human judgment (incl. multi-step rewrites). Surface as comment; do not auto-fix.</li>
+                </ul>
             </div>
         `;
     },

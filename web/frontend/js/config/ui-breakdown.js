@@ -436,6 +436,24 @@ export class ConfigBreakdownUI {
                     this.grimoire.showGrimoire(ruleName, this.currentConfig);
                 }
             });
+
+            // Agent Fix Strategy help: in-memory toggle only. Always closed on each
+            // page load — users who want to look can open it; we don't persist the
+            // preference because the panel is unlikely to be wanted open by default.
+            content.addEventListener('click', (e) => {
+                const action = e.target.closest('[data-action]')?.dataset.action;
+                if (!action) return;
+                const helpPanel = content.querySelector('[data-fix-strategy-help]');
+                if (!helpPanel) return;
+                if (action === 'toggle-fix-strategy-help') {
+                    e.stopPropagation();
+                    if (helpPanel.hasAttribute('hidden')) helpPanel.removeAttribute('hidden');
+                    else helpPanel.setAttribute('hidden', '');
+                } else if (action === 'dismiss-fix-strategy-help') {
+                    e.stopPropagation();
+                    helpPanel.setAttribute('hidden', '');
+                }
+            });
         }
     }
     
