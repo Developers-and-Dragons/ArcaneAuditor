@@ -37,12 +37,21 @@ class Finding:
     message: str
     line: int = 0
     file_path: str = ""
-    
+    snippet: Optional[str] = None
+    suggested_replacement: Optional[str] = None
+    path: Optional[str] = None
+
     def __post_init__(self):
         # Set derived fields automatically
         self.rule_id = self.rule.__class__.__name__
         self.rule_description = self.rule.DESCRIPTION
         self.severity = self.rule.SEVERITY
+        self.category = self.rule.CATEGORY
+        self.fix_strategy = self.rule.FIX_STRATEGY
+        # Line intentionally excluded so re-runs after a fix still join.
+        import hashlib
+        raw = f"{self.rule_id}|{self.file_path}|{self.path or ''}|{self.message}"
+        self.finding_id = "sha1:" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
     def __repr__(self) -> str:
         return f"[{self.rule_id}:{self.line}] ({self.severity}) in '{self.file_path}': {self.message}"
