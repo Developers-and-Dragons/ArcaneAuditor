@@ -151,7 +151,10 @@ class RulesEngine:
                             all_findings.extend(findings_from_rule)
                     except Exception as e:
                         error(f"Error running rule {rule.__class__.__name__}: {e}")
-        
+
+        # Deterministic ordering: Sort by (file_path, line, rule_id, message) so two identical
+        # runs produce byte-identical output regardless of serial/parallel execution.
+        all_findings.sort(key=lambda f: (f.file_path, f.line, f.rule_id, f.message))
         return all_findings
     
     def _run_rule_safe(self, rule: Rule, context: ProjectContext) -> List[Finding]:
