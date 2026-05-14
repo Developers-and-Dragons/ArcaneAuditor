@@ -105,14 +105,34 @@ export const Templates = {
     },
 
     /**
+     * Column-header strip rendered above the list of rule rows. Skipped for
+     * built-in (read-only) configs where the per-row controls aren't shown.
+     */
+    ruleListHeader(isBuiltIn) {
+        if (isBuiltIn) return '';
+        return `
+            <div class="rule-list-header" aria-hidden="false">
+                <div class="rule-list-header-name">Rule</div>
+                <div class="rule-list-header-controls">
+                    <div class="rule-list-header-col rule-list-header-configure">Settings</div>
+                    <div class="rule-list-header-col rule-list-header-severity">Severity</div>
+                    <div class="rule-list-header-col rule-list-header-fix-strategy">Agent Fix Strategy</div>
+                    <div class="rule-list-header-col rule-list-header-toggle">Enabled</div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
      * Generates HTML for a single Rule Row
      */
     ruleRow({ ruleName, ruleConfig, isBuiltIn, supportsConfig }) {
         const isEnabled = ruleConfig.enabled;
-        // Use helper logic passed in or calculated here. 
+        // Use helper logic passed in or calculated here.
         // For simplicity, we assume severity override logic is handled before passing data or simple check here
-        const severity = ruleConfig.severity_override || 'ADVICE'; 
-        
+        const severity = ruleConfig.severity_override || 'ADVICE';
+        const fixStrategy = ruleConfig.fix_strategy_override || 'design_decision';
+
         const customSettings = ruleConfig.custom_settings || {};
         const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
         const isGhost = ruleConfig._is_ghost === true;
@@ -144,6 +164,13 @@ export const Templates = {
                             <select class="rule-severity-select rule-severity-${severity.toLowerCase()}" data-rule="${ruleName}" data-severity="${severity}">
                                 <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
                                 <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
+                            </select>
+                            <select class="rule-fix-strategy-select rule-fix-strategy-${fixStrategy}" data-rule="${ruleName}" data-fix-strategy="${fixStrategy}" title="Fix strategy: how amenable this rule's findings are to automated fixing by an AI agent">
+                                <option value="mechanical" ${fixStrategy === 'mechanical' ? 'selected' : ''}>mechanical</option>
+                                <option value="localized" ${fixStrategy === 'localized' ? 'selected' : ''}>localized</option>
+                                <option value="naming_required" ${fixStrategy === 'naming_required' ? 'selected' : ''}>naming_required</option>
+                                <option value="cascading_rename" ${fixStrategy === 'cascading_rename' ? 'selected' : ''}>cascading_rename</option>
+                                <option value="design_decision" ${fixStrategy === 'design_decision' ? 'selected' : ''}>design_decision</option>
                             </select>
                         ` : ''}
                         ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}

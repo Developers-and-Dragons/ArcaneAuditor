@@ -147,18 +147,31 @@ def get_rule_default_severities():
     """Get default severities for all rules by loading them from rule classes."""
     from parser.rules_engine import RulesEngine
     from parser.config import ArcaneAuditorConfig
-    
+
     # Create a default config to discover all rules
     config = ArcaneAuditorConfig()
     engine = RulesEngine(config)
-    
+
     # Build a map of rule name -> default severity
     severities = {}
     for rule in engine.rules:
         rule_name = rule.__class__.__name__
         severities[rule_name] = rule.SEVERITY
-    
+
     return severities
+
+
+def get_rule_default_fix_strategies():
+    """Get default fix_strategy values for all rules by loading them from rule classes."""
+    from parser.rules_engine import RulesEngine
+    from parser.config import ArcaneAuditorConfig
+
+    config = ArcaneAuditorConfig()
+    engine = RulesEngine(config)
+    return {
+        rule.__class__.__name__: rule.FIX_STRATEGY.value
+        for rule in engine.rules
+    }
 
 
 @router.get("/api/configs")
@@ -169,25 +182,27 @@ async def get_available_configs(response: Response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     
-    # Get default severities from rule classes
+    # Get default severities and fix_strategy values from rule classes
     default_severities = get_rule_default_severities()
-    
+    default_fix_strategies = get_rule_default_fix_strategies()
+
     config_info = get_dynamic_config_info()
     available_configs = []
-    
+
     for config_name, info in config_info.items():
         config_data = info.copy()
         config_data["id"] = config_name
-        
-        # Resolve null severity_override values to actual rule defaults
+
+        # Resolve null overrides to actual rule defaults so the UI can render
+        # the effective value without round-tripping through the rules engine.
         if "rules" in config_data:
             for rule_name, rule_config in config_data["rules"].items():
                 if isinstance(rule_config, dict):
-                    # If severity_override is null, resolve to rule's default
-                    if rule_config.get("severity_override") is None:
-                        if rule_name in default_severities:
-                            rule_config["severity_override"] = default_severities[rule_name]
-        
+                    if rule_config.get("severity_override") is None and rule_name in default_severities:
+                        rule_config["severity_override"] = default_severities[rule_name]
+                    if rule_config.get("fix_strategy_override") is None and rule_name in default_fix_strategies:
+                        rule_config["fix_strategy_override"] = default_fix_strategies[rule_name]
+
         available_configs.append(config_data)
     
     return {"configs": available_configs}

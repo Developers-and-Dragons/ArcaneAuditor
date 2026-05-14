@@ -78,7 +78,7 @@
     "ScriptNestedArraySearchRule": {
       "enabled": true,
       "severity_override": null,
-      "fix_strategy_override": "refactor",
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "ScriptMagicNumberRule": {
@@ -90,7 +90,7 @@
     "ScriptFunctionReturnConsistencyRule": {
       "enabled": true,
       "severity_override": null,
-      "fix_strategy_override": "refactor",
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "ScriptStringConcatRule": {
@@ -288,13 +288,13 @@
     "OrchestrationGlobalErrorHandlerRule": {
       "enabled": true,
       "severity_override": null,
-      "fix_strategy_override": "refactor",
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestrationApiStepErrorHandlerRule": {
       "enabled": true,
       "severity_override": null,
-      "fix_strategy_override": "refactor",
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestrationBranchOnConditionsNestingRule": {
@@ -306,7 +306,7 @@
     "OrchestrationVerboseBooleanCheckRule": {
       "enabled": true,
       "severity_override": null,
-      "fix_strategy_override": "mechanical",
+      "fix_strategy_override": "design_decision",
       "custom_settings": {}
     },
     "OrchestratePreferExplicitDefaultAccessor": {

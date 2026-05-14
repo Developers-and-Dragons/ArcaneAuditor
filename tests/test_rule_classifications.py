@@ -33,10 +33,9 @@ EXPECTED_CLASSIFICATIONS = [
     ("ScriptFunctionParameterNamingRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
     ("ScriptVariableNamingRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
     ("ScriptUnusedFunctionParametersRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
-    # --- Script rules (refactor) ---
-    ("ScriptFunctionReturnConsistencyRule", FixStrategy.REFACTOR, Category.SCRIPT),
-    ("ScriptNestedArraySearchRule", FixStrategy.REFACTOR, Category.SCRIPT),
-    # --- Script rules (design decision — inherit defaults) ---
+    # --- Script rules (design decision — incl. multi-step rewrites; inherit defaults) ---
+    ("ScriptFunctionReturnConsistencyRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
+    ("ScriptNestedArraySearchRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
     ("ScriptComplexityRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
     ("ScriptFunctionParameterCountRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
     ("ScriptLongBlockRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
@@ -58,11 +57,11 @@ EXPECTED_CLASSIFICATIONS = [
 
     # --- Orchestration rules ---
     ("OrchestratePreferExplicitDefaultAccessor", FixStrategy.MECHANICAL, Category.ORCHESTRATION),
-    ("OrchestrationApiStepErrorHandlerRule", FixStrategy.REFACTOR, Category.ORCHESTRATION),
+    ("OrchestrationApiStepErrorHandlerRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
     ("OrchestrationBranchOnConditionsNestingRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationGlobalErrorHandlerRule", FixStrategy.REFACTOR, Category.ORCHESTRATION),
+    ("OrchestrationGlobalErrorHandlerRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
     ("OrchestrationSecurityDomainRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationVerboseBooleanCheckRule", FixStrategy.MECHANICAL, Category.ORCHESTRATION),
+    ("OrchestrationVerboseBooleanCheckRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
 
     # --- Structure rules (mechanical) ---
     ("HardcodedApplicationIdRule", FixStrategy.MECHANICAL, Category.STRUCTURE),

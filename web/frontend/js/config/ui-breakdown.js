@@ -331,18 +331,22 @@ export class ConfigBreakdownUI {
      */
     renderRuleList(container, rulesToRender, isBuiltIn, skipEventBinding = false) {
         if (!container) return;
-        
+
+        // Column header strip — labels every per-row control. Hidden for built-in configs
+        // (read-only, no controls).
+        const headerHtml = Templates.ruleListHeader(isBuiltIn);
+
         // Map the data to the template
-        const html = rulesToRender.map(([ruleName, ruleConfig]) => {
+        const rowsHtml = rulesToRender.map(([ruleName, ruleConfig]) => {
             return Templates.ruleRow({
-                ruleName, 
-                ruleConfig, 
-                isBuiltIn, 
+                ruleName,
+                ruleConfig,
+                isBuiltIn,
                 supportsConfig: ruleConfig.supports_config !== false
             });
         }).join('');
 
-        container.innerHTML = html;
+        container.innerHTML = headerHtml + rowsHtml;
         
         // Note: Events are bound by the caller (show() or bindFilterEvents)
         // We don't bind here to avoid double-binding and container issues
@@ -447,7 +451,7 @@ export class ConfigBreakdownUI {
         container.querySelectorAll('.rule-severity-select:not([data-events-bound])').forEach(select => {
             // Mark as bound to prevent duplicate bindings
             select.dataset.eventsBound = 'true';
-            
+
             select.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling and interfering with other handlers
                 const ruleName = select.dataset.rule;
@@ -458,7 +462,22 @@ export class ConfigBreakdownUI {
                 select.className = `rule-severity-select rule-severity-${newSeverity.toLowerCase()}`;
             });
         });
-        
+
+        // Fix-strategy dropdowns - same direct-binding pattern as severity.
+        container.querySelectorAll('.rule-fix-strategy-select:not([data-events-bound])').forEach(select => {
+            select.dataset.eventsBound = 'true';
+
+            select.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const ruleName = select.dataset.rule;
+                const newStrategy = select.value;
+                if (activeConfig && activeConfig.rules && activeConfig.rules[ruleName]) {
+                    activeConfig.rules[ruleName].fix_strategy_override = newStrategy;
+                }
+                select.className = `rule-fix-strategy-select rule-fix-strategy-${newStrategy}`;
+            });
+        });
+
         // Delegate settings form events to SettingsHandler
         this.settingsHandler.bindSettingsFormEvents(container, activeConfig);
     }

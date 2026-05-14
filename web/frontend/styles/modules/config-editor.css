@@ -286,6 +286,54 @@
     }
 }
 
+/* Column header strip above the list of rule rows.
+   Layout mirrors `.rule-row-header` so each label sits over its control:
+   - .rule-list-header-name: takes flex:1 like .rule-name-container
+   - .rule-list-header-controls: row of fixed-width cells aligned over each control
+   Cell widths match the controls in templates.js (severity 100px, fix-strategy 160px). */
+.rule-list-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 1;
+}
+
+.rule-list-header-name {
+    flex: 1;
+}
+
+.rule-list-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* matches .rule-controls-container gap */
+    flex-shrink: 0;
+}
+
+.rule-list-header-col {
+    text-align: center;
+}
+
+/* Match each label cell's width to its corresponding control below.
+   Configure/Settings has dynamic width; pick a reasonable midpoint.
+   Toggle is a small switch; narrow cell. */
+.rule-list-header-configure { width: 110px; }
+.rule-list-header-severity { width: 100px; }
+.rule-list-header-fix-strategy { width: 160px; }
+.rule-list-header-toggle { width: 56px; }
+
 /* Rule Item */
 .rule-item {
     padding: 16px 16px; /* py-4 equivalent - increased vertical padding */
@@ -560,6 +608,58 @@
 [data-theme="dark"] .rule-severity-select option[value="ACTION"] {
     color: #fbbf24; /* amber-400 - bright, readable on dark */
 }
+
+/* Fix-strategy Dropdown — same layout as severity, different colors. */
+/* Five values, grouped by automation friendliness:
+   - green (mechanical) → safest to auto-apply
+   - teal (localized) → safe with verification
+   - amber (naming_required) → agent must invent a name
+   - purple (cascading_rename) → multi-reference; agent should verify
+   - slate (design_decision) → human judgment required
+*/
+.rule-fix-strategy-select {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 2px 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 24px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    width: 160px;
+    text-align: left;
+}
+
+[data-theme="dark"] .rule-fix-strategy-select {
+    background-color: #0f172a;
+    border-color: #334155;
+    box-shadow: none;
+}
+
+.rule-fix-strategy-select:hover,
+.rule-fix-strategy-select:focus {
+    outline: none;
+    border-color: #9333ea;
+}
+
+.rule-fix-strategy-select.rule-fix-strategy-mechanical { color: #15803d; }       /* green-700 */
+.rule-fix-strategy-select.rule-fix-strategy-localized { color: #0f766e; }        /* teal-700 */
+.rule-fix-strategy-select.rule-fix-strategy-naming_required { color: #b45309; }  /* amber-700 */
+.rule-fix-strategy-select.rule-fix-strategy-cascading_rename { color: #7e22ce; } /* purple-700 */
+.rule-fix-strategy-select.rule-fix-strategy-design_decision { color: #475569; }  /* slate-600 */
+
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-mechanical { color: #4ade80; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-localized { color: #2dd4bf; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-naming_required { color: #fbbf24; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-cascading_rename { color: #c084fc; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-design_decision { color: #cbd5e1; }
 
 /* --- Configure Button Styles --- */
 
