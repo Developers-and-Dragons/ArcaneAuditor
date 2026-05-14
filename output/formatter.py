@@ -141,34 +141,72 @@ class OutputFormatter:
     
     def _format_json(self, findings: List[Finding], total_files: int, total_rules: int,
                     context: Optional['ProjectContext'] = None) -> str:
-        """Format results as JSON."""
+        """Format results as v2 agent-mode JSON.
+
+        Schema is documented in `.claude/agent-mode.md`. Each finding nests
+        location data; snippet is populated lazily from the project context's
+        per-file source_content when available.
+        """
+        from utils.snippet import make_snippet
+
+        source_lookup = self._build_source_content_lookup(context)
+
+        def _finding_dict(f: Finding) -> dict:
+            clean_path = strip_uuid_prefix(f.file_path) if f.file_path else ""
+            source = source_lookup.get(f.file_path) or source_lookup.get(clean_path)
+            return {
+                "rule_id": f.rule_id,
+                "severity": f.severity,
+                # str-Enum members JSON-serialize as their string values.
+                "category": f.category.value if hasattr(f.category, "value") else f.category,
+                "fix_strategy": f.fix_strategy.value if hasattr(f.fix_strategy, "value") else f.fix_strategy,
+                "message": f.message,
+                "location": {
+                    "file_path": clean_path,
+                    "line": f.line,
+                    "column": None,
+                    "end_line": None,
+                    "end_column": None,
+                    "path": f.path,
+                },
+                "snippet": make_snippet(source, f.line) if source else None,
+                "suggested_replacement": f.suggested_replacement,
+                "finding_id": f.finding_id,
+            }
+
         result = {
+            "schema_version": "2.0",
             "summary": {
                 "total_files": total_files,
                 "total_rules": total_rules,
                 "total_findings": len(findings),
                 "findings_by_severity": {
                     "ACTION": len([f for f in findings if f.severity == "ACTION"]),
-                    "ADVICE": len([f for f in findings if f.severity == "ADVICE"])
-                }
+                    "ADVICE": len([f for f in findings if f.severity == "ADVICE"]),
+                },
             },
-            "findings": [
-                {
-                    "rule_id": finding.rule_id,
-                    "severity": finding.severity,
-                    "message": finding.message,
-                    "file_path": strip_uuid_prefix(finding.file_path) if finding.file_path else "",
-                    "line": finding.line
-                }
-                for finding in findings
-            ]
+            "findings": [_finding_dict(f) for f in findings],
         }
-        
-        # Add context information if available
+
         if context and context.analysis_context:
             result["context"] = context.analysis_context.to_dict()
-        
+
         return json.dumps(result, indent=2)
+
+    def _build_source_content_lookup(self, context: Optional['ProjectContext']) -> Dict[str, str]:
+        """Map file_path -> source_content for snippet population."""
+        lookup: Dict[str, str] = {}
+        if not context:
+            return lookup
+        for collection_name in ("pmds", "pods"):
+            collection = getattr(context, collection_name, None) or {}
+            for model in collection.values():
+                source = getattr(model, "source_content", None)
+                file_path = getattr(model, "file_path", None)
+                if source and file_path:
+                    lookup[file_path] = source
+                    lookup[strip_uuid_prefix(file_path)] = source
+        return lookup
     
     def _group_findings_by_file(self, findings: List[Finding]) -> Dict[str, List[Finding]]:
         """Group findings by file path."""
