@@ -79,6 +79,96 @@ class TestStringBooleanRule:
         assert findings[0].suggested_replacement == "false"
 
 
+class TestScriptConsoleLogRule:
+    def test_console_log_finding_suggests_commented_line(self):
+        from parser.rules.script.core.console_log import ScriptConsoleLogRule
+
+        rule = ScriptConsoleLogRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<%\n  console.info('hello');\n%>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "// console.info('hello');"
+
+    def test_console_log_preserves_inner_indentation(self):
+        from parser.rules.script.core.console_log import ScriptConsoleLogRule
+
+        rule = ScriptConsoleLogRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<%\nif (x) {\n    console.debug(x);\n}\n%>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "    // console.debug(x);"
+
+
+class TestScriptStringConcatRule:
+    def test_concat_finding_suggests_pmd_template_literal(self):
+        from parser.rules.script.logic.string_concat import ScriptStringConcatRule
+
+        rule = ScriptStringConcatRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<% var greeting = 'hello ' + name; %>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) >= 1
+        assert findings[0].suggested_replacement == "`hello {{name}}`"
+
+    def test_concat_finding_suggests_multi_operand_template(self):
+        from parser.rules.script.logic.string_concat import ScriptStringConcatRule
+
+        rule = ScriptStringConcatRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<% var s = 'a=' + a + ', b=' + b; %>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) >= 1
+        assert findings[0].suggested_replacement == "`a={{a}}, b={{b}}`"
+
+
+class TestScriptVerboseBooleanCheckRule:
+    def test_verbose_ternary_suggests_variable(self):
+        from parser.rules.script.logic.verbose_boolean import ScriptVerboseBooleanCheckRule
+
+        rule = ScriptVerboseBooleanCheckRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<% var y = x ? true : false; %>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) >= 1
+        assert findings[0].suggested_replacement == "x"
+
+    def test_verbose_ternary_inverted_suggests_negation(self):
+        from parser.rules.script.logic.verbose_boolean import ScriptVerboseBooleanCheckRule
+
+        rule = ScriptVerboseBooleanCheckRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script="<% var y = x ? false : true; %>",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) >= 1
+        assert findings[0].suggested_replacement == "!x"
+
+
 class TestUnsupportedRuleLeavesNone:
     """Non-mechanical / not-yet-wired rules emit None — guards against
     accidentally setting a default everywhere."""

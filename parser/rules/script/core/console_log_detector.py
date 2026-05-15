@@ -38,9 +38,27 @@ class ConsoleLogDetector(ScriptDetector):
                     
                     yield Violation(
                         message=message,
-                        line=line_number
+                        line=line_number,
+                        suggested_replacement=self._build_commented_line(line_number),
                     )
     
+    def _build_commented_line(self, file_line: int):
+        """Return the violation's source line prefixed with `// `, preserving indentation."""
+        if not self.source_text:
+            return None
+        ast_line = file_line - self.line_offset + 1
+        if ast_line < 1:
+            return None
+        lines = self.source_text.split('\n')
+        if ast_line > len(lines):
+            return None
+        original = lines[ast_line - 1].rstrip()
+        stripped = original.lstrip()
+        if not stripped:
+            return None
+        indent = original[:len(original) - len(stripped)]
+        return f"{indent}// {stripped}"
+
     def _is_console_method_call(self, object_node, method_node) -> bool:
         """Check if the member expression is a console method call."""
         # Check if the object is 'console'

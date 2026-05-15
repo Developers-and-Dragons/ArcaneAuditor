@@ -117,6 +117,7 @@ class ScriptRuleBase(Rule, ABC):
         
         # Use detector to find violations
         detector = self.DETECTOR(file_path, line_offset)
+        detector.source_text = clean_script_content
         
         # Apply custom settings to detector if available
         if hasattr(self, '_custom_settings') and hasattr(detector, 'apply_settings'):

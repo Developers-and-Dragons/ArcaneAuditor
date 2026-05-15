@@ -43,7 +43,8 @@ class VerboseBooleanDetector(ScriptDetector):
                 
                 yield Violation(
                     message=message,
-                    line=line_number
+                    line=line_number,
+                    suggested_replacement=verbose_info['suggestion'],
                 )
     
     def _find_verbose_ternary_expressions(self, ast: Tree, field_name: str):
@@ -66,7 +67,8 @@ class VerboseBooleanDetector(ScriptDetector):
                 
                 yield Violation(
                     message=message,
-                    line=line_number
+                    line=line_number,
+                    suggested_replacement=verbose_info['suggestion'],
                 )
     
     def _analyze_if_statement_for_verbosity(self, if_node):
