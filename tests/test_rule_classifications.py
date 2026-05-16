@@ -64,7 +64,7 @@ EXPECTED_CLASSIFICATIONS = [
     # --- Structure rules ---
     ("HardcodedApplicationIdRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
     ("HardcodedWorkdayAPIRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
-    ("PMDSectionOrderingRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+    ("PMDSectionOrderingRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
     ("StringBooleanRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
     ("MultipleStringInterpolatorsRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
 

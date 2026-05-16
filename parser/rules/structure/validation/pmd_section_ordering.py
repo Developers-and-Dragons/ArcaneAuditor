@@ -9,7 +9,7 @@ class PMDSectionOrderingRule(Rule):
 
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.ACTIONABLE
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {
         'section_order': {'type': 'list', 'default': ['id', 'securityDomains', 'include', 'script', 'endPoints', 'onSubmit', 'outboundData', 'onLoad', 'presentation'], 'description': 'Required order of PMD file root-level sections'}
     }
