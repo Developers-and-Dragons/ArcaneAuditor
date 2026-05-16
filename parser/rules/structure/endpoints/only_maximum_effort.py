@@ -11,6 +11,7 @@ from typing import Generator
 from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class OnlyMaximumEffortRule(StructureRuleBase):
@@ -99,6 +100,7 @@ class OnlyMaximumEffortRule(StructureRuleBase):
                 file_path=model.file_path,
                 line=line_number,
                 suggested_replacement="false",
+                path=endpoint_jsonpath(endpoint_type, endpoint.get('name'), index=index, subkey='bestEffort'),
             )
     
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

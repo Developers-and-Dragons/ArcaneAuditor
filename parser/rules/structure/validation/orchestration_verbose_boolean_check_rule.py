@@ -4,6 +4,7 @@ from typing import Any, Generator, Optional, Tuple, Union
 from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
+from utils.jsonpath import tuple_path_to_jsonpath
 from ..shared.orchestration_path_utils import (
     get_expression_source,
     resolve_ui_location,
@@ -141,4 +142,5 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
                         f'This creates a redundant wrapper (internally generated as "if (foo == true) {{return true}} else {{return false}}"). '
                         'Remove the Conditional step and test the boolean directly.'
                     ),
+                    path=tuple_path_to_jsonpath(path),
                 )

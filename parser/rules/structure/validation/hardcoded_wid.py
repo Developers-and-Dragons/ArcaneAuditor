@@ -180,7 +180,8 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
             yield self._create_finding(
                 message=f"Hardcoded WID '{wid_value}' in {field_name}. Use app attributes instead.",
                 file_path=file_path,
-                line=line_num
+                line=line_num,
+                path=field_name or None,
             )
 
     def _check_script_for_wids_ast(self, script_content: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None, wql_model: WQLQueryModel = None, context: ProjectContext = None) -> Generator[Finding, None, None]:
@@ -222,7 +223,8 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
                             yield self._create_finding(
                                 message=f"Hardcoded WID '{wid_value}' {context_desc}. Use app attributes instead.",
                                 file_path=file_path,
-                                line=line_num
+                                line=line_num,
+                                path=field_name or None,
                             )
     
     def _find_wid_line_number(self, wid_value: str, pmd_model: PMDModel = None, pod_model: PodModel = None, wql_model: WQLQueryModel = None) -> int:

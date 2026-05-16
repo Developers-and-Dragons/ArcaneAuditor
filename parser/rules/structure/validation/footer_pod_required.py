@@ -91,7 +91,8 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
             yield self._create_finding(
                 message="Footer section is missing. Footer should use pod structure.",
                 file_path=pmd_model.file_path,
-                line=1
+                line=1,
+                path="$.presentation.footer",
             )
             return
 
@@ -107,7 +108,8 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
                 yield self._create_finding(
                     message="Footer must utilize a pod.",
                     file_path=pmd_model.file_path,
-                    line=line_number
+                    line=line_number,
+                    path="$.presentation.footer",
                 )
                 return
 
@@ -121,14 +123,16 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
                     yield self._create_finding(
                         message="Footer must utilize a pod.",
                         file_path=pmd_model.file_path,
-                        line=line_number
+                        line=line_number,
+                        path="$.presentation.footer",
                     )
             else:
                 line_number = self._get_footer_line_number(pmd_model)
                 yield self._create_finding(
                     message="Footer must utilize a pod.",
                     file_path=pmd_model.file_path,
-                    line=line_number
+                    line=line_number,
+                    path="$.presentation.footer",
                 )
             return
 
@@ -137,7 +141,8 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
         yield self._create_finding(
             message="Footer must utilize a pod.",
             file_path=pmd_model.file_path,
-            line=line_number
+            line=line_number,
+            path="$.presentation.footer",
         )
 
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:

@@ -1,6 +1,7 @@
 from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class EndpointBaseUrlTypeRule(StructureRuleBase):
@@ -99,7 +100,8 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is pointing to a Workday API, but not leveraging a baseUrlType. "
                        f"Extract Workday endpoints to shared AMD data providers to avoid duplication.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='baseUrlType'),
             )
 
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

@@ -83,4 +83,5 @@ class StringBooleanRule(StructureRuleBase):
                     file_path=model.file_path,
                     line=line_num,
                     suggested_replacement=string_value,
+                    path=f"$..{field_name}",
                 )

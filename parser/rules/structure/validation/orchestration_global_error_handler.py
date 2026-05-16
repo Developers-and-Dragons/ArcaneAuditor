@@ -77,6 +77,7 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
                 file_path=orch_model.file_path,
                 line=1,
                 message=f"Orchestration '{name}' must have a global error handler.",
+                path="$.errorHandler",
             )
             return
         if not _global_handler_has_required_step(raw, orch_model.flow_type):
@@ -85,4 +86,5 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
                 file_path=orch_model.file_path,
                 line=1,
                 message=f"Orchestration '{name}' global error handler must contain a log step (or Add Integration Message step for Integration templates).",
+                path="$.errorHandler",
             )

@@ -12,6 +12,7 @@ from typing import Generator
 from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class NoPMDSessionVariablesRule(StructureRuleBase):
@@ -101,7 +102,8 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Outbound endpoint '{endpoint_name}' uses session-scoped variable (variableScope: session) which can cause performance degradation. Use 'flow' scope instead.",
                 file_path=pmd_model.file_path,
-                line=line_number
+                line=line_number,
+                path=endpoint_jsonpath('outbound', endpoint.get('name'), index=index, subkey='variableScope'),
             )
     
     def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str) -> int:

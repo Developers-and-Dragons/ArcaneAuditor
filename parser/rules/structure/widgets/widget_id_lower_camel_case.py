@@ -121,10 +121,11 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
                 yield self._create_finding(
                     message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                     file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
-                    line=line_number
+                    line=line_number,
+                    path=widget_path or None,
                 )
             return
-        
+
         # Validate the ID follows lowerCamelCase convention
         validation_errors = validate_lower_camel_case(widget_id, 'id', 'widget', widget_id)
         
@@ -143,7 +144,8 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                 file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
-                line=line_number
+                line=line_number,
+                path=widget_path or None,
             )
     
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_id: str) -> int:

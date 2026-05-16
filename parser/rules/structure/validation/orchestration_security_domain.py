@@ -50,4 +50,5 @@ class OrchestrationSecurityDomainRule(StructureRuleBase):
                 file_path=orch_model.file_path,
                 line=1,
                 message=f"Orchestration '{name}' must define a security domain.",
+                path="$.securityDomain",
             )

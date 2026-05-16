@@ -6,6 +6,7 @@ from typing import Generator, List, Dict, Any
 from parser.rules.structure.shared.rule_base import StructureRuleBase
 from parser.rules.base import Finding, FixStrategy
 from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
+from utils.jsonpath import data_provider_jsonpath, endpoint_jsonpath
 
 
 class HardcodedWorkdayAPIRule(StructureRuleBase):
@@ -154,6 +155,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
                     line=line_number,
                     file_path=amd_model.file_path,
                     suggested_replacement=self._build_replacement(value),
+                    path=data_provider_jsonpath(key),
                 )
                 yield finding
 
@@ -179,6 +181,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
                 file_path=model.file_path,
                 line=line_number,
                 suggested_replacement=self._build_replacement(url),
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='url'),
             )
 
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

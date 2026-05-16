@@ -121,5 +121,6 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
                     file_path=file_path,
                     line=line_num,
                     suggested_replacement=replacement,
+                    path="$",
                 )
 

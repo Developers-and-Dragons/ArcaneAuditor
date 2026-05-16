@@ -153,6 +153,7 @@ class OrchestrationBranchOnConditionsNestingRule(StructureRuleBase):
                                     f"Branch on Conditions '{boc_name}' has a branch nested at {sub_max} levels; "
                                     "consider extracting logic to a suborchestration to keep nesting to 3 levels or fewer."
                                 ),
+                                path=f"$..nodes[?(@.name=='{boc_name}')]",
                             )
                         )
                     if sub_max > max_seen:

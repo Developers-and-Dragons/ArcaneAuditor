@@ -4,6 +4,7 @@ from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class EndpointNameLowerCamelCaseRule(StructureRuleBase):
@@ -78,7 +79,7 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
         if pod_model.seed.endPoints:
             for i, endpoint in enumerate(pod_model.seed.endPoints):
                 if isinstance(endpoint, dict) and 'name' in endpoint:
-                    yield from self._check_endpoint_naming(endpoint, None, 'pod_seed', i, pod_model)
+                    yield from self._check_endpoint_naming(endpoint, None, 'pod', i, pod_model)
     
     def _check_endpoint_naming(self, endpoint, pmd_model=None, context='inbound', index=0, pod_model=None):
         """Check if an endpoint name follows lowerCamelCase convention."""
@@ -102,7 +103,8 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"{endpoint_type.title()} '{endpoint_name}' doesn't follow naming conventions. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                 file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
-                line=line_number
+                line=line_number,
+                path=endpoint_jsonpath(context, endpoint_name, index=index, subkey='name'),
             )
     
     def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str) -> int:

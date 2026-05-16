@@ -3,6 +3,7 @@ from ...base import Finding, FixStrategy, Category
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class EndpointFailOnStatusCodesRule(StructureRuleBase):
@@ -93,6 +94,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
                 file_path=model.file_path,
                 line=line_number,
                 suggested_replacement='"failOnStatusCodes": [{"code": 400}, {"code": 403}]',
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index),
             )
             return
 
@@ -137,6 +139,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
                 file_path=model.file_path,
                 line=line_number,
                 suggested_replacement=replacement,
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='failOnStatusCodes'),
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

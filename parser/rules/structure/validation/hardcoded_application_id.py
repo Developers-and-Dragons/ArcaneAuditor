@@ -17,6 +17,7 @@ from typing import Generator, List, Dict, Any, Optional
 from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, AMDModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import data_provider_jsonpath
 
 
 class HardcodedApplicationIdRule(StructureRuleBase):
@@ -119,6 +120,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
                             file_path=amd_model.file_path,
                             line=1,  # AMD doesn't have line-level source tracking
                             suggested_replacement="site.applicationId",
+                            path=data_provider_jsonpath(data_provider.get('key')),
                         )
     
     def _check_source_content_for_app_id(self, source_content: str, app_id: str, file_path: str) -> Generator[Finding, None, None]:
@@ -153,6 +155,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
                 file_path=file_path,
                 line=line_num,
                 suggested_replacement="site.applicationId",
+                path="$",
             )
     
     def _check_string_values_for_app_id(self, model: Any, app_id: str, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
@@ -202,4 +205,5 @@ const appId = site.applicationId; // ✅ Use site.applicationId
                 file_path=file_path,
                 line=line_num,
                 suggested_replacement="site.applicationId",
+                path=field_name or None,
             )
