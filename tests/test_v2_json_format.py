@@ -97,7 +97,7 @@ class TestFindingShape:
     def test_suggested_replacement_passed_through(self):
         findings, ctx = self._one_finding()
         result = _format(findings, context=ctx)
-        assert result["findings"][0]["suggested_replacement"] == "let"
+        assert result["findings"][0]["suggested_replacement"] == "let x"
 
     def test_snippet_populated_when_context_has_source(self):
         findings, ctx = self._one_finding()

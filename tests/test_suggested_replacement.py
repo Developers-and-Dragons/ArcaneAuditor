@@ -23,7 +23,9 @@ class TestViolationCarriesReplacement:
 
 
 class TestScriptVarUsageRule:
-    def test_var_finding_suggests_let(self):
+    def test_var_finding_emits_substring_swap(self):
+        """`var x` → `let x` substring swap; the identifier anchors the slice
+        so `var` substrings inside other identifiers won't match."""
         rule = ScriptVarUsageRule()
         context = ProjectContext()
         context.pmds["p"] = PMDModel(
@@ -33,7 +35,27 @@ class TestScriptVarUsageRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "let"
+        f = findings[0]
+        assert f.target_text == "var x"
+        assert f.suggested_replacement == "let x"
+        assert f.replacement_context == "substring"
+
+    def test_var_swap_does_not_clobber_var_inside_identifier(self):
+        """Anchoring on the identifier means a swap on `var x = 1;` won't
+        accidentally rewrite `myVariable` elsewhere — the agent does a literal
+        replace of `var x`, not bare `var`."""
+        rule = ScriptVarUsageRule()
+        context = ProjectContext()
+        context.pmds["p"] = PMDModel(
+            pageId="p",
+            script="<% var myVariable = 1; %>",
+            file_path="p.pmd",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.target_text == "var myVariable"
+        assert f.suggested_replacement == "let myVariable"
 
 
 class TestHardcodedApplicationIdRule:
