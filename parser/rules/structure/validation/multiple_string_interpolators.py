@@ -103,13 +103,23 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
                 # Check if it's already a template literal (has backticks with {{}} syntax)
                 if '`' in string_value and '{{' in string_value:
                     continue  # Already using template literal
-                
+
                 # Calculate line number
                 line_num = self.get_line_from_text_position(source_content, match.start())
-                
+
+                # Build replacement: each <% expr %> becomes {{expr}}; wrap the
+                # transformed string in backticks and a single <% %>.
+                inner = re.sub(
+                    interpolator_pattern,
+                    lambda m: '{{' + m.group(0)[2:-2].strip() + '}}',
+                    string_value,
+                )
+                replacement = f"<% `{inner}` %>"
+
                 yield self._create_finding(
                     message=f"String has {len(interpolators)} interpolators. Use a SINGLE interpolator with template literals inside: <% `Use template literal with {{{{variable}}}}` %>",
                     file_path=file_path,
-                    line=line_num
+                    line=line_num,
+                    suggested_replacement=replacement,
                 )
 

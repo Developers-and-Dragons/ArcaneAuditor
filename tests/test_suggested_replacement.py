@@ -306,6 +306,56 @@ class TestOnlyMaximumEffortRule:
         assert findings[0].suggested_replacement == "false"
 
 
+class TestMultipleStringInterpolatorsRule:
+    def test_two_interpolators_combined_into_template_literal(self):
+        from parser.rules.structure.validation.multiple_string_interpolators import (
+            MultipleStringInterpolatorsRule,
+        )
+
+        rule = MultipleStringInterpolatorsRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            source_content='{\n  "value": "My name is <% name %> and I like <% food %>"\n}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% `My name is {{name}} and I like {{food}}` %>"
+
+    def test_three_interpolators(self):
+        from parser.rules.structure.validation.multiple_string_interpolators import (
+            MultipleStringInterpolatorsRule,
+        )
+
+        rule = MultipleStringInterpolatorsRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            source_content='{\n  "value": "<% a %>-<% b %>-<% c %>"\n}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% `{{a}}-{{b}}-{{c}}` %>"
+
+    def test_inner_expression_whitespace_stripped(self):
+        from parser.rules.structure.validation.multiple_string_interpolators import (
+            MultipleStringInterpolatorsRule,
+        )
+
+        rule = MultipleStringInterpolatorsRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            source_content='{\n  "value": "x=<%   x   %> y=<%y%>"\n}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% `x={{x}} y={{y}}` %>"
+
+
 class TestUnsupportedRuleLeavesNone:
     """Rules without a wired replacement emit None — guards against
     accidentally setting a default everywhere. Uses a `human_review` rule
