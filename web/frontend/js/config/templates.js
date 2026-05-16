@@ -145,8 +145,8 @@ export const Templates = {
                     <strong>Agent Fix Strategy</strong> — how amenable a rule's findings are to automated fixing by an AI agent. Set per rule; agents read this to decide which findings are safe to auto-apply.
                 </div>
                 <ul class="fix-strategy-help-list">
-                    <li class="rule-fix-strategy-actionable"><span class="fix-strategy-chip">actionable</span> Finding carries a deterministic fix; agent may surface a suggested replacement.</li>
-                    <li class="rule-fix-strategy-human_review"><span class="fix-strategy-chip">human_review</span> Surface to the human; agent must not attempt to auto-resolve.</li>
+                    <li class="rule-fix-strategy-actionable"><span class="fix-strategy-chip">actionable</span> Finding carries a deterministic fix. You are telling the agent: <strong>apply the suggested replacement directly, without asking first.</strong> Use this for rules where you trust the fix and want the agent to just do it.</li>
+                    <li class="rule-fix-strategy-human_review"><span class="fix-strategy-chip">human_review</span> Surface the finding and wait for your call. The agent must not auto-resolve. Use this for rules that need judgment, naming decisions, or cross-file thinking.</li>
                 </ul>
             </div>
         `;

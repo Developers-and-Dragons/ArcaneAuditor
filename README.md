@@ -36,7 +36,8 @@ It analyzes:
 - 🛡️ **No auto-fix, no hosted LLM, no code leaves your machine.** The tool surfaces findings and (where deterministic) a suggested replacement string — your agent or you decide whether to splice it in.
 
 ## **Earlier highlights (v1.6):**
- * **Desktop: analyze a project folder** — pick a directory on disk for recursive analysis (same model as the CLI), with a Browse menu for ZIP, files, or folder.
+
+- **Desktop: analyze a project folder** — pick a directory on disk for recursive analysis (same model as the CLI), with a Browse menu for ZIP, files, or folder.
 
 ## 🚀 Quick Start — Desktop App
 
@@ -110,8 +111,6 @@ Issues View
 **Issues Breakdown:**
 Issues Breakdown
 
-
-
 ---
 
 ## ⚔️ Command Line Interface
@@ -169,7 +168,7 @@ ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
 
 ## 🤖 Agent Mode
 
-The same CLI binary doubles as a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, and friends). Run with `--agent` and the auditor behaves like a well-mannered MCP-style tool: quiet, JSON-on-stdout, schema-stable.
+The same CLI binary doubles as a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, and friends). Run with `--agent` and the auditor behaves like a well-mannered tool: quiet, JSON-on-stdout, schema-stable.
 
 > 🛡️ **What this is — and isn't.**
 > Arcane Auditor does **not** auto-apply fixes, and **no LLM is bundled or called**. Your code never leaves the machine. Agent mode just makes findings legible to the agent *you already use*, so it can decide what to do with them.
@@ -185,20 +184,21 @@ ArcaneAuditorCLI review-app myapp.zip --agent
 - 📐 **v2 JSON schema** — `schema_version: "2.0"`, nested `location`, and rule metadata (`category`, `fix_strategy`) on every finding.
 - 🪪 **Stable `finding_id`** — hash of rule + file + path + message (line excluded), so re-runs after a fix still join on the same identifier.
 - 🧭 **JSONPath `location.path`** — for PMD / POD / AMD / SMD findings, a JSONPath that survives line-drifting edits (e.g. `$.outboundEndpoints[?(@.name=='getWorker')].failOnStatusCodes`). Script-file findings use line/column.
-- ✏️ `**suggested_replacement**` — drop-in replacement text on 12 deterministic rules (e.g. `var`→`let`, hardcoded Workday API → `apiGatewayEndpoint + '<path>'`). The other 36 rules carry `fix_strategy: human_review` — the agent is told plainly when it should *not* assume a one-line patch.
+- ✏️ **suggested_replacement** — drop-in replacement text on 12 deterministic rules (e.g. `var`→`let`, hardcoded Workday API → `apiGatewayEndpoint + '<path>'`). The other 36 rules carry `fix_strategy: human_review` — the agent is told plainly when it should *not* assume a one-line patch.
 - 🔍 **Filter flags** — `--rules`, `--exclude-rules`, `--severity`, `--fix-strategy`, `--files <glob,glob>` so the agent can scope a focused pass without re-running the world.
 - 📚 **Rule introspection** — `list-rules --format json` for the catalog, `describe-rule <RuleId>` for full metadata (the `why` / `catches` / `examples` / `recommendation` an agent needs to reason about a finding).
 
-**Installing the skill once:**
+**Setting up the CLI for agent use:**
 
-The CLI ships with a `SKILL.md` describing the contract (commands, schema, loop strategy). Install it into your agent of choice:
-
-```bash
-# Example: Claude Code
-ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md
-```
-
-The same file works for any agent that follows the cross-vendor `SKILL.md` convention (Claude Code, Codex, Cursor, etc.).
+1. **Make the binary reachable.** Pick one:
+  - **PATH (recommended).** Windows: add the directory containing `ArcaneAuditorCLI.exe` to PATH. macOS: unzip `ArcaneAuditor_macOS_CLI.zip` to a stable location (e.g. `~/tools/ArcaneAuditorCLI/`) and symlink the inner `ArcaneAuditorCLI` into `/usr/local/bin`. The macOS build is a onedir bundle — *move the whole folder together*, don't extract just the executable.
+  - **Absolute path.** Save the binary anywhere stable and tell the agent the full path once at the start of the session.
+2. **Install the skill file.** The CLI ships with a bundled `SKILL.md` (commands, schema, loop strategy). Emit it into your agent's skill directory:
+  ```bash
+   # Example: Claude Code
+   ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md
+  ```
+   The same file works for any agent that follows the cross-vendor `SKILL.md` convention (Claude Code, Codex, Cursor, etc.).
 
 ---
 
@@ -268,8 +268,6 @@ Arcane Auditor detects missing files and adjusts validation scope automatically:
 - **Partial** when some missing (rules skipped with clear indicators)
 - Reports list skipped or partial rules and suggest required files.
 
-
-
 🔧 Port Configuration (Desktop App)
 
 The desktop app runs a local server (default port 8080).
@@ -285,8 +283,6 @@ If you have a port conflict, edit:
   "log_level": "info"
 }
 ```
-
-
 
 ---
 
@@ -330,6 +326,6 @@ Licensed under the **MIT License** — see [LICENSE](LICENSE).
 
 ---
 
-⭐ **If Arcane Auditor helps you, star the repo and share the magic!**
-⚡ **Channel mana to the developer:** [Support the Weave](https://buymeacoffee.com/developersanddragons)
+⭐ **If Arcane Auditor helps you, star the repo and share the magic!**  
+⚡ **Channel mana to the developer:** [Support the Weave](https://buymeacoffee.com/developersanddragons)  
 *May the Weave guide your code to perfection.* ✨

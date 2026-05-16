@@ -12,8 +12,8 @@ class FixStrategy(str, Enum):
 
     Values are str-enums so they serialize cleanly to JSON.
     """
-    ACTIONABLE = "actionable"        # Finding carries a deterministic fix; agent may surface a suggested_replacement
-    HUMAN_REVIEW = "human_review"    # Surface to the human; agent must not attempt to auto-resolve
+    ACTIONABLE = "actionable"        # Deterministic fix; agent applies suggested_replacement directly without prompting
+    HUMAN_REVIEW = "human_review"    # Surface to the human and wait for their decision; agent must not auto-resolve
 
 
 class Category(str, Enum):

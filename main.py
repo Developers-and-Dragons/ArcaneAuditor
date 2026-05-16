@@ -535,7 +535,7 @@ def list_rules(
 
 @app.command()
 def agent_help():
-    """Print SKILL.md — agent-facing usage docs. Pipe to your agent's skills directory to install (e.g. `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`)."""
+    """Print SKILL.md — agent-facing usage docs. Pipe to your agent's skills directory to install (e.g. `ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`)."""
     set_quiet(True)
     # importlib.resources keeps this working inside a PyInstaller bundle, where
     # __file__ doesn't reliably point at on-disk SKILL.md.
@@ -556,7 +556,7 @@ def agent_help():
             "\n---\n"
             "To install as an agent skill, pipe this output to your harness's skills folder, e.g.:\n"
             "  mkdir -p ~/.claude/skills/arcane-auditor\n"
-            "  arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md"
+            "  ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md"
         )
 
 
