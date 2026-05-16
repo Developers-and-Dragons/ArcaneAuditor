@@ -80,16 +80,16 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
 
 ### Key fields
 
-- `**fix_strategy**` — How an agent should handle this finding. See decision table below.
-- `**fix_strategy_overridden**` — `true` when the rule's effective `fix_strategy` came from user config rather than the rule author's default. Specifically: if this is `true` AND `fix_strategy` is `actionable`, the rule wasn't designed with a deterministic fix payload — see *When `human_review` has been overridden to `actionable`* below before acting. `false` (the common case) means the strategy is the rule author's default.
-- `**location.path**` — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD). Stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
-- `**location.line**` — Always set. Use this for `.script` files; use it as a secondary locator for JSON-shaped files when re-reading after edits.
-- `**location.column` / `end_line` / `end_column**` — Currently emitted as `null` across all rules; reserved for future use. Don't rely on them.
-- `**suggested_replacement**` — The new text that goes in place of `target_text` (when `target_text` is set), or the new value of the field (when `target_text` is `null` — `full_field` context). It is the *post-edit substring*, not the bare new value — rules may include surrounding context (e.g. `"visible": true`, not just `true`) to make the swap unambiguous. May itself be `null` on `actionable` findings whose fix is whole-document (e.g., reordering keys); in that case the `message` carries the spec.
-- `**target_text**` — Exact original substring that `suggested_replacement` swaps in for. When present, the agent should locate this string within the field at `location.path` and replace it — do NOT replace the whole field. May be `null` when the rule emits a full-field/whole-document replacement.
-- `**replacement_context**` — How to apply `suggested_replacement`. See table below. May be `null` on older/un-enriched rules; treat `null` as `full_field` only when `target_text` is also `null`, otherwise default to `substring`.
-- `**snippet**` — A few lines of source around the violation, for context. May be `null` if the analyzer didn't have source content (rare).
-- `**finding_id**` — Stable hash of `rule_id|file_path|path|message`. Line is excluded so re-runs after a fix still join on the same identifier. The example value above is illustrative; real runs produce different hashes.
+- `fix_strategy` — How an agent should handle this finding. See decision table below.
+- `fix_strategy_overridden` — `true` when the rule's effective `fix_strategy` came from user config rather than the rule author's default. Specifically: if this is `true` AND `fix_strategy` is `actionable`, the rule wasn't designed with a deterministic fix payload — see *When `human_review` has been overridden to `actionable`* below before acting. `false` (the common case) means the strategy is the rule author's default.
+- `location.path` — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD). Stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
+- `location.line` — Always set. Use this for `.script` files; use it as a secondary locator for JSON-shaped files when re-reading after edits.
+- `location.column` / `end_line` / `end_column` — Currently emitted as `null` across all rules; reserved for future use. Don't rely on them.
+- `suggested_replacement` — The new text that goes in place of `target_text` (when `target_text` is set), or the new value of the field (when `target_text` is `null` — `full_field` context). It is the *post-edit substring*, not the bare new value — rules may include surrounding context (e.g. `"visible": true`, not just `true`) to make the swap unambiguous. May itself be `null` on `actionable` findings whose fix is whole-document (e.g., reordering keys); in that case the `message` carries the spec.
+- `target_text` — Exact original substring that `suggested_replacement` swaps in for. When present, the agent should locate this string within the field at `location.path` and replace it — do NOT replace the whole field. May be `null` when the rule emits a full-field/whole-document replacement.
+- `replacement_context` — How to apply `suggested_replacement`. See table below. May be `null` on older/un-enriched rules; treat `null` as `full_field` only when `target_text` is also `null`, otherwise default to `substring`.
+- `snippet` — A few lines of source around the violation, for context. May be `null` if the analyzer didn't have source content (rare).
+- `finding_id` — Stable hash of `rule_id|file_path|path|message`. Line is excluded so re-runs after a fix still join on the same identifier. The example value above is illustrative; real runs produce different hashes.
 
 ## `fix_strategy` decision table
 
