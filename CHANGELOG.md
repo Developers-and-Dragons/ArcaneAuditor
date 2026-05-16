@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`--agent` CLI preset** — Single flag for AI agents: implies quiet, JSON to stdout, no default output file. Mutually exclusive with `--ci`; rejects non-JSON `--format`.
 - **v2 JSON schema** — Top-level `schema_version: "2.0"`. Each finding now carries `category`, `fix_strategy`, `snippet`, `suggested_replacement`, `finding_id`, and a nested `location` object (`file_path`, `line`, `column`, `end_line`, `end_column`, `path`).
-- **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD), stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
+- **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD), stable across line-drifting edits. Every structure rule emit site now carries a `path` except two (`PMDSectionOrderingRule`, `FileNameLowerCamelCaseRule`) where no node-level path makes sense. Endpoint findings use `$.{inbound|outbound}Endpoints[?(@.name=='X')].subkey`; AMD findings use `$.dataProviders[?(@.key=='X')].value`; orchestration findings use a tuple-derived path or `$..nodes[?(@.name=='X')]` descendant selector when traversal doesn't track a stable index. `null` for `.script` files and a small number of file-level findings.
 - **`suggested_replacement`** — Drop-in replacement text the agent can splice at the violation site. Wired on 12 of 48 rules: `ScriptVarUsageRule` (`let`), `ScriptConsoleLogRule` (commented line), `ScriptStringConcatRule` (PMD template literal), `ScriptVerboseBooleanCheckRule` (the boolean expression), `ScriptUnusedIncludesRule` (`""` to signal deletion), `HardcodedApplicationIdRule` (`site.applicationId`), `HardcodedWorkdayAPIRule` (`<% apiGatewayEndpoint + '<path>' %>`), `StringBooleanRule` (unquoted boolean), `EndpointFailOnStatusCodesRule` (the missing `{"code": N}` entries or full field), `OnlyMaximumEffortRule` (`false`), `MultipleStringInterpolatorsRule` (single template literal), `PMDSectionOrderingRule` (spec carried in message — whole-document reorder doesn't fit a per-finding string).
 - **`finding_id`** — Stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix still join on the same identifier.
 - **`fix_strategy` rule metadata** — Every concrete rule declares one of two values: `actionable` (finding carries a deterministic fix; agent may surface a suggested replacement) or `human_review` (resolution requires human judgment, multi-step rewrites, naming, cross-file work, or workflow that crosses systems). 12 rules are `actionable`; the rest are `human_review`. Conservatism is intentional — false confidence in an auto-fix can damage proprietary code.
@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **JSON output schema (BREAKING)** — `file_path` and `line` are no longer top-level on each finding; they're nested inside `location`. Top-level adds `schema_version`. Update consumers accordingly.
+- **Individual-file mode `location.file_path`** — when invoked with one or more file paths (not a directory or ZIP), `location.file_path` now shows the path as supplied rather than just the basename. Matches the behavior of directory/ZIP mode. Substring matching consumers are unaffected; exact-match consumers may need to adjust.
+
+### Fixed
+
+- **Silent file loss when two files shared an internal id** — Previously, `context.pmds` / `context.pods` were keyed by `pageId` / `podId`, so two files with the same internal id collapsed to one entry and only the last-parsed file was analyzed. Both maps are now keyed by `file_path`. Direct callers of the unused `get_pmd_by_id` / `get_pod_by_id` accessors are unaffected — those accessors had no production callers and have been removed.
+- **Awkward `"Pod_seed endpoint"` message** — `EndpointNameLowerCamelCaseRule` was the only POD-handling rule using `'pod_seed'` as the internal endpoint-type label, which leaked into the finding message. Normalized to `'pod'` to match the other 4 endpoint rules.
 
 ---
 
