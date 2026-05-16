@@ -270,6 +270,42 @@ class TestEndpointFailOnStatusCodesRule:
         assert "500" not in findings[0].suggested_replacement
 
 
+class TestOnlyMaximumEffortRule:
+    def test_boolean_true_suggests_false(self):
+        from parser.rules.structure.endpoints.only_maximum_effort import (
+            OnlyMaximumEffortRule,
+        )
+
+        rule = OnlyMaximumEffortRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            inboundEndpoints=[{"name": "getUser", "url": "/u", "bestEffort": True}],
+            source_content='{"inboundEndpoints":[{"name":"getUser","url":"/u","bestEffort": true}]}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "false"
+
+    def test_string_true_suggests_false(self):
+        from parser.rules.structure.endpoints.only_maximum_effort import (
+            OnlyMaximumEffortRule,
+        )
+
+        rule = OnlyMaximumEffortRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            inboundEndpoints=[{"name": "getUser", "url": "/u", "bestEffort": "true"}],
+            source_content='{"inboundEndpoints":[{"name":"getUser","url":"/u","bestEffort": "true"}]}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "false"
+
+
 class TestUnsupportedRuleLeavesNone:
     """Rules without a wired replacement emit None — guards against
     accidentally setting a default everywhere. Uses a `human_review` rule

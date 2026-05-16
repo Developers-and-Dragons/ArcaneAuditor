@@ -97,7 +97,8 @@ class OnlyMaximumEffortRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has bestEffort: true which can mask API failures. It is advised to avoid using bestEffort.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                suggested_replacement="false",
             )
     
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
