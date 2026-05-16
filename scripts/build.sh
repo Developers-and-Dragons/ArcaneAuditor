@@ -19,9 +19,6 @@ uv run pyinstaller ArcaneAuditorDesktop.spec --clean --noconfirm
 echo "🏗 Building CLI"
 uv run pyinstaller ArcaneAuditorCLI.spec --clean --noconfirm
 
-echo "🏗 Building Web"
-uv run pyinstaller ArcaneAuditorWeb.spec --clean --noconfirm
-
 echo "✨ Build complete!"
 ls -lh dist/ || echo "⚠️ dist/ folder missing!"
 
@@ -32,13 +29,6 @@ if [ -f "dist/ArcaneAuditorCLI" ]; then
   echo "✅ CLI binary is now executable"
 else
   echo "⚠️ CLI binary not found (may not have been built)"
-fi
-
-# Set execute permissions on Web binary if it exists
-if [ -f "dist/ArcaneAuditorWeb" ]; then
-  echo "🔧 Setting execute permissions on Web server..."
-  chmod +x dist/ArcaneAuditorWeb
-  echo "✅ Web binary is now executable"
 fi
 
 echo ""
