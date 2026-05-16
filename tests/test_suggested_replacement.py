@@ -176,8 +176,9 @@ class TestScriptVerboseBooleanCheckRule:
 
 
 class TestScriptUnusedIncludesRule:
-    def test_unused_include_suggests_deletion(self):
-        """Unused include emits empty-string replacement signaling 'remove this entry'."""
+    def test_unused_include_emits_array_remove(self):
+        """Unused include enriches with array_remove context so the agent can
+        splice out the literal entry without touching other includes."""
         from parser.rules.script.unused_code.unused_script_includes import ScriptUnusedIncludesRule
         from parser.models import PMDIncludes
 
@@ -185,14 +186,18 @@ class TestScriptUnusedIncludesRule:
         context = ProjectContext()
         context.pmds["t"] = PMDModel(
             pageId="t",
-            includes=PMDIncludes(scripts=["unused.script"]),
-            script="<% let x = 1; %>",
+            includes=PMDIncludes(scripts=["util.script", "unused.script"]),
+            script="<% util.go(); %>",
             file_path="t.pmd",
-            source_content='{"include": ["unused.script"], "script": "<% let x = 1; %>"}',
+            source_content='{"include": ["util.script", "unused.script"], "script": "<% util.go(); %>"}',
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == ""
+        f = findings[0]
+        assert f.suggested_replacement == ""
+        assert f.target_text == '"unused.script"'
+        assert f.replacement_context == "array_remove"
+        assert f.path == "$.include"
 
 
 class TestEndpointFailOnStatusCodesRule:

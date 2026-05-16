@@ -105,6 +105,7 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
 | `substring`     | Read the field at `location.path`, replace the literal `target_text` with `suggested_replacement`, write the field back. **Never** overwrite the whole field.         |
 | `full_field`    | Replace the entire value at `location.path` with `suggested_replacement`.                                                                                             |
 | `array_splice`  | `suggested_replacement` is a comma-separated set of array elements; splice them into the existing array at `location.path` (preserve existing elements).              |
+| `array_remove`  | `target_text` is one element's literal text within the array at `location.path`; remove that element, dropping its surrounding comma. `suggested_replacement` is empty. Preserve other elements. |
 | `field_insert`  | `suggested_replacement` is a `"key": value` pair; insert it into the object at `location.path`.                                                                       |
 
 
@@ -130,14 +131,14 @@ loop:
   apply fix per f.replacement_context (see table above):
     - substring:    new_field = field.replace(f.target_text, f.suggested_replacement)
     - full_field:   new_field = f.suggested_replacement
-    - array_splice / field_insert: splice/insert per table
+    - array_splice / array_remove / field_insert: splice/remove/insert per table
   write the field back
   verify post-fix (see below)
   goto top
 # then surface remaining human_review findings to the user
 ```
 
-### Post-fix verification (required for `substring` and `array_splice`)
+### Post-fix verification (required for `substring`, `array_splice`, and `array_remove`)
 
 After applying a fragment fix, **re-read the surrounding context** before continuing the loop. A clean re-run of the auditor proves the *targeted* rule is satisfied, but rules don't model cross-cutting effects of the edit. Specifically:
 
