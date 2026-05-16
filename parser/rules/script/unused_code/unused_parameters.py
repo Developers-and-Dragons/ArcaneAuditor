@@ -1,7 +1,7 @@
 """Script unused function parameters rule using unified architecture."""
 
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from .unused_parameters_detector import UnusedParametersDetector
 
 
@@ -10,6 +10,7 @@ class ScriptUnusedFunctionParametersRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters are actually used in the function body"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedParametersDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

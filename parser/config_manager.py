@@ -210,7 +210,10 @@ class ConfigurationManager:
                 
                 if overlay_rule.get("severity_override") is not None:
                     merged_rule["severity_override"] = overlay_rule["severity_override"]
-                
+
+                if overlay_rule.get("fix_strategy_override") is not None:
+                    merged_rule["fix_strategy_override"] = overlay_rule["fix_strategy_override"]
+
                 # Merge custom_settings (deep merge)
                 base_custom = base_rule.get("custom_settings", {}) if base_rule else {}
                 overlay_custom = overlay_rule.get("custom_settings", {})

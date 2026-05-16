@@ -6,6 +6,7 @@ import { ResultsManager } from './results/manager.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
 import { DialogManager } from './dialog-manager.js';
+import { ConfigAPI } from './config/api.js';
 
 class ArcaneAuditorApp {
     constructor() {
@@ -184,6 +185,57 @@ class ArcaneAuditorApp {
                 }
             }
         });
+
+        // Finding rule_id link: open the rule's Grimoire entry.
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('.finding-rule-link');
+            if (link) {
+                e.preventDefault();
+                this.openGrimoireForRule(link.dataset.rule);
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const link = e.target.closest && e.target.closest('.finding-rule-link');
+            if (link) {
+                e.preventDefault();
+                this.openGrimoireForRule(link.dataset.rule);
+            }
+        });
+    }
+
+    /**
+     * Open the Grimoire entry for a given rule name. Used by the clickable
+     * rule_id link in findings. Caches the configs payload after the first
+     * fetch so subsequent clicks are instant.
+     */
+    async openGrimoireForRule(ruleName) {
+        if (!ruleName) return;
+        try {
+            if (!this._grimoireConfigCache) {
+                const data = await ConfigAPI.getAll();
+                // Pick the first config that has this rule with documentation.
+                this._grimoireConfigCache = (data.configs || []).find(
+                    c => c?.rules?.[ruleName]?.documentation
+                ) || (data.configs || [])[0];
+            }
+            const config = this._grimoireConfigCache;
+            if (!config?.rules?.[ruleName]) {
+                this.showToast?.(`No Grimoire entry available for ${ruleName}`, 'error');
+                return;
+            }
+            // Reuse the GrimoireUI instance owned by the config breakdown UI.
+            const grimoire = this.configManager?.breakdownUI?.grimoire;
+            if (!grimoire) {
+                this.showToast?.('Grimoire is not initialized yet — try again in a moment', 'error');
+                return;
+            }
+            grimoire.openedFromConfigModal = false;
+            grimoire.showGrimoire(ruleName, config);
+        } catch (err) {
+            console.error('Failed to open Grimoire from finding:', err);
+            this.showToast?.('Failed to open Grimoire', 'error');
+        }
     }
 
     initializeSettingsPanel() {

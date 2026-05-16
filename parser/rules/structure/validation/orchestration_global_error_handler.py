@@ -1,7 +1,7 @@
 """Rule to require a global error handler for orchestrations (Sync, Async, BPT, Integration)."""
 
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_error_handler_utils import (
@@ -41,6 +41,8 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
     ID = "OrchestrationGlobalErrorHandlerRule"
     DESCRIPTION = "Ensures orchestrations have a global error handler with a log step (or Add Integration Message for Integration templates)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {
@@ -75,6 +77,7 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
                 file_path=orch_model.file_path,
                 line=1,
                 message=f"Orchestration '{name}' must have a global error handler.",
+                path="$.errorHandler",
             )
             return
         if not _global_handler_has_required_step(raw, orch_model.flow_type):
@@ -83,4 +86,5 @@ class OrchestrationGlobalErrorHandlerRule(StructureRuleBase):
                 file_path=orch_model.file_path,
                 line=1,
                 message=f"Orchestration '{name}' global error handler must contain a log step (or Add Integration Message step for Integration templates).",
+                path="$.errorHandler",
             )

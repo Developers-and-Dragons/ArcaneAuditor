@@ -1,5 +1,6 @@
 """Script verbose boolean check rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .verbose_boolean_detector import VerboseBooleanDetector
 
@@ -9,6 +10,7 @@ class ScriptVerboseBooleanCheckRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = VerboseBooleanDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0] - 2026-05-16
+
+**Breaking schema change.** JSON output is now v2: nested `location`, new per-finding fields. v1 consumers must update.
+
+### Added — agent-facing JSON
+
+- `**--agent` CLI flag** — quiet, JSON to stdout, no default output file. Mutually exclusive with `--ci`; rejects non-JSON `--format`.
+- **v2 schema** — top-level `schema_version: "2.0"`. Findings carry `category`, `fix_strategy`, `fix_strategy_overridden`, `snippet`, `suggested_replacement`, `target_text`, `replacement_context`, `finding_id`, and a nested `location` (`file_path`, `line`, `column`, `end_line`, `end_column`, `path`).
+- `**location.path`** — JSONPath into PMD/POD/AMD/SMD files; stable across line-drifting edits. Endpoint findings use `$.{inbound|outbound}Endpoints[?(@.name=='X')].subkey`, AMD uses `$.dataProviders[?(@.key=='X')].value`, orchestration uses tuple-derived or `$..nodes[?(@.name=='X')]` selectors. `null` for `.script` files and a few file-level findings.
+- **Deterministic agent fix payload** — `suggested_replacement` + `target_text` + `replacement_context` together let agents apply fixes as substring swaps rather than full-field overwrites. `replacement_context` is one of `substring`, `full_field`, `array_splice`, `array_remove`, `field_insert`. Wired on all 12 `actionable` rules.
+- `**fix_strategy_overridden`** — `true` when the effective strategy came from user config rather than the rule author's default. Agents check this to detect user-promoted `human_review→actionable` findings, which lack a deterministic fix payload.
+- `**finding_id**` — stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix join on the same id.
+- `**fix_strategy` and `category` rule metadata** — `actionable` vs `human_review`; `script` / `structure` / `endpoint` / `widget` / `orchestration` / `custom`. User config can override per rule.
+
+### Added — CLI & docs
+
+- `**list-rules --format json`**, `**describe-rule <RuleId>**` — machine-readable rule catalog + per-rule docs (`why`, `catches`, `examples`, `recommendation`).
+- **Filter flags on `review-app`** — `--rules`, `--exclude-rules`, `--severity`, `--fix-strategy`, `--files <glob>`. Unknown values exit `2`.
+- `**SKILL.md**` + `**agent-help` command** — agent-facing skill doc, installable from frozen binaries via `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`.
+- **Deterministic finding order** — sorted by `(file_path, line, rule_id, message)`.
+
+### Changed
+
+- **Breaking:** `file_path` and `line` moved from top-level into nested `location`; top-level gains `schema_version`.
+- **Individual-file mode** — `location.file_path` now reflects the path as supplied (matches directory/ZIP mode).
+- `**PMDSectionOrderingRule`** — reclassified to `human_review`; whole-document key reorder isn't a single deterministic edit.
+
+### Fixed
+
+- **Silent file loss on duplicate ids** — `context.pmds` / `context.pods` are now keyed by `file_path` instead of `pageId` / `podId`. Unused `get_pmd_by_id` / `get_pod_by_id` accessors removed.
+- `**"Pod_seed endpoint"` finding message** — normalized `'pod_seed'` label to `'pod'` in `EndpointNameLowerCamelCaseRule`.
+
+---
+
 ## [v1.6.0] - 2026-04-14
 
 ### Added
@@ -30,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Dockerfile.cli-src` - Run CLI from source with `uv` (development/CI experimentation).
   - `Dockerfile.cli-binary` - Run the built Linux CLI binary (minimal runtime, CI/production-style).
   - See [docker/README.md](docker/README.md) for build and run examples.
-- **`--ci` CLI Preset** - One flag for CI/CD: quiet output, JSON format, and default output file (`arcane-auditor-results.json`); overridable with `--format` and `--output`.
+- `**--ci` CLI Preset** - One flag for CI/CD: quiet output, JSON format, and default output file (`arcane-auditor-results.json`); overridable with `--format` and `--output`.
 - **Orchestration Support** - Validation for `.orchestration` and `.suborchestration` files; rule count increased to 48 with orchestration-specific rules (security domains, error handlers, branching, expression best practices).
 - **Linux Configuration Paths** - Documented config locations for Linux CLI: `~/.config/ArcaneAuditor/config/rules/teams/` and `~/.config/ArcaneAuditor/config/rules/personal/`.
 
@@ -40,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release Workflow** - Added Linux CLI job; release artifact naming: `ArcaneAuditor_linux_CLI.tar.gz` and `ArcaneAuditor_linux_CLI.tar.gz.sha256`.
 
 ### Fixed
+
 - **Closes #53** - Finding text fix
 - **Closes #52** - Control character (tab) not escaped properly
 - **Closes #19** - CLI quiet flag...noisy
@@ -63,8 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration UI Refactoring** - Split large CSS files into feature-specific modules and extracted configuration logic into dedicated JavaScript modules.
 - **Light Mode Polish** - Enhanced visual depth, shadows, and hover effects for Grimoire cards and modal interfaces.
 - **Modal Ergonomics** - Optimized modal dimensions with shrink-wrap behavior and fixed desktop width for consistent experience across screen sizes.
-- **Configuration Cards** - Gone are the huge configuration cards, in favor of a less dominant presence. 
-
+- **Configuration Cards** - Gone are the huge configuration cards, in favor of a less dominant presence.
 
 ### Fixed
 
@@ -127,8 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows-Only Messaging** - Now fully cross-platform
 - **Confusing Installation Options** - Streamlined to Desktop → CLI → Source
 
-**Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
----------------------------------------------------------------------------------------------------------------
+## **Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
 
 ## [v1.1.0] - 2025-10-24
 

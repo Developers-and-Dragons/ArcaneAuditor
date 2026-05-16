@@ -2,7 +2,7 @@
 
 from typing import Generator, Set, Any
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel
 from .unused_script_includes_detector import ScriptUnusedIncludesRuleDetector
 
@@ -12,6 +12,7 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = ScriptUnusedIncludesRuleDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
@@ -79,11 +80,24 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
             
             # Convert violations to findings
             for violation in violations:
+                script_name = violation.metadata.get('script_name', '')
+                # Source-side element form; we don't know whether the user wrote
+                # "<name>.script" or bare "<name>" — _resolve_include_target_text
+                # picks the literal form that appears in the file so the agent's
+                # array_remove search is unambiguous.
+                target_text = self._resolve_include_target_text(pmd_model, script_name)
                 yield Finding(
                     rule=self,
                     message=violation.message,
-                    line=self._get_include_line_number(pmd_model, violation.metadata.get('script_name', '')),
-                    file_path=pmd_model.file_path
+                    line=self._get_include_line_number(pmd_model, script_name),
+                    file_path=pmd_model.file_path,
+                    # array_remove: agent locates `target_text` in the array at
+                    # `path` and removes that element (dropping its surrounding
+                    # comma). Other entries are preserved.
+                    suggested_replacement="",
+                    path="$.include",
+                    target_text=target_text,
+                    replacement_context="array_remove" if target_text else None,
                 )
                 
         except Exception as e:
@@ -191,6 +205,22 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
         
         # Return the base name
         return script_file
+
+    def _resolve_include_target_text(self, pmd_model: PMDModel, script_name: str) -> str:
+        """Return the include element as it literally appears in source.
+
+        ``script_name`` is the prefix form (e.g. ``util``). The user may have
+        written ``"util.script"`` or just ``"util"`` in the include array; we
+        check both quoted forms against the source content so the substring
+        the agent removes matches the file exactly.
+        """
+        if not script_name or not getattr(pmd_model, 'source_content', None):
+            return ""
+        candidates = (f'"{script_name}.script"', f'"{script_name}"')
+        for candidate in candidates:
+            if candidate in pmd_model.source_content:
+                return candidate
+        return ""
 
     def _get_include_line_number(self, pmd_model: PMDModel, script_name: str) -> int:
         """Get line number for script include."""

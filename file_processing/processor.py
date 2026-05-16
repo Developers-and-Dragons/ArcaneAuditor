@@ -244,8 +244,9 @@ class FileProcessor:
                         content=content,
                         size=len(content.encode(self.encoding))
                     )
-                    # Use just the filename as the key for individual files
-                    source_files[file_path.name] = source_file
+                    # Use the supplied path as the key so files with the same
+                    # basename in different directories don't collide.
+                    source_files[str(file_path)] = source_file
                     logger.info(f"Successfully processed: {file_path.name}")
                 except ValueError as e:
                     logger.warning(f"Invalid source file data for {file_path.name}: {e}")

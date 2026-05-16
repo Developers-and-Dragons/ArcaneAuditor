@@ -73,7 +73,7 @@ const formatOutput = function(data) {
         if 'skip_blank_lines' in custom_settings:
             self.skip_blank_lines = custom_settings['skip_blank_lines']
 
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None):
         """Override to pass custom settings to detector."""
         # Only analyze functions in the 'script' section
         if field_name and field_name != 'script':
@@ -93,12 +93,15 @@ const formatOutput = function(data) {
         
         # Convert violations to findings
         if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
+            from utils.jsonpath import dotted_to_jsonpath
+            jsonpath = dotted_to_jsonpath(path)
             for violation in violations:
                 yield Finding(
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    file_path=file_path
+                    file_path=file_path,
+                    path=jsonpath,
                 )
 
     def get_description(self) -> str:

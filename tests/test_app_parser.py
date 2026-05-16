@@ -86,8 +86,8 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_pmd_file("test.pmd", mock_file, context)
         
-        assert "testPage" in context.pmds
-        pmd_model = context.pmds["testPage"]
+        assert "test.pmd" in context.pmds
+        pmd_model = context.pmds["test.pmd"]
         assert pmd_model.pageId == "testPage"
         assert pmd_model.securityDomains == ["domain1"]
         assert pmd_model.inboundEndpoints == [{"name": "getCurrentWorker", "url": "/workers/me"}]
@@ -145,8 +145,8 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_pmd_file("minimal.pmd", mock_file, context)
         
-        assert "minimalPage" in context.pmds
-        pmd_model = context.pmds["minimalPage"]
+        assert "minimal.pmd" in context.pmds
+        pmd_model = context.pmds["minimal.pmd"]
         assert pmd_model.pageId == "minimalPage"
         assert pmd_model.presentation is not None
         assert pmd_model.presentation.body.get("type") == "section"
@@ -374,9 +374,9 @@ class TestModelParser:
         
         context = ProjectContext()
         self.parser._parse_single_file("test.pmd", mock_file, context)
-        
-        assert "testPage" in context.pmds
-    
+
+        assert "test.pmd" in context.pmds
+
     def test_parse_single_file_script(self):
         """Test single file parsing for script files."""
         mock_file = Mock()
@@ -432,7 +432,7 @@ class TestModelParser:
             result = self.parser.parse_files(source_files_map)
             
             # Should continue processing other files
-            assert "valid" in result.pmds
+            assert "valid.pmd" in result.pmds
             assert "valid.script" in result.scripts
             assert len(result.parsing_errors) == 1
             assert "invalid.pmd" in result.parsing_errors[0]
@@ -452,7 +452,7 @@ class TestModelParser:
         result = self.parser.parse_files(source_files_map)
         
         # Check all files were parsed
-        assert "mainPage" in result.pmds
+        assert "main.pmd" in result.pmds
         assert "utils.script" in result.scripts
         assert result.amd is not None
         assert result.amd.routes["main"].pageId == "mainPage"

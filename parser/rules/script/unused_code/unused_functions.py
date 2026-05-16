@@ -2,7 +2,7 @@
 
 from typing import Generator, Set, List, Tuple
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from .unused_functions_detector import UnusedFunctionsDetector
 
 
@@ -11,6 +11,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures functions are not declared but never used"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedFunctionsDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
@@ -143,7 +144,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
                         file_path=model.file_path
                     )
 
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None) -> Generator[Finding, None, None]:
         """Check script content using the detector - not used in file-level analysis."""
         # This method is not used when _analyze_fields is overridden
         # Return empty generator to avoid NoneType iteration errors

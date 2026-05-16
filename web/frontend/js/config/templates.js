@@ -24,6 +24,14 @@ export const Templates = {
                     <option value="advice">Advice</option>
                 </select>
             </div>
+            <div class="config-filter-group">
+                <label for="config-modal-filter-fix-strategy">Fix strategy:</label>
+                <select id="config-modal-filter-fix-strategy" class="config-filter-select">
+                    <option value="all">All</option>
+                    <option value="actionable">actionable</option>
+                    <option value="human_review">human_review</option>
+                </select>
+            </div>
         `;
     },
 
@@ -105,14 +113,71 @@ export const Templates = {
     },
 
     /**
+     * Column-header strip rendered above the list of rule rows. Skipped for
+     * built-in (read-only) configs where the per-row controls aren't shown.
+     */
+    ruleListHeader(isBuiltIn) {
+        // Built-in (read-only) presets show the same columns minus the Settings
+        // column — there's no Configure button to label. Severity, Agent Fix
+        // Strategy, and Enabled are rendered as read-only badges below.
+        const settingsCol = isBuiltIn ? '' : `<div class="rule-list-header-col rule-list-header-configure">Settings</div>`;
+        return `
+            <div class="rule-list-header-sticky">
+                <div class="rule-list-header" aria-hidden="false">
+                <div class="rule-list-header-name">Rule</div>
+                <div class="rule-list-header-controls">
+                    ${settingsCol}
+                    <div class="rule-list-header-col rule-list-header-severity">Severity</div>
+                    <div class="rule-list-header-col rule-list-header-fix-strategy">
+                        Agent Fix Strategy
+                        <button type="button" class="fix-strategy-help-btn" data-action="toggle-fix-strategy-help" title="What do these values mean?" aria-label="What do these values mean?">ⓘ</button>
+                    </div>
+                    <div class="rule-list-header-col rule-list-header-toggle">Enabled</div>
+                </div>
+                </div>
+                ${this.fixStrategyHelp()}
+            </div>
+        `;
+    },
+
+    /**
+     * Inline help card for the Agent Fix Strategy column. Visible by default,
+     * dismissible (state persisted), reopenable via the ⓘ button on the header.
+     */
+    fixStrategyHelp() {
+        // Always closed on render; in-memory toggle only.
+        return `
+            <div class="fix-strategy-help" data-fix-strategy-help hidden>
+                <button type="button" class="fix-strategy-help-close" data-action="dismiss-fix-strategy-help" title="Close" aria-label="Close">✖</button>
+                <div class="fix-strategy-help-title">
+                    <strong>Note:</strong> Arcane Auditor does <strong>not</strong> change your code. This setting is metadata: if you point an AI agent at Arcane Auditor's output, the agent reads each finding's fix strategy to decide how (or whether) to apply a fix.
+                    <br><br>
+                    <strong>Agent Fix Strategy</strong> — how amenable a rule's findings are to automated fixing by an AI agent. Set per rule; agents read this to decide which findings are safe to auto-apply.
+                </div>
+                <ul class="fix-strategy-help-list">
+                    <li class="rule-fix-strategy-actionable">
+                        <span class="fix-strategy-chip">actionable</span>
+                        <span class="fix-strategy-help-desc">Finding carries a deterministic fix. You are telling the agent: <strong>apply the suggested replacement directly, without asking first.</strong> Use this for rules where you trust the fix and want the agent to just do it.</span>
+                    </li>
+                    <li class="rule-fix-strategy-human_review">
+                        <span class="fix-strategy-chip">human_review</span>
+                        <span class="fix-strategy-help-desc">Surface the finding and wait for your call. The agent must not auto-resolve. Use this for rules that need judgment, naming decisions, or cross-file thinking.</span>
+                    </li>
+                </ul>
+            </div>
+        `;
+    },
+
+    /**
      * Generates HTML for a single Rule Row
      */
     ruleRow({ ruleName, ruleConfig, isBuiltIn, supportsConfig }) {
         const isEnabled = ruleConfig.enabled;
-        // Use helper logic passed in or calculated here. 
+        // Use helper logic passed in or calculated here.
         // For simplicity, we assume severity override logic is handled before passing data or simple check here
-        const severity = ruleConfig.severity_override || 'ADVICE'; 
-        
+        const severity = ruleConfig.severity_override || 'ADVICE';
+        const fixStrategy = ruleConfig.fix_strategy_override || 'human_review';
+
         const customSettings = ruleConfig.custom_settings || {};
         const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
         const isGhost = ruleConfig._is_ghost === true;
@@ -145,6 +210,15 @@ export const Templates = {
                                 <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
                                 <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
                             </select>
+                            <select class="rule-fix-strategy-select rule-fix-strategy-${fixStrategy}" data-rule="${ruleName}" data-fix-strategy="${fixStrategy}" title="Fix strategy: how an AI agent should handle this rule's findings">
+                                <option value="actionable" ${fixStrategy === 'actionable' ? 'selected' : ''}>actionable</option>
+                                <option value="human_review" ${fixStrategy === 'human_review' ? 'selected' : ''}>human_review</option>
+                            </select>
+                        ` : ''}
+                        ${isBuiltIn ? `
+                            <span class="rule-readonly-badge rule-severity-${severity.toLowerCase()}" title="Default severity for this rule (read-only)">${severity}</span>
+                            <span class="rule-readonly-badge rule-fix-strategy-${fixStrategy}" title="Default fix strategy for this rule (read-only)">${fixStrategy}</span>
+                            <span class="rule-readonly-enabled ${isEnabled ? 'enabled' : 'disabled'}" title="${isEnabled ? 'Enabled' : 'Disabled'} in this preset">${isEnabled ? '✓' : '✕'}</span>
                         ` : ''}
                         ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}
                         ${!isBuiltIn ? `

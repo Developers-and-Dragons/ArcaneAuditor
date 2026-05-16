@@ -21,8 +21,5 @@ uv run pyinstaller ArcaneAuditorDesktop.spec --clean --noconfirm
 Write-Host "🏗 Building CLI"
 uv run pyinstaller ArcaneAuditorCLI.spec --clean --noconfirm
 
-Write-Host "🏗 Building Web"
-uv run pyinstaller ArcaneAuditorWeb.spec --clean --noconfirm
-
 Write-Host "✨ Build complete!"
 Get-ChildItem dist

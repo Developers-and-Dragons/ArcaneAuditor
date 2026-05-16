@@ -1,5 +1,5 @@
 from typing import Generator, List
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
@@ -8,10 +8,12 @@ from ..shared import StructureRuleBase
 
 class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     """Validates that widget IDs follow lowerCamelCase convention (style guide)."""
-    
+
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.WIDGET
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
@@ -119,10 +121,11 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
                 yield self._create_finding(
                     message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                     file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
-                    line=line_number
+                    line=line_number,
+                    path=widget_path or None,
                 )
             return
-        
+
         # Validate the ID follows lowerCamelCase convention
         validation_errors = validate_lower_camel_case(widget_id, 'id', 'widget', widget_id)
         
@@ -141,7 +144,8 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                 file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
-                line=line_number
+                line=line_number,
+                path=widget_path or None,
             )
     
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_id: str) -> int:

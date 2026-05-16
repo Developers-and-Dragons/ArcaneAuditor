@@ -1,14 +1,15 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
 
 class StringBooleanRule(StructureRuleBase):
     """Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans."""
-    
+
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
@@ -72,13 +73,23 @@ class StringBooleanRule(StructureRuleBase):
             for match in matches:
                 field_name = match.group(1)
                 string_value = match.group(2)
-                
+
                 # Skip fields that start with underscore (commented out)
                 if field_name.startswith('_'):
                     continue
-                
+
+                # target_text is the exact source substring (e.g. '"visible": "true"');
+                # suggested_replacement strips the inner quotes around the bool.
+                target_text = match.group(0)
+                quoted_bool_len = len(string_value) + 2  # +2 for surrounding quotes
+                replacement = target_text[:-quoted_bool_len] + string_value
+
                 yield self._create_finding(
                     message=f"Field '{field_name}' has string value '{string_value}' instead of boolean {string_value}. Use boolean {string_value} instead of string '{string_value}'.",
                     file_path=model.file_path,
-                    line=line_num
+                    line=line_num,
+                    suggested_replacement=replacement,
+                    path=f"$..{field_name}",
+                    target_text=target_text,
+                    replacement_context="substring",
                 )

@@ -9,6 +9,8 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 import json
 
+from .rules.base import FixStrategy
+
 
 class SeverityLevel(str, Enum):
     """Severity levels for findings."""
@@ -20,6 +22,7 @@ class RuleConfig(BaseModel):
     """Configuration for a single rule."""
     enabled: bool = Field(default=True, description="Whether this rule is enabled")
     severity_override: Optional[SeverityLevel] = Field(default=None, description="Override the rule's default severity")
+    fix_strategy_override: Optional[FixStrategy] = Field(default=None, description="Override the rule's default fix_strategy (mechanical, localized, naming_required, cascading_rename, refactor, design_decision)")
     custom_settings: Dict[str, Any] = Field(default_factory=dict, description="Custom settings for the rule")
 
 
@@ -194,14 +197,27 @@ class ArcaneAuditorConfig(BaseModel):
         rule_config = getattr(self.rules, rule_class_name, None)
         if rule_config is not None and rule_config.severity_override is not None:
             return rule_config.severity_override.value
-        
+
         # If not predefined, check if it's in the original JSON config
         if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
             custom_rule = self._original_config_data['rules'].get(rule_class_name)
             if custom_rule and 'severity_override' in custom_rule and custom_rule['severity_override'] is not None:
                 return custom_rule['severity_override']
-        
+
         return default_severity
+
+    def get_rule_fix_strategy(self, rule_class_name: str, default_fix_strategy: FixStrategy) -> FixStrategy:
+        """Return the configured fix_strategy override, or the default if none is set."""
+        rule_config = getattr(self.rules, rule_class_name, None)
+        if rule_config is not None and rule_config.fix_strategy_override is not None:
+            return rule_config.fix_strategy_override
+
+        if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
+            custom_rule = self._original_config_data['rules'].get(rule_class_name)
+            if custom_rule and custom_rule.get('fix_strategy_override') is not None:
+                return FixStrategy(custom_rule['fix_strategy_override'])
+
+        return default_fix_strategy
     
     def get_rule_settings(self, rule_class_name: str) -> Dict[str, Any]:
         """Get custom settings for a rule using class name."""

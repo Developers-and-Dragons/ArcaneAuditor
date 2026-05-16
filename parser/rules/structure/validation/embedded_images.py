@@ -123,7 +123,8 @@ class EmbeddedImagesRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Embedded base64 image found in {field_name}. Large files can cause performance issues and/or cause pages to exceed the file size limits. Consider linking to an external image file, instead of embedding it directly.",
                 file_path=file_path,
-                line=line_num
+                line=line_num,
+                path=field_name or None,
             )
     
     def _check_script_for_embedded_images_ast(self, script_content: str, file_path: str, field_name: str, context: ProjectContext = None) -> Generator[Finding, None, None]:
@@ -160,6 +161,7 @@ class EmbeddedImagesRule(StructureRuleBase):
                             yield self._create_finding(
                                 message=f"Embedded base64 image found {context_desc}. Large files can cause performance issues and/or cause pages to exceed the file size limits. Consider linking to an external image file, instead of embedding it directly.",
                                 file_path=file_path,
-                                line=1  # Would need more sophisticated line tracking for AST
+                                line=1,  # Would need more sophisticated line tracking for AST
+                                path=field_name or None,
                             )
     

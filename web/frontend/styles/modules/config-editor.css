@@ -286,6 +286,210 @@
     }
 }
 
+/* Groups column header + optional help card; scrolls with the rule list (not pinned). */
+.rule-list-header-sticky {
+    flex-shrink: 0;
+    margin-bottom: 4px;
+}
+
+/* Column header strip above the list of rule rows.
+   Layout mirrors `.rule-row-header` so each label sits over its control:
+   - .rule-list-header-name: takes flex:1 like .rule-name-container
+   - .rule-list-header-controls: row of fixed-width cells aligned over each control
+   Cell widths match the controls in templates.js (severity 100px, fix-strategy 160px). */
+.rule-list-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.rule-list-header-name {
+    flex: 1;
+}
+
+.rule-list-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* matches .rule-controls-container gap */
+    flex-shrink: 0;
+}
+
+.rule-list-header-col {
+    text-align: center;
+}
+
+/* Match each label cell's width to its corresponding control below.
+   Configure/Settings has dynamic width; pick a reasonable midpoint.
+   Toggle is a small switch; narrow cell. */
+.rule-list-header-configure { width: 110px; }
+.rule-list-header-severity { width: 100px; }
+.rule-list-header-fix-strategy { width: 160px; }
+.rule-list-header-toggle { width: 56px; }
+
+/* Read-only badges shown in built-in (preset) config views.
+   They occupy the same column widths as the editable controls so the header
+   labels line up. Color classes (`rule-severity-*` and `rule-fix-strategy-*`)
+   provide text color via the rules defined elsewhere. */
+.rule-readonly-badge {
+    display: inline-block;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid currentColor;
+    background: transparent;
+    cursor: default;
+    user-select: none;
+}
+.rule-readonly-badge.rule-severity-advice,
+.rule-readonly-badge.rule-severity-action { width: 100px; }
+.rule-readonly-badge[class*="rule-fix-strategy-"] { width: 160px; }
+
+/* Color overrides for read-only badges (the existing rule-severity-select /
+   rule-fix-strategy-select rules are scoped to <select> elements). */
+.rule-readonly-badge.rule-severity-advice { color: #1d4ed8; }
+.rule-readonly-badge.rule-severity-action { color: #c2410c; }
+[data-theme="dark"] .rule-readonly-badge.rule-severity-advice { color: #38bdf8; }
+[data-theme="dark"] .rule-readonly-badge.rule-severity-action { color: #fbbf24; }
+
+.rule-readonly-badge.rule-fix-strategy-actionable { color: #15803d; }
+.rule-readonly-badge.rule-fix-strategy-human_review { color: #475569; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-human_review { color: #cbd5e1; }
+
+/* Read-only enabled indicator (replaces the toggle switch in preset views). */
+.rule-readonly-enabled {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 22px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+}
+.rule-readonly-enabled.enabled { color: #15803d; }
+.rule-readonly-enabled.disabled { color: #94a3b8; }
+[data-theme="dark"] .rule-readonly-enabled.enabled { color: #4ade80; }
+[data-theme="dark"] .rule-readonly-enabled.disabled { color: #64748b; }
+
+/* Info button inside a column-header cell (Agent Fix Strategy column). */
+.fix-strategy-help-btn {
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    vertical-align: middle;
+    opacity: 0.7;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+.fix-strategy-help-btn:hover {
+    opacity: 1;
+    color: #9333ea; /* purple-600 */
+}
+
+/* Inline help card for Agent Fix Strategy.
+   Visible by default (first time), dismissible to localStorage. */
+.fix-strategy-help {
+    position: relative;
+    margin: 8px 0 0 0;
+    padding: 12px 36px 12px 14px;
+    border-left: 3px solid #9333ea; /* purple-600 */
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+.fix-strategy-help[hidden] { display: none; }
+
+.fix-strategy-help-title {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+.fix-strategy-help-title strong {
+    color: var(--text-primary);
+}
+
+.fix-strategy-help-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.fix-strategy-help-list li {
+    display: grid;
+    grid-template-columns: 8.75rem 1fr;
+    gap: 8px 12px;
+    align-items: start;
+    line-height: 1.5;
+    /* Color is set by the `rule-fix-strategy-*` class on the <li>; the chip
+       and the description text both inherit via currentColor, matching the
+       dropdown row's color in each row. */
+}
+
+.fix-strategy-chip {
+    display: inline-block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid currentColor;
+    background: transparent;
+    white-space: nowrap;
+}
+
+.fix-strategy-help-desc {
+    min-width: 0;
+}
+
+.fix-strategy-help-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    opacity: 0.6;
+    border-radius: 4px;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.fix-strategy-help-close:hover {
+    opacity: 1;
+    background: rgba(147, 51, 234, 0.1);
+}
+
 /* Rule Item */
 .rule-item {
     padding: 16px 16px; /* py-4 equivalent - increased vertical padding */
@@ -560,6 +764,59 @@
 [data-theme="dark"] .rule-severity-select option[value="ACTION"] {
     color: #fbbf24; /* amber-400 - bright, readable on dark */
 }
+
+/* Fix-strategy Dropdown — same layout as severity, different colors. */
+/* Five values, grouped by automation friendliness:
+   - green (mechanical) → safest to auto-apply
+   - teal (localized) → safe with verification
+   - amber (naming_required) → agent must invent a name
+   - purple (cascading_rename) → multi-reference; agent should verify
+   - slate (design_decision) → human judgment required
+*/
+.rule-fix-strategy-select {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 2px 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 24px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    width: 160px;
+    text-align: left;
+}
+
+[data-theme="dark"] .rule-fix-strategy-select {
+    background-color: #0f172a;
+    border-color: #334155;
+    box-shadow: none;
+}
+
+.rule-fix-strategy-select:hover,
+.rule-fix-strategy-select:focus {
+    outline: none;
+    border-color: #9333ea;
+}
+
+.rule-fix-strategy-select.rule-fix-strategy-actionable { color: #15803d; }    /* green-700 */
+.rule-fix-strategy-select.rule-fix-strategy-human_review { color: #475569; }  /* slate-600 */
+
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-human_review { color: #cbd5e1; }
+
+/* Same color palette applied to help-card list items so the legend matches each row. */
+.fix-strategy-help-list li.rule-fix-strategy-actionable { color: #15803d; }
+.fix-strategy-help-list li.rule-fix-strategy-human_review { color: #475569; }
+
+[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-human_review { color: #cbd5e1; }
 
 /* --- Configure Button Styles --- */
 

@@ -201,12 +201,12 @@ cython_debug/
 .pypirc
 
 # Cursor
-#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
-#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
-#  refer to https://docs.cursor.com/context/ignore-files
 .cursor/
 .cursorignore
 .cursorindexingignore
+
+# Claude
+.claude/
 
 # Marimo
 marimo/_static/

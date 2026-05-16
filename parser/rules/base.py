@@ -1,9 +1,30 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Generator, Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from ..models import ProjectContext, PMDModel, PodModel
 from lark import Tree
 import re
+
+
+class FixStrategy(str, Enum):
+    """How an AI agent should handle a rule's findings.
+
+    Values are str-enums so they serialize cleanly to JSON.
+    """
+    ACTIONABLE = "actionable"        # Deterministic fix; agent applies suggested_replacement directly without prompting
+    HUMAN_REVIEW = "human_review"    # Surface to the human and wait for their decision; agent must not auto-resolve
+
+
+class Category(str, Enum):
+    """Broad classification for grouping/filtering rules."""
+    SCRIPT = "script"
+    STRUCTURE = "structure"
+    ENDPOINT = "endpoint"
+    WIDGET = "widget"
+    ORCHESTRATION = "orchestration"
+    CUSTOM = "custom"
+
 
 @dataclass
 class Finding:
@@ -12,12 +33,34 @@ class Finding:
     message: str
     line: int = 0
     file_path: str = ""
-    
+    snippet: Optional[str] = None
+    suggested_replacement: Optional[str] = None
+    path: Optional[str] = None
+    # Agent-only enrichment for deterministic fix application.
+    # See Violation for semantics. Surfaced in agent JSON output only;
+    # console / Excel / summary formats ignore these fields.
+    target_text: Optional[str] = None
+    replacement_context: Optional[str] = None
+
     def __post_init__(self):
         # Set derived fields automatically
         self.rule_id = self.rule.__class__.__name__
         self.rule_description = self.rule.DESCRIPTION
         self.severity = self.rule.SEVERITY
+        self.category = self.rule.CATEGORY
+        self.fix_strategy = self.rule.FIX_STRATEGY
+        # True when the user's config promoted/demoted the rule's default
+        # strategy. RulesEngine stashes the original on `_fix_strategy_default`
+        # at override time; absence of that attr means the strategy is the
+        # rule-author default.
+        default_strategy = getattr(self.rule, '_fix_strategy_default', None)
+        self.fix_strategy_overridden = (
+            default_strategy is not None and default_strategy != self.fix_strategy
+        )
+        # Line intentionally excluded so re-runs after a fix still join.
+        import hashlib
+        raw = f"{self.rule_id}|{self.file_path}|{self.path or ''}|{self.message}"
+        self.finding_id = "sha1:" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
     def __repr__(self) -> str:
         return f"[{self.rule_id}:{self.line}] ({self.severity}) in '{self.file_path}': {self.message}"
@@ -29,7 +72,14 @@ class Rule(ABC):
     ID: str = "RULE000"
     DESCRIPTION: str = "This is a base rule."
     SEVERITY: str = "ADVICE" # Can be 'ADVICE', 'ACTION'
-    
+
+    # Broad category for filtering/grouping. Default STRUCTURE; ScriptRuleBase overrides to SCRIPT.
+    CATEGORY: Category = Category.STRUCTURE
+
+    # How an agent should handle this rule's findings.
+    # Default HUMAN_REVIEW (safest — agents should surface, not act).
+    FIX_STRATEGY: FixStrategy = FixStrategy.HUMAN_REVIEW
+
     # Dictionary defining available custom settings.
     # If empty, the rule does not support custom configuration.
     AVAILABLE_SETTINGS: Dict[str, Any] = {}

@@ -98,7 +98,19 @@ class RulesEngine:
             if configured_severity != original_severity:
                 rule.SEVERITY = configured_severity
                 info(f"[CONFIG] Override severity for {rule.__class__.__name__}: {original_severity} -> {configured_severity}")
-        
+
+        # Override fix_strategy if configured
+        if hasattr(rule, 'FIX_STRATEGY'):
+            original_strategy = rule.FIX_STRATEGY
+            configured_strategy = self.config.get_rule_fix_strategy(rule.__class__.__name__, original_strategy)
+            if configured_strategy != original_strategy:
+                # Preserve the rule-author default so Finding can flag overrides
+                # in the agent JSON. Agents need this to know the rule wasn't
+                # designed with a deterministic fix payload in mind.
+                rule._fix_strategy_default = original_strategy
+                rule.FIX_STRATEGY = configured_strategy
+                info(f"[CONFIG] Override fix_strategy for {rule.__class__.__name__}: {original_strategy.value} -> {configured_strategy.value}")
+
         # Apply custom settings if the rule supports it
         custom_settings = self.config.get_rule_settings(rule.__class__.__name__)
         if custom_settings and hasattr(rule, 'apply_settings'):
@@ -151,7 +163,10 @@ class RulesEngine:
                             all_findings.extend(findings_from_rule)
                     except Exception as e:
                         error(f"Error running rule {rule.__class__.__name__}: {e}")
-        
+
+        # Deterministic ordering: Sort by (file_path, line, rule_id, message) so two identical
+        # runs produce byte-identical output regardless of serial/parallel execution.
+        all_findings.sort(key=lambda f: (f.file_path, f.line, f.rule_id, f.message))
         return all_findings
     
     def _run_rule_safe(self, rule: Rule, context: ProjectContext) -> List[Finding]:

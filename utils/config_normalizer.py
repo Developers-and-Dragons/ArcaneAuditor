@@ -125,6 +125,11 @@ def normalize_config_rules(
                 # Fall back to production rule for default severity
                 normalized_rule["severity_override"] = production_rule.get("severity_override")
 
+            if "fix_strategy_override" in current_rule:
+                normalized_rule["fix_strategy_override"] = current_rule["fix_strategy_override"]
+            else:
+                normalized_rule["fix_strategy_override"] = production_rule.get("fix_strategy_override")
+
             normalized_rule["custom_settings"] = _merge_custom_settings(
                 production_rule.get("custom_settings"),
                 current_rule.get("custom_settings"),
@@ -133,6 +138,7 @@ def normalize_config_rules(
             # Rule missing from user's config - treat as new default rule
             normalized_rule["enabled"] = default_enabled
             normalized_rule["severity_override"] = production_rule.get("severity_override")
+            normalized_rule["fix_strategy_override"] = production_rule.get("fix_strategy_override")
             normalized_rule["custom_settings"] = deepcopy(production_rule.get("custom_settings", {}))
 
         normalized[rule_name] = normalized_rule

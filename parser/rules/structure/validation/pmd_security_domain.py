@@ -109,7 +109,8 @@ class PMDSecurityDomainRule(Rule):
                 rule=self,
                 file_path=pmd_model.file_path,
                 line=1,  # Security domains are typically defined at the top of PMD files
-                message=message
+                message=message,
+                path="$.securityDomains",
             )
     
     def _is_micro_conclusion_page(self, pmd_model: PMDModel) -> bool:

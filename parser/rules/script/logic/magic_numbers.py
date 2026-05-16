@@ -2,7 +2,7 @@
 
 from ...script.shared import ScriptRuleBase
 from .magic_number_detector import MagicNumberDetector
-from ...base import Finding
+from ...base import Finding, FixStrategy
 
 
 class ScriptMagicNumberRule(ScriptRuleBase):
@@ -10,6 +10,7 @@ class ScriptMagicNumberRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = MagicNumberDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
@@ -47,7 +48,7 @@ function calculateDiscount(price) {
         'recommendation': 'Replace magic numbers with named constants that clearly express their purpose. This makes code more maintainable and provides a single source of truth for values that might need to change.'
     }
 
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None):
         """Override to pass source text to detector for code context extraction."""
         # Strip <% %> tags from script content if present
         clean_script_content = self._strip_script_tags(script_content)
@@ -63,12 +64,15 @@ function calculateDiscount(price) {
         
         # Convert violations to findings
         if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
+            from utils.jsonpath import dotted_to_jsonpath
+            jsonpath = dotted_to_jsonpath(path)
             for violation in violations:
                 yield Finding(
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    file_path=file_path
+                    file_path=file_path,
+                    path=jsonpath,
                 )
 
     def get_description(self) -> str:

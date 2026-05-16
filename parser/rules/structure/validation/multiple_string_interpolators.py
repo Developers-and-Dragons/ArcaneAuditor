@@ -11,7 +11,7 @@ Example:
 import re
 from typing import Generator
 
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -30,6 +30,7 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     ID = "MultipleStringInterpolatorsRule"
     DESCRIPTION = "Detects multiple string interpolators in a single string which should use template literals instead"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
@@ -102,13 +103,31 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
                 # Check if it's already a template literal (has backticks with {{}} syntax)
                 if '`' in string_value and '{{' in string_value:
                     continue  # Already using template literal
-                
+
                 # Calculate line number
                 line_num = self.get_line_from_text_position(source_content, match.start())
-                
+
+                # Build replacement: each <% expr %> becomes {{expr}}; wrap the
+                # transformed string in backticks and a single <% %>.
+                inner = re.sub(
+                    interpolator_pattern,
+                    lambda m: '{{' + m.group(0)[2:-2].strip() + '}}',
+                    string_value,
+                )
+                replacement = f"<% `{inner}` %>"
+
                 yield self._create_finding(
                     message=f"String has {len(interpolators)} interpolators. Use a SINGLE interpolator with template literals inside: <% `Use template literal with {{{{variable}}}}` %>",
                     file_path=file_path,
-                    line=line_num
+                    line=line_num,
+                    suggested_replacement=replacement,
+                    path="$",
+                    # The regex's char class excludes ``"`` and ``'``, so
+                    # ``string_value`` is guaranteed not to contain a quote —
+                    # safe to substring-swap inside the source file. The
+                    # surrounding quotes are preserved by leaving them out of
+                    # both ``target_text`` and ``suggested_replacement``.
+                    target_text=string_value,
+                    replacement_context="substring",
                 )
 

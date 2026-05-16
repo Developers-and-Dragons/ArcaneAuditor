@@ -194,10 +194,82 @@ class TestRulesEngine:
         # Create engine with mock rules to simulate real package structure
         engine = RulesEngine()
         engine.rules = [MockRule()]
-        
+
         # Should discover the rule
         assert len(engine.rules) == 1
         assert isinstance(engine.rules[0], MockRule)
+
+
+def _make_ordering_rule(class_name: str, findings_data):
+    """Factory: build a Rule subclass that yields the given (file_path, line, message) findings."""
+    def analyze(self, context):
+        for fp, line, msg in findings_data:
+            yield Finding(rule=self, message=msg, file_path=fp, line=line)
+
+    return type(class_name, (Rule,), {
+        'ID': class_name,
+        'DESCRIPTION': f"Mock {class_name} for ordering tests",
+        'SEVERITY': 'ADVICE',
+        'analyze': analyze,
+    })
+
+
+class TestDeterministicOrdering:
+    """Findings must be deterministically ordered for agent consumption."""
+
+    def setup_method(self):
+        self.context = ProjectContext()
+
+    def _build_engine(self, rule_count: int) -> RulesEngine:
+        """Build an engine with `rule_count` ordering rules. Each yields scrambled findings."""
+        rules = []
+        for i in range(rule_count):
+            cls = _make_ordering_rule(
+                f"OrderingRule{i:02d}",
+                [
+                    ("file_b.pmd", 10 - i, f"msg_z_{i}"),
+                    ("file_a.pmd", i + 1, f"msg_a_{i}"),
+                    ("file_a.pmd", i + 1, f"msg_b_{i}"),
+                ],
+            )
+            rules.append(cls())
+        engine = RulesEngine()
+        engine.rules = rules
+        return engine
+
+    def test_findings_sorted_serial_path(self):
+        """≤5 rules: findings sorted by (file_path, line, rule_id, message)."""
+        engine = self._build_engine(rule_count=3)
+        result = engine.run(self.context)
+
+        keys = [(f.file_path, f.line, f.rule_id, f.message) for f in result]
+        assert keys == sorted(keys), f"Findings not sorted: {keys}"
+
+    def test_findings_sorted_parallel_path(self):
+        """>5 rules triggers ThreadPoolExecutor; output must still be deterministically ordered."""
+        engine = self._build_engine(rule_count=8)
+        result = engine.run(self.context)
+
+        keys = [(f.file_path, f.line, f.rule_id, f.message) for f in result]
+        assert keys == sorted(keys), f"Findings not sorted: {keys}"
+
+    def test_findings_repeatable_across_runs(self):
+        """Two runs over the same input must produce identical finding sequences (parallel path)."""
+        engine = self._build_engine(rule_count=8)
+
+        run_1 = [(f.file_path, f.line, f.rule_id, f.message) for f in engine.run(self.context)]
+        run_2 = [(f.file_path, f.line, f.rule_id, f.message) for f in engine.run(self.context)]
+
+        assert run_1 == run_2
+
+    def test_findings_repeatable_serial_path(self):
+        """Two runs (serial path) must produce identical finding sequences."""
+        engine = self._build_engine(rule_count=3)
+
+        run_1 = [(f.file_path, f.line, f.rule_id, f.message) for f in engine.run(self.context)]
+        run_2 = [(f.file_path, f.line, f.rule_id, f.message) for f in engine.run(self.context)]
+
+        assert run_1 == run_2
 
 
 if __name__ == "__main__":

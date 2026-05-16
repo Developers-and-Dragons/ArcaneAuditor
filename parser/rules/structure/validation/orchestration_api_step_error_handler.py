@@ -1,7 +1,7 @@
 """Rule to require a local error handler on every API step in orchestrations."""
 
 from typing import Generator, List, Any
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
 from ..shared.orchestration_error_handler_utils import (
@@ -104,6 +104,8 @@ class OrchestrationApiStepErrorHandlerRule(StructureRuleBase):
     ID = "OrchestrationApiStepErrorHandlerRule"
     DESCRIPTION = "Ensures every API step has a local error handler with a log step (or Add Integration Message for Integration templates)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {
@@ -151,6 +153,7 @@ class OrchestrationApiStepErrorHandlerRule(StructureRuleBase):
                         file_path=file_path,
                         line=1,
                         message=f"API step '{step_name}' must have a local error handler.",
+                        path=f"$..nodes[?(@.name=='{step_name}')]",
                     )
                 elif not _api_step_handler_has_required_step(node_value, flow_type):
                     yield Finding(
@@ -158,6 +161,7 @@ class OrchestrationApiStepErrorHandlerRule(StructureRuleBase):
                         file_path=file_path,
                         line=1,
                         message=f"API step '{step_name}' error handler must contain a log step (or Add Integration Message step for Integration templates).",
+                        path=f"$..nodes[?(@.name=='{step_name}')].errorHandler",
                     )
             for child_list in _get_child_node_lists(node_value):
                 yield from self._visit_node_list(child_list, file_path, orch_name, flow_type)

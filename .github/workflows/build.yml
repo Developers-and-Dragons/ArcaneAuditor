@@ -85,5 +85,4 @@ jobs:
             dist/ArcaneAuditor*.exe
             dist/ArcaneAuditor*.app*
             dist/ArcaneAuditorCLI*
-            dist/ArcaneAuditorWeb.exe
             build-logs/

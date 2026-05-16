@@ -172,7 +172,7 @@ export const Templates = {
             <div class="finding ${finding.severity.toLowerCase()}">
                 <div class="finding-header">
                     ${getSeverityIcon(finding.severity)}
-                    <strong>[${finding.rule_id}]</strong> ${finding.message}
+                    <strong>[<a class="finding-rule-link" data-rule="${finding.rule_id}" role="button" tabindex="0" title="Open Grimoire entry for ${finding.rule_id}">${finding.rule_id}</a>]</strong> ${finding.message}
                 </div>
                 <div class="finding-details">
                     <span><strong>Line:</strong> ${finding.line}</span>

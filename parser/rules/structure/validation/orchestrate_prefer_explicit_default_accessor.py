@@ -3,9 +3,10 @@
 import re
 from typing import Any, Generator, List, Tuple, Union
 
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import ProjectContext, PMDModel, PodModel, OrchestrationModel
 from ..shared import StructureRuleBase
+from utils.jsonpath import tuple_path_to_jsonpath
 from ..shared.orchestration_path_utils import (
     get_template_line_number,
     resolve_ui_location,
@@ -42,6 +43,8 @@ class OrchestratePreferExplicitDefaultAccessor(StructureRuleBase):
     ID = "OrchestratePreferExplicitDefaultAccessor"
     DESCRIPTION = "Prefer default-capable functions over exception-throwing functions"
     SEVERITY = "ADVICE"
+    CATEGORY = Category.ORCHESTRATION
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {
@@ -85,4 +88,5 @@ class OrchestratePreferExplicitDefaultAccessor(StructureRuleBase):
                         file_path=file_path,
                         line=finding_line,
                         message=message,
+                        path=tuple_path_to_jsonpath(path),
                     )

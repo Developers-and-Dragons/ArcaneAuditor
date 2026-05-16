@@ -2,7 +2,7 @@
 
 from typing import Generator, Set
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel, PodModel
 from .unused_variables_detector import UnusedVariableDetector
 
@@ -12,6 +12,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedVariableDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
@@ -46,7 +47,7 @@ function processData() {
         """Get rule description."""
         return self.DESCRIPTION
 
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None) -> Generator[Finding, None, None]:
         """Check script content using the detector with scope awareness."""
         # Parse the script content
         ast = self._parse_script_content(script_content, context)
@@ -66,12 +67,15 @@ function processData() {
         violations = detector.detect(ast, field_name)
         
         # Convert violations to findings
+        from utils.jsonpath import dotted_to_jsonpath
+        jsonpath = dotted_to_jsonpath(path)
         for violation in violations:
             yield Finding(
                 rule=self,
                 message=violation.message,
                 line=violation.line,
-                file_path=file_path
+                file_path=file_path,
+                path=jsonpath,
             )
 
     def _get_global_functions_for_file(self, file_path: str) -> Set[str]:

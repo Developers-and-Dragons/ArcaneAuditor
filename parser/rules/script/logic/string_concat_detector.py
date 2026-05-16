@@ -56,9 +56,77 @@ class StringConcatDetector(ScriptDetector):
                 
                 yield Violation(
                     message=message,
-                    line=line_number
+                    line=line_number,
+                    suggested_replacement=self._to_template_literal(add_expr),
+                    target_text=concat_text,
+                    replacement_context="substring",
                 )
     
+    def _to_template_literal(self, add_expr: Tree):
+        """Convert a string-concat additive_expression into a PMD template literal.
+
+        Returns a string like ``"`hello {{name}}`"`` — string literals are inlined
+        with their quotes stripped; non-string operands are wrapped in ``{{ }}``.
+        Returns None if the AST cannot be flattened cleanly.
+        """
+        operands = self._flatten_concat_operands(add_expr)
+        if not operands:
+            return None
+        parts = []
+        for operand in operands:
+            if self._is_string_literal(operand):
+                parts.append(self._strip_string_quotes(operand))
+            elif self._is_template_literal(operand):
+                # Already a template literal — unwrap its content into the new one.
+                inner = self._strip_string_quotes(operand)
+                parts.append(inner)
+            else:
+                expr_text = self._extract_expression_text(operand).strip()
+                if not expr_text:
+                    return None
+                parts.append(f"{{{{{expr_text}}}}}")
+        return f"`{''.join(parts)}`"
+
+    def _flatten_concat_operands(self, add_expr: Tree):
+        """Flatten nested additive_expression nodes into a left-to-right operand list."""
+        operands = []
+        for child in add_expr.children:
+            if isinstance(child, Tree) and child.data == 'additive_expression':
+                operands.extend(self._flatten_concat_operands(child))
+            elif isinstance(child, Tree):
+                operands.append(child)
+            # Token operators (e.g. '+') are skipped.
+        return operands
+
+    def _is_string_literal(self, node) -> bool:
+        if not isinstance(node, Tree) or node.data != 'literal_expression':
+            return False
+        if not node.children:
+            return False
+        child = node.children[0]
+        return (
+            hasattr(child, 'value')
+            and isinstance(child.value, str)
+            and len(child.value) >= 2
+            and child.value[0] in ('"', "'")
+        )
+
+    def _is_template_literal(self, node) -> bool:
+        if not isinstance(node, Tree) or node.data != 'literal_expression':
+            return False
+        if not node.children:
+            return False
+        child = node.children[0]
+        return (
+            hasattr(child, 'value')
+            and isinstance(child.value, str)
+            and child.value.startswith('`')
+        )
+
+    def _strip_string_quotes(self, node: Tree) -> str:
+        raw = node.children[0].value
+        return raw[1:-1] if len(raw) >= 2 else raw
+
     def _is_string_concatenation(self, add_expr: Tree) -> bool:
         """Check if an addition expression is actually string concatenation."""
         if not isinstance(add_expr, Tree) or add_expr.data != 'additive_expression':

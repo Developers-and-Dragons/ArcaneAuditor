@@ -1,15 +1,18 @@
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
+from utils.jsonpath import endpoint_jsonpath
 
 
 class EndpointFailOnStatusCodesRule(StructureRuleBase):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
-    
+
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "ACTION"
+    CATEGORY = Category.ENDPOINT
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
@@ -89,7 +92,12 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                # `field_insert`: location.path points to the endpoint object;
+                # suggested_replacement is the new "key": value pair to add.
+                suggested_replacement='"failOnStatusCodes": [{"code": 400}, {"code": 403}]',
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index),
+                replacement_context="field_insert",
             )
             return
 
@@ -122,11 +130,23 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
         # If there are missing codes, yield a finding
         if missing_codes:
             line_number = self._get_fail_on_status_codes_line_number(model, endpoint_name, endpoint_type)
-            missing_codes_str = ', '.join(map(str, sorted(missing_codes)))
+            sorted_missing = sorted(missing_codes)
+            missing_codes_str = ', '.join(map(str, sorted_missing))
+            # Replacement is the entries to ADD, not the full array. Agent splices
+            # into the existing array; any existing non-required codes (e.g. 500)
+            # are preserved. Distinguishable from the field-missing case (above)
+            # by the lack of the "failOnStatusCodes": and []  wrapper.
+            replacement = ', '.join(f'{{"code": {c}}}' for c in sorted_missing)
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                # `array_splice`: location.path points to the failOnStatusCodes
+                # array; suggested_replacement is the comma-separated elements
+                # to insert. Existing entries (e.g., {"code": 500}) are preserved.
+                suggested_replacement=replacement,
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='failOnStatusCodes'),
+                replacement_context="array_splice",
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

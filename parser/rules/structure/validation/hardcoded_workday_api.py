@@ -4,8 +4,9 @@
 import re
 from typing import Generator, List, Dict, Any
 from parser.rules.structure.shared.rule_base import StructureRuleBase
-from parser.rules.base import Finding
+from parser.rules.base import Finding, FixStrategy
 from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
+from utils.jsonpath import data_provider_jsonpath, endpoint_jsonpath
 
 
 class HardcodedWorkdayAPIRule(StructureRuleBase):
@@ -14,6 +15,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
     ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
@@ -74,6 +76,34 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
             r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com[^\s\'"]*',
             re.IGNORECASE
         )
+        # Same pattern with the path captured, for building the replacement.
+        self._workday_with_path = re.compile(
+            r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com([^\s\'"]*)',
+            re.IGNORECASE
+        )
+
+    def _build_replacement(self, url: str):
+        """Strip the workday.com host and wrap the remaining path in apiGatewayEndpoint."""
+        m = self._workday_with_path.search(url)
+        if not m:
+            return None
+        path = m.group(1)
+        return f"<% apiGatewayEndpoint + '{path}' %>"
+
+    def _build_swap(self, value: str):
+        """Return (target_text, replacement) for a substring swap.
+
+        Matches just the workday.com URL substring so the rule works whether
+        the field is a bare URL (``"https://api.workday.com/..."``) or a value
+        with surrounding context. Returns ``(None, None)`` if the URL can't
+        be located — callers should treat that as 'enrichment unavailable'.
+        """
+        url_match = self.workday_url_pattern.search(value)
+        if not url_match:
+            return None, None
+        target_text = url_match.group(0)
+        replacement = self._build_replacement(target_text)
+        return target_text, replacement
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
@@ -131,14 +161,19 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
                 continue
             
             # Check if the value contains hardcoded *.workday.com URLs
-            if self.workday_url_pattern.search(value):
+            target_text, replacement = self._build_swap(value)
+            if target_text is not None:
                 line_number = self._get_amd_data_provider_line_number(amd_model, key, value)
                 finding = Finding(
                     rule=self,
                     message=f"AMD dataProvider '{key}' uses hardcoded *.workday.com URL: '{value}'. "
                            f"Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
                     line=line_number,
-                    file_path=amd_model.file_path
+                    file_path=amd_model.file_path,
+                    suggested_replacement=replacement,
+                    path=data_provider_jsonpath(key),
+                    target_text=target_text,
+                    replacement_context="substring",
                 )
                 yield finding
 
@@ -155,14 +190,19 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
             return
         
         # Check for hardcoded *.workday.com URLs
-        if self.workday_url_pattern.search(url):
+        target_text, replacement = self._build_swap(url)
+        if target_text is not None:
             line_number = self._get_endpoint_url_line_number(model, endpoint_name, endpoint_type)
-            
+
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' uses hardcoded *.workday.com URL: '{url}'. "
                        f"Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                suggested_replacement=replacement,
+                path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='url'),
+                target_text=target_text,
+                replacement_context="substring",
             )
 
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

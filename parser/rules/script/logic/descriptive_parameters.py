@@ -2,7 +2,7 @@
 
 from typing import Generator, Dict, List
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from .descriptive_parameters_detector import DescriptiveParameterDetector
 
 
@@ -11,6 +11,7 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'a', 'b' for sort)"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = DescriptiveParameterDetector
     AVAILABLE_SETTINGS = {
         'allowed_single_letters': {'type': 'list', 'default': [], 'description': 'Additional single-letter parameter names to allow beyond built-in exceptions'}
@@ -70,7 +71,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
         """Get rule description."""
         return self.DESCRIPTION
     
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None, path=None) -> Generator[Finding, None, None]:
         """Check script content using the detector with rule-specific configuration."""
         # Parse the script content with context for caching
         ast = self._parse_script_content(script_content, context)
@@ -88,10 +89,13 @@ const total = numbers.reduce((acc, num) => {acc + num});
         # Convert violations to findings
         # Handle both List[Violation] and Generator[Violation, None, None]
         if hasattr(violations, '__iter__') and not isinstance(violations, str):
+            from utils.jsonpath import dotted_to_jsonpath
+            jsonpath = dotted_to_jsonpath(path)
             for violation in violations:
                 yield Finding(
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    file_path=file_path
+                    file_path=file_path,
+                    path=jsonpath,
                 )

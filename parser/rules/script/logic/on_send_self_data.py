@@ -2,7 +2,7 @@
 
 from typing import Generator, List, Tuple
 from ...script.shared import ScriptRuleBase
-from ...base import Finding
+from ...base import Finding, FixStrategy
 from ....models import PMDModel
 from .on_send_self_data_detector import OnSendSelfDataDetector
 
@@ -12,6 +12,7 @@ class ScriptOnSendSelfDataRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = OnSendSelfDataDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

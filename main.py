@@ -1,5 +1,7 @@
 import typer
 from typing import Optional
+import json
+import os
 import time
 from pathlib import Path
 from file_processing import FileProcessor
@@ -23,6 +25,9 @@ def main_callback(
     if version:
         typer.echo(f"Arcane Auditor v{__version__}")
         raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(2)
 
 # Ensure sample rule config is seeded
 ensure_sample_rule_config()
@@ -33,12 +38,18 @@ def review_app(
     path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
     additional_files: list[Path] = typer.Argument(None, help="Additional files to analyze (optional)"),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
-    output_format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: console (default), json (default with --ci), summary, or excel."),
+    output_format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: console (default), JSON (default with --ci), summary, or excel."),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
     show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
     fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)"),
-    ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, json format, default output file (overridable by explicit --format/--output)"),
+    ci: bool = typer.Option(False, "--ci", help="CI preset: quiet, JSON format, default output file (overridable by explicit --format/--output)"),
+    agent: bool = typer.Option(False, "--agent", help="Agent preset: quiet, JSON to stdout. Mutually exclusive with --ci and non-JSON --format."),
+    rules_filter: Optional[str] = typer.Option(None, "--rules", help="Comma-separated list of rule IDs to run (others skipped). Unknown rule -> exit 2."),
+    exclude_rules: Optional[str] = typer.Option(None, "--exclude-rules", help="Comma-separated list of rule IDs to skip. Unknown rule -> exit 2."),
+    severity_filter: Optional[str] = typer.Option(None, "--severity", help="Filter findings by severity (ACTION or ADVICE)."),
+    fix_strategy_filter: Optional[str] = typer.Option(None, "--fix-strategy", help="Filter findings by fix_strategy (comma-separated: actionable, human_review)."),
+    files_glob: Optional[str] = typer.Option(None, "--files", help="Comma-separated glob patterns (fnmatch) limiting which input files are parsed (e.g. '*.pmd', '*.pod,*.script'). A file is kept if ANY pattern matches."),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
@@ -55,10 +66,28 @@ def review_app(
     - 2: Usage Error - Invalid config, bad file path, no files found, invalid format
     - 3: Runtime Error - Parsing failed, analysis crashed, unexpected errors
     """
-    # Effective settings: --ci preset with explicit args winning
-    effective_quiet = quiet or ci
-    effective_output_format = output_format if output_format is not None else ("json" if ci else "console")
-    effective_output_file = output_file if output_file is not None else (Path("arcane-auditor-results.json") if ci else None)
+    # --agent preset: quiet, json to stdout. Mutually exclusive with --ci and
+    # incompatible with non-json --format.
+    if agent and ci:
+        error("--agent and --ci are mutually exclusive")
+        raise typer.Exit(2)
+    if agent and output_format is not None and output_format.lower() != "json":
+        error("--agent requires --format json (or omit --format)")
+        raise typer.Exit(2)
+
+    # Effective settings: --agent / --ci presets with explicit args winning.
+    effective_quiet = quiet or ci or agent
+    if agent:
+        effective_output_format = "json"
+    elif output_format is not None:
+        effective_output_format = output_format
+    else:
+        effective_output_format = "json" if ci else "console"
+    # --agent goes to stdout; --ci writes a default file unless overridden.
+    if agent:
+        effective_output_file = output_file
+    else:
+        effective_output_file = output_file if output_file is not None else (Path("arcane-auditor-results.json") if ci else None)
     set_quiet(effective_quiet)
 
     # Start overall timing
@@ -123,6 +152,19 @@ def review_app(
         error(f"File Processing Error: {e}")
         raise typer.Exit(2)  # Exit code 2 for usage errors
 
+    if files_glob:
+        import fnmatch
+        patterns = [p.strip() for p in files_glob.split(",") if p.strip()]
+        before = len(source_files_map)
+        source_files_map = {
+            k: v for k, v in source_files_map.items()
+            if any(
+                fnmatch.fnmatch(k, p) or fnmatch.fnmatch(os.path.basename(k), p)
+                for p in patterns
+            )
+        }
+        info(f"--files '{files_glob}' kept {len(source_files_map)}/{before} files")
+
     file_processing_time = time.time() - file_processing_start_time
     info(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
@@ -171,6 +213,21 @@ def review_app(
         rules_init_start_time = time.time()
         rules_engine = RulesEngine(config)
         rules_init_time = time.time() - rules_init_start_time
+
+        if rules_filter or exclude_rules:
+            available_ids = {r.__class__.__name__ for r in rules_engine.rules}
+            include_set = {x.strip() for x in rules_filter.split(",")} if rules_filter else None
+            exclude_set = {x.strip() for x in exclude_rules.split(",")} if exclude_rules else set()
+            unknown = ((include_set or set()) | exclude_set) - available_ids
+            if unknown:
+                error(f"Unknown rule(s): {', '.join(sorted(unknown))}")
+                raise typer.Exit(2)
+            rules_engine.rules = [
+                r for r in rules_engine.rules
+                if (include_set is None or r.__class__.__name__ in include_set)
+                and r.__class__.__name__ not in exclude_set
+            ]
+
         info(f"Loaded {len(rules_engine.rules)} validation rules")
         if show_timing:
             info(f"Rules engine initialization: {rules_init_time:.2f}s")
@@ -179,6 +236,26 @@ def review_app(
         analysis_start_time = time.time()
         findings = rules_engine.run(context)
         analysis_time = time.time() - analysis_start_time
+
+        if severity_filter:
+            sev = severity_filter.upper()
+            if sev not in {"ACTION", "ADVICE"}:
+                error(f"Invalid severity: {severity_filter}. Valid: ACTION, ADVICE")
+                raise typer.Exit(2)
+            findings = [f for f in findings if f.severity == sev]
+
+        if fix_strategy_filter:
+            from parser.rules.base import FixStrategy
+            valid = {fs.value for fs in FixStrategy}
+            wanted = {s.strip().lower() for s in fix_strategy_filter.split(",")}
+            unknown = wanted - valid
+            if unknown:
+                error(f"Invalid fix_strategy value(s): {', '.join(sorted(unknown))}. Valid: {', '.join(sorted(valid))}")
+                raise typer.Exit(2)
+            findings = [
+                f for f in findings
+                if (f.fix_strategy.value if hasattr(f.fix_strategy, "value") else str(f.fix_strategy)) in wanted
+            ]
 
         if findings:
             info(f"Analysis complete. Found {len(findings)} issue(s).")
@@ -244,6 +321,10 @@ def review_app(
             else:
                 result(formatted_output)
 
+    except typer.Exit:
+        # Validation failures (e.g. unknown filter values) carry their own exit
+        # code; don't remap them to the generic analysis-error code.
+        raise
     except Exception as e:
         error(f"Analysis Error: {e}")
         error("This might be due to unsupported syntax or corrupted files")
@@ -336,21 +417,62 @@ def generate_config(
     typer.echo("You can now edit this file to enable/disable rules and customize settings.")
 
 
+def _rule_to_dict(rule, config) -> dict:
+    """Serialize a Rule instance for machine-readable introspection commands."""
+    rule_name = rule.__class__.__name__
+    category = getattr(rule, "CATEGORY", None)
+    fix_strategy = getattr(rule, "FIX_STRATEGY", None)
+    return {
+        "rule_id": rule_name,
+        "category": category.value if hasattr(category, "value") else str(category),
+        "severity": config.get_rule_severity(rule_name, rule.SEVERITY),
+        "fix_strategy": fix_strategy.value if hasattr(fix_strategy, "value") else str(fix_strategy),
+        "description": getattr(rule, "DESCRIPTION", ""),
+        "enabled": config.is_rule_enabled(rule_name),
+        "available_settings": dict(getattr(rule, "AVAILABLE_SETTINGS", {}) or {}),
+    }
+
+
 @app.command()
-def list_rules():
+def list_rules(
+    output_format: Optional[str] = typer.Option(
+        None, "--format", "-f",
+        help="Output format: text (default, human-readable) or json (sorted by rule_id, machine-readable).",
+    ),
+):
     """
     List all available rules and their current status.
     """
     config = ArcaneAuditorConfig()
+
+    # Quiet mode for JSON: suppress rule-discovery info() chatter that would pollute stdout.
+    if output_format and output_format.lower() == "json":
+        set_quiet(True)
+
+    rules_engine = RulesEngine(config)
+    discovered_rules = rules_engine.rules
+
+    if output_format is not None:
+        fmt = output_format.lower()
+        if fmt == "json":
+            payload = [
+                _rule_to_dict(r, config)
+                for r in sorted(discovered_rules, key=lambda r: r.__class__.__name__)
+            ]
+            for entry in payload:
+                entry["available_settings"] = {
+                    k: (v.value if hasattr(v, "value") else v)
+                    for k, v in entry["available_settings"].items()
+                }
+            typer.echo(json.dumps(payload, indent=2))
+            return
+        elif fmt != "text":
+            error(f"Invalid format: {output_format}. Valid: text, json")
+            raise typer.Exit(2)
+
     typer.echo("Available rules:")
     typer.echo("=" * 80)
-    
-    # Use the rules engine to discover all available rules dynamically
-    rules_engine = RulesEngine(config)
-    
-    # Get all discovered rules
-    discovered_rules = rules_engine.rules
-    
+
     if not discovered_rules:
         typer.echo("No rules discovered.")
         return
@@ -412,6 +534,52 @@ def list_rules():
             typer.echo()
     
     typer.echo(f"Total: {len(discovered_rules)} rules discovered")
+
+
+@app.command()
+def agent_help():
+    """Print SKILL.md — agent-facing usage docs. Pipe to your agent's skills directory to install (e.g. `ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`)."""
+    set_quiet(True)
+    # importlib.resources keeps this working inside a PyInstaller bundle, where
+    # __file__ doesn't reliably point at on-disk SKILL.md.
+    try:
+        from importlib.resources import files
+        text = (files("arcane_auditor_resources") / "SKILL.md").read_text(encoding="utf-8")
+    except (ModuleNotFoundError, FileNotFoundError):
+        # Dev / source-tree fallback: read directly from repo root.
+        skill_path = Path(__file__).resolve().parent / "SKILL.md"
+        text = skill_path.read_text(encoding="utf-8")
+    typer.echo(text)
+    # Only show the install hint when humans are watching — piping to a file
+    # must produce a clean SKILL.md without self-referential install
+    # instructions baked into the installed copy.
+    import sys
+    if sys.stdout.isatty():
+        typer.echo(
+            "\n---\n"
+            "To install as an agent skill, pipe this output to your harness's skills folder, e.g.:\n"
+            "  mkdir -p ~/.claude/skills/arcane-auditor\n"
+            "  ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md"
+        )
+
+
+@app.command()
+def describe_rule(
+    rule_id: str = typer.Argument(..., help="Rule class name, e.g. ScriptVarUsageRule."),
+):
+    """Print full machine-readable metadata for a single rule (JSON)."""
+    set_quiet(True)
+    config = ArcaneAuditorConfig()
+    rules_engine = RulesEngine(config)
+    rule = next((r for r in rules_engine.rules if r.__class__.__name__ == rule_id), None)
+    if rule is None:
+        error(f"Unknown rule: {rule_id}")
+        raise typer.Exit(2)
+    payload = _rule_to_dict(rule, config)
+    documentation = getattr(rule, "DOCUMENTATION", {}) or {}
+    for key in ("why", "catches", "examples", "recommendation"):
+        payload[key] = documentation.get(key, "" if key != "catches" else [])
+    typer.echo(json.dumps(payload, indent=2))
 
 
 @app.command()

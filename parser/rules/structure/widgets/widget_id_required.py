@@ -8,7 +8,7 @@ Note: Basic structural validation (missing required fields, etc.) is handled by 
 This tool focuses on structure and naming compliance for code reviewers.
 """
 from typing import Generator
-from ...base import Finding
+from ...base import Finding, FixStrategy, Category
 from ....models import PMDModel, PodModel, ProjectContext
 from ...common import PMDLineUtils
 from ..shared import StructureRuleBase
@@ -16,9 +16,11 @@ from ..shared import StructureRuleBase
 
 class WidgetIdRequiredRule(StructureRuleBase):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
-    
+
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
+    CATEGORY = Category.WIDGET
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {
         'excluded_widget_types': {'type': 'list', 'default': [], 'description': 'Additional widget types to exclude from ID requirements'}
     }
@@ -186,7 +188,8 @@ Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`
             yield self._create_finding(
                 message=f"Widget of type '{widget_type}'{path_description} is missing required 'id' field.",
                 file_path=file_path,
-                line=line_number
+                line=line_number,
+                path=widget_path or None,
             )
 
     def _is_in_id_exempt_container(self, widget_path: str, container_name: str = None) -> bool:

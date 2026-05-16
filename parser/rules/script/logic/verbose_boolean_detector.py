@@ -32,20 +32,29 @@ class VerboseBooleanDetector(ScriptDetector):
             if verbose_info:
                 # Get line number from the if statement
                 line_number = self.get_line_from_tree_node(if_stmt)
-                
+
                 # Check if this verbose boolean check is inside a function
                 function_name = self.get_function_context_for_node(if_stmt, ast)
-                
+
                 if function_name:
                     message = f"File section '{field_name}' has verbose boolean check in function '{function_name}': '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
                 else:
                     message = f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
-                
+
+                # For if-statements, a substring swap requires a structural
+                # rewrite: replace the whole `if/else` block with `return X;`
+                # so the result is grammatical at the statement boundary.
+                target_text, swap_replacement = self._build_substring_swap(
+                    if_stmt, structural_replacement=f"return {verbose_info['suggestion']};"
+                )
                 yield Violation(
                     message=message,
-                    line=line_number
+                    line=line_number,
+                    suggested_replacement=swap_replacement if target_text else verbose_info['suggestion'],
+                    target_text=target_text,
+                    replacement_context="substring" if target_text else None,
                 )
-    
+
     def _find_verbose_ternary_expressions(self, ast: Tree, field_name: str):
         """Find verbose boolean patterns in ternary expressions."""
         # Find all ternary_expression nodes in the AST (including nested ones)
@@ -55,19 +64,52 @@ class VerboseBooleanDetector(ScriptDetector):
             if verbose_info:
                 # Get line number from the ternary expression
                 line_number = self.get_line_from_tree_node(ternary_expr)
-                
+
                 # Check if this verbose boolean check is inside a function
                 function_name = self.get_function_context_for_node(ternary_expr, ast)
-                
+
                 if function_name:
                     message = f"File section '{field_name}' has verbose boolean check in function '{function_name}': '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
                 else:
                     message = f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
-                
+
+                # Ternary is an expression — the suggestion (`x` / `!x`)
+                # substitutes cleanly for the entire ternary text.
+                target_text, _ = self._build_substring_swap(ternary_expr)
                 yield Violation(
                     message=message,
-                    line=line_number
+                    line=line_number,
+                    suggested_replacement=verbose_info['suggestion'],
+                    target_text=target_text,
+                    replacement_context="substring" if target_text else None,
                 )
+
+    def _build_substring_swap(self, node, structural_replacement: str = None):
+        """Return (target_text, structural_replacement) suitable for a substring
+        swap, or (None, None) if the slice would be unsafe.
+
+        Uses Lark's propagated positions to slice the literal source from
+        ``self.source_text`` (the stripped script content). Skips enrichment
+        when:
+          - position info is unavailable on the AST node, or
+          - the slice contains characters that JSON-encoding would have
+            transformed (``"`` or ``\\``). When the script lives inside a
+            PMD/POD JSON string those would not appear verbatim in the source
+            file, so a substring search would fail.
+        """
+        if not self.source_text:
+            return None, None
+        meta = getattr(node, 'meta', None)
+        if meta is None or getattr(meta, 'empty', True):
+            return None, None
+        start = getattr(meta, 'start_pos', None)
+        end = getattr(meta, 'end_pos', None)
+        if start is None or end is None or end <= start:
+            return None, None
+        slice_text = self.source_text[start:end]
+        if '"' in slice_text or '\\' in slice_text:
+            return None, None
+        return slice_text, structural_replacement
     
     def _analyze_if_statement_for_verbosity(self, if_node):
         if not hasattr(if_node, 'children') or len(if_node.children) < 5:

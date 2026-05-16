@@ -1,5 +1,6 @@
 """Script function parameter naming rule using unified architecture."""
 
+from ...base import FixStrategy
 from ...script.shared import ScriptRuleBase
 from .function_parameter_naming_detector import FunctionParameterNamingDetector
 
@@ -9,6 +10,7 @@ class ScriptFunctionParameterNamingRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = FunctionParameterNamingDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
