@@ -86,7 +86,9 @@ class TestStringBooleanRule:
 
 
 class TestScriptConsoleLogRule:
-    def test_console_log_finding_suggests_commented_line(self):
+    def test_console_log_finding_is_substring_swap(self):
+        """Single-quoted args are JSON-safe — agent gets a clean substring swap
+        targeting the whole call (so it works regardless of surrounding indent)."""
         from parser.rules.script.core.console_log import ScriptConsoleLogRule
 
         rule = ScriptConsoleLogRule()
@@ -98,9 +100,14 @@ class TestScriptConsoleLogRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "// console.info('hello');"
+        f = findings[0]
+        assert f.target_text == "console.info('hello');"
+        assert f.suggested_replacement == "// console.info('hello');"
+        assert f.replacement_context == "substring"
 
-    def test_console_log_preserves_inner_indentation(self):
+    def test_console_log_indented_call_uses_call_slice(self):
+        """Indent is preserved automatically by the substring swap; we target
+        only the call, not the surrounding whitespace."""
         from parser.rules.script.core.console_log import ScriptConsoleLogRule
 
         rule = ScriptConsoleLogRule()
@@ -112,7 +119,29 @@ class TestScriptConsoleLogRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "    // console.debug(x);"
+        f = findings[0]
+        assert f.target_text == "console.debug(x);"
+        assert f.suggested_replacement == "// console.debug(x);"
+        assert f.replacement_context == "substring"
+
+    def test_console_log_with_double_quoted_arg_skips_enrichment(self):
+        """Double quotes get JSON-escaped in the source file, so a literal
+        substring search would miss — rule falls back to legacy line-replace."""
+        from parser.rules.script.core.console_log import ScriptConsoleLogRule
+
+        rule = ScriptConsoleLogRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            script='<%\n  console.info("hello");\n%>',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.target_text is None
+        assert f.replacement_context is None
+        assert f.suggested_replacement is not None  # legacy line-comment fallback
 
 
 class TestScriptStringConcatRule:
