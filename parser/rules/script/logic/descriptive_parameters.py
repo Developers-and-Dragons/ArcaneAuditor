@@ -11,7 +11,7 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'a', 'b' for sort)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.NAMING_REQUIRED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = DescriptiveParameterDetector
     AVAILABLE_SETTINGS = {
         'allowed_single_letters': {'type': 'list', 'default': [], 'description': 'Additional single-letter parameter names to allow beyond built-in exceptions'}

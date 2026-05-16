@@ -10,7 +10,7 @@ class ScriptStringConcatRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects string concatenation with + operator - use PMD templates with backticks and {{ }} instead"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = StringConcatDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

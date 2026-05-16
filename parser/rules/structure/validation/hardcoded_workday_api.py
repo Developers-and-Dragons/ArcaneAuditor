@@ -14,7 +14,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
     ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

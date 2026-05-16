@@ -11,7 +11,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures functions are not declared but never used"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedFunctionsDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

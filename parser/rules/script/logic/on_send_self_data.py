@@ -12,7 +12,7 @@ class ScriptOnSendSelfDataRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = OnSendSelfDataDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

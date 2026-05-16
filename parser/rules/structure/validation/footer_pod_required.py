@@ -10,7 +10,7 @@ class FooterPodRequiredRule(StructureRuleBase):
 
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

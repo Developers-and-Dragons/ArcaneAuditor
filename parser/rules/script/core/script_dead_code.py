@@ -11,7 +11,7 @@ class ScriptDeadCodeRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects and removes dead code from standalone script files"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = ScriptDeadCodeDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

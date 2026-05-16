@@ -10,7 +10,7 @@ class ScriptMagicNumberRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.NAMING_REQUIRED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = MagicNumberDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

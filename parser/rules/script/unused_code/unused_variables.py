@@ -12,7 +12,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedVariableDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

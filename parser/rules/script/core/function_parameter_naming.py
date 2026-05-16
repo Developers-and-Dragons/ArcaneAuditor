@@ -10,7 +10,7 @@ class ScriptFunctionParameterNamingRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = FunctionParameterNamingDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

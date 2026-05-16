@@ -10,7 +10,7 @@ class ScriptConsoleLogRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't contain console statements (production code)"
     SEVERITY = "ACTION"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = ConsoleLogDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

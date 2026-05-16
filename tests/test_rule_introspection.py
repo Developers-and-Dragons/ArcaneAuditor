@@ -63,7 +63,7 @@ class TestDescribeRule:
         data = json.loads(result.output)
         assert data["rule_id"] == "ScriptVarUsageRule"
         assert data["category"] == "script"
-        assert data["fix_strategy"] == "mechanical"
+        assert data["fix_strategy"] == "actionable"
         assert data["severity"] in {"ACTION", "ADVICE"}
         assert isinstance(data["description"], str) and data["description"]
         assert isinstance(data["available_settings"], dict)

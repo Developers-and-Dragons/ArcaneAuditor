@@ -10,7 +10,7 @@ class ScriptVerboseBooleanCheckRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = VerboseBooleanDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

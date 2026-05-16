@@ -13,7 +13,7 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "ADVICE"
     CATEGORY = Category.WIDGET
-    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

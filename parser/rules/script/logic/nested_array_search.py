@@ -10,7 +10,7 @@ class ScriptNestedArraySearchRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects nested array search patterns that cause severe performance issues"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.DESIGN_DECISION
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = NestedArraySearchDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

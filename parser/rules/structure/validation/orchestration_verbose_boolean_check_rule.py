@@ -99,7 +99,7 @@ class OrchestrationVerboseBooleanCheckRule(StructureRuleBase):
     )
     SEVERITY = "ADVICE"
     CATEGORY = Category.ORCHESTRATION
-    FIX_STRATEGY = FixStrategy.DESIGN_DECISION
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

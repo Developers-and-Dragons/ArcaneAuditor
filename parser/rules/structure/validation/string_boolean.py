@@ -9,7 +9,7 @@ class StringBooleanRule(StructureRuleBase):
 
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

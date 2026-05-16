@@ -34,7 +34,7 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     ID = "HardcodedApplicationIdRule"
     DESCRIPTION = "Detects hardcoded applicationId values that should be replaced with site.applicationId"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

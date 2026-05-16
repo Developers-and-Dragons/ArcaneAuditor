@@ -9,7 +9,7 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType"
     SEVERITY = "ADVICE"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

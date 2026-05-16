@@ -85,7 +85,7 @@ class TestFindingShape:
         f = result["findings"][0]
         # str-Enum members serialize as their string values.
         assert f["category"] == "script"
-        assert f["fix_strategy"] == "mechanical"
+        assert f["fix_strategy"] == "actionable"
 
     def test_finding_id_prefix(self):
         findings, ctx = self._one_finding()

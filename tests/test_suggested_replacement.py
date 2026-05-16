@@ -1,7 +1,7 @@
-"""Mechanical rules populate `suggested_replacement` on Finding.
+"""Actionable rules populate `suggested_replacement` on Finding.
 
-Three rules opt in initially — the unambiguous cases. Other mechanical rules
-will be wired up incrementally; their Findings stay `None` for now.
+Wired rules opt in incrementally. Rules without a wired replacement
+(including all `human_review` rules) leave the field `None`.
 """
 import pytest
 
@@ -170,21 +170,25 @@ class TestScriptVerboseBooleanCheckRule:
 
 
 class TestUnsupportedRuleLeavesNone:
-    """Non-mechanical / not-yet-wired rules emit None — guards against
-    accidentally setting a default everywhere."""
+    """Rules without a wired replacement emit None — guards against
+    accidentally setting a default everywhere. Uses a `human_review` rule
+    so the test stays valid as more `actionable` rules get wired."""
 
-    def test_non_mechanical_rule_finding_has_none(self):
-        # MultipleStringInterpolatorsRule is LOCALIZED, not MECHANICAL.
-        from parser.rules.structure.validation.multiple_string_interpolators import (
-            MultipleStringInterpolatorsRule,
+    def test_unwired_rule_finding_has_none(self):
+        from parser.rules.structure.validation.footer_pod_required import (
+            FooterPodRequiredRule,
         )
+        from parser.models import PMDPresentation
 
-        rule = MultipleStringInterpolatorsRule()
+        rule = FooterPodRequiredRule()
         context = ProjectContext()
         context.pmds["t"] = PMDModel(
             pageId="t",
             file_path="t.pmd",
-            source_content='{\n  "x": "<% a %> and <% b %>"\n}',
+            source_content='{"presentation":{"footer":{"type":"footer","children":[{"type":"richText"}]}}}',
+            presentation=PMDPresentation(
+                footer={"type": "footer", "children": [{"type": "richText"}]}
+            ),
         )
         findings = list(rule.analyze(context))
         assert len(findings) >= 1

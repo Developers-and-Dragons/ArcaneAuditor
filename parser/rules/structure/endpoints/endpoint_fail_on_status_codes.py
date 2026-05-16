@@ -11,7 +11,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "ACTION"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

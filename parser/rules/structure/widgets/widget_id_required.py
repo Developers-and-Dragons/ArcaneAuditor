@@ -20,7 +20,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
     CATEGORY = Category.WIDGET
-    FIX_STRATEGY = FixStrategy.NAMING_REQUIRED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {
         'excluded_widget_types': {'type': 'list', 'default': [], 'description': 'Additional widget types to exclude from ID requirements'}
     }

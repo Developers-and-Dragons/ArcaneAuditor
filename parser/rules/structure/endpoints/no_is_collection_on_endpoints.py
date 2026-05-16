@@ -28,7 +28,7 @@ class NoIsCollectionOnEndpointsRule(StructureRuleBase):
     DESCRIPTION = "Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues"
     SEVERITY = "ACTION"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

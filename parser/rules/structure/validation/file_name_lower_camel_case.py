@@ -31,7 +31,7 @@ class FileNameLowerCamelCaseRule(Rule):
     ID = "FileNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures all file names follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

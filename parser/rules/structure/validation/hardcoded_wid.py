@@ -27,7 +27,7 @@ class HardcodedWidRule(StructureRuleBase):
     ID = "HardcodedWidRule"
     DESCRIPTION = "Detects hardcoded WID values that should be configured in app attributes"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {
         'allow_wid_in_task_report_link_fields': {
             'type': 'bool',

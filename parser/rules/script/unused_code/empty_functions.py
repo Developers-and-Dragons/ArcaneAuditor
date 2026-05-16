@@ -10,7 +10,7 @@ class ScriptEmptyFunctionRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures functions have actual implementation (not empty bodies)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = EmptyFunctionDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

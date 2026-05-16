@@ -21,7 +21,7 @@ class TestNormalizerPreservesFixStrategy:
             "ScriptVarUsageRule": {
                 "enabled": True,
                 "severity_override": "ADVICE",
-                "fix_strategy_override": "mechanical",
+                "fix_strategy_override": "actionable",
                 "custom_settings": {},
             }
         }
@@ -29,12 +29,12 @@ class TestNormalizerPreservesFixStrategy:
             "ScriptVarUsageRule": {
                 "enabled": True,
                 "severity_override": "ACTION",
-                "fix_strategy_override": "design_decision",
+                "fix_strategy_override": "human_review",
                 "custom_settings": {},
             }
         }
         out = normalize_config_rules(user_config, True, runtime, production)
-        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "design_decision"
+        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "human_review"
         assert out["ScriptVarUsageRule"]["severity_override"] == "ACTION"
 
     def test_existing_rule_without_override_falls_back_to_production(self):
@@ -43,7 +43,7 @@ class TestNormalizerPreservesFixStrategy:
             "ScriptVarUsageRule": {
                 "enabled": True,
                 "severity_override": "ADVICE",
-                "fix_strategy_override": "mechanical",
+                "fix_strategy_override": "actionable",
                 "custom_settings": {},
             }
         }
@@ -56,7 +56,7 @@ class TestNormalizerPreservesFixStrategy:
             }
         }
         out = normalize_config_rules(user_config, True, runtime, production)
-        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "mechanical"
+        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "actionable"
 
     def test_missing_rule_picks_up_production_default(self):
         runtime = ["ScriptVarUsageRule"]
@@ -64,12 +64,12 @@ class TestNormalizerPreservesFixStrategy:
             "ScriptVarUsageRule": {
                 "enabled": True,
                 "severity_override": "ADVICE",
-                "fix_strategy_override": "mechanical",
+                "fix_strategy_override": "actionable",
                 "custom_settings": {},
             }
         }
         out = normalize_config_rules({}, True, runtime, production)
-        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "mechanical"
+        assert out["ScriptVarUsageRule"]["fix_strategy_override"] == "actionable"
 
 
 class TestRouteHelpers:
@@ -89,7 +89,7 @@ class TestRouteHelpers:
     def test_known_rule_classifications(self):
         strategies = get_rule_default_fix_strategies()
         # Spot-check a few well-known classifications.
-        assert strategies["ScriptVarUsageRule"] == "mechanical"
-        assert strategies["HardcodedApplicationIdRule"] == "mechanical"
-        assert strategies["StringBooleanRule"] == "mechanical"
-        assert strategies["OrchestrationGlobalErrorHandlerRule"] == "design_decision"
+        assert strategies["ScriptVarUsageRule"] == "actionable"
+        assert strategies["HardcodedApplicationIdRule"] == "actionable"
+        assert strategies["StringBooleanRule"] == "actionable"
+        assert strategies["OrchestrationGlobalErrorHandlerRule"] == "human_review"

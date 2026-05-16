@@ -17,7 +17,7 @@ class _FakeRule(Rule):
     DESCRIPTION = "fake rule for finding tests"
     SEVERITY = "ACTION"
     CATEGORY = Category.SCRIPT
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
 
     def analyze(self, context):
         yield from []
@@ -38,7 +38,7 @@ class TestEnrichmentFields:
     def test_category_and_fix_strategy_populated_from_rule(self):
         f = Finding(rule=_FakeRule(), message="m", line=10, file_path="a.pmd")
         assert f.category == Category.SCRIPT
-        assert f.fix_strategy == FixStrategy.MECHANICAL
+        assert f.fix_strategy == FixStrategy.ACTIONABLE
 
     def test_explicit_enrichment_values_round_trip(self):
         f = Finding(

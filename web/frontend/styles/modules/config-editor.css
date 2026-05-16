@@ -362,16 +362,10 @@
 [data-theme="dark"] .rule-readonly-badge.rule-severity-advice { color: #38bdf8; }
 [data-theme="dark"] .rule-readonly-badge.rule-severity-action { color: #fbbf24; }
 
-.rule-readonly-badge.rule-fix-strategy-mechanical { color: #15803d; }
-.rule-readonly-badge.rule-fix-strategy-localized { color: #0f766e; }
-.rule-readonly-badge.rule-fix-strategy-naming_required { color: #b45309; }
-.rule-readonly-badge.rule-fix-strategy-cascading_rename { color: #7e22ce; }
-.rule-readonly-badge.rule-fix-strategy-design_decision { color: #475569; }
-[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-mechanical { color: #4ade80; }
-[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-localized { color: #2dd4bf; }
-[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-naming_required { color: #fbbf24; }
-[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-cascading_rename { color: #c084fc; }
-[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-design_decision { color: #cbd5e1; }
+.rule-readonly-badge.rule-fix-strategy-actionable { color: #15803d; }
+.rule-readonly-badge.rule-fix-strategy-human_review { color: #475569; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .rule-readonly-badge.rule-fix-strategy-human_review { color: #cbd5e1; }
 
 /* Read-only enabled indicator (replaces the toggle switch in preset views). */
 .rule-readonly-enabled {
@@ -802,30 +796,18 @@
     border-color: #9333ea;
 }
 
-.rule-fix-strategy-select.rule-fix-strategy-mechanical { color: #15803d; }       /* green-700 */
-.rule-fix-strategy-select.rule-fix-strategy-localized { color: #0f766e; }        /* teal-700 */
-.rule-fix-strategy-select.rule-fix-strategy-naming_required { color: #b45309; }  /* amber-700 */
-.rule-fix-strategy-select.rule-fix-strategy-cascading_rename { color: #7e22ce; } /* purple-700 */
-.rule-fix-strategy-select.rule-fix-strategy-design_decision { color: #475569; }  /* slate-600 */
+.rule-fix-strategy-select.rule-fix-strategy-actionable { color: #15803d; }    /* green-700 */
+.rule-fix-strategy-select.rule-fix-strategy-human_review { color: #475569; }  /* slate-600 */
 
-[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-mechanical { color: #4ade80; }
-[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-localized { color: #2dd4bf; }
-[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-naming_required { color: #fbbf24; }
-[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-cascading_rename { color: #c084fc; }
-[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-design_decision { color: #cbd5e1; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .rule-fix-strategy-select.rule-fix-strategy-human_review { color: #cbd5e1; }
 
 /* Same color palette applied to help-card list items so the legend matches each row. */
-.fix-strategy-help-list li.rule-fix-strategy-mechanical { color: #15803d; }
-.fix-strategy-help-list li.rule-fix-strategy-localized { color: #0f766e; }
-.fix-strategy-help-list li.rule-fix-strategy-naming_required { color: #b45309; }
-.fix-strategy-help-list li.rule-fix-strategy-cascading_rename { color: #7e22ce; }
-.fix-strategy-help-list li.rule-fix-strategy-design_decision { color: #475569; }
+.fix-strategy-help-list li.rule-fix-strategy-actionable { color: #15803d; }
+.fix-strategy-help-list li.rule-fix-strategy-human_review { color: #475569; }
 
-[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-mechanical { color: #4ade80; }
-[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-localized { color: #2dd4bf; }
-[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-naming_required { color: #fbbf24; }
-[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-cascading_rename { color: #c084fc; }
-[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-design_decision { color: #cbd5e1; }
+[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-actionable { color: #4ade80; }
+[data-theme="dark"] .fix-strategy-help-list li.rule-fix-strategy-human_review { color: #cbd5e1; }
 
 /* --- Configure Button Styles --- */
 

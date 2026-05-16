@@ -10,7 +10,7 @@ class ScriptVarUsageRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures scripts use 'let' or 'const' instead of 'var' (best practice)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = VarUsageDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

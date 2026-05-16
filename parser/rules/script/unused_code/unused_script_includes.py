@@ -12,7 +12,7 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     DETECTOR = ScriptUnusedIncludesRuleDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

@@ -13,70 +13,66 @@ from utils.console import set_quiet
 
 # (rule_class_name, expected_fix_strategy, expected_category)
 EXPECTED_CLASSIFICATIONS = [
-    # --- Script rules (mechanical) ---
-    ("ScriptConsoleLogRule", FixStrategy.MECHANICAL, Category.SCRIPT),
-    ("ScriptStringConcatRule", FixStrategy.MECHANICAL, Category.SCRIPT),
-    ("ScriptVarUsageRule", FixStrategy.MECHANICAL, Category.SCRIPT),
-    ("ScriptVerboseBooleanCheckRule", FixStrategy.MECHANICAL, Category.SCRIPT),
-    # --- Script rules (localized) ---
-    ("ScriptArrayMethodUsageRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptDeadCodeRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptEmptyFunctionRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptOnSendSelfDataRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptUnusedFunctionRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptUnusedIncludesRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    ("ScriptUnusedVariableRule", FixStrategy.LOCALIZED, Category.SCRIPT),
-    # --- Script rules (naming required) ---
-    ("ScriptDescriptiveParameterRule", FixStrategy.NAMING_REQUIRED, Category.SCRIPT),
-    ("ScriptMagicNumberRule", FixStrategy.NAMING_REQUIRED, Category.SCRIPT),
-    # --- Script rules (cascading rename) ---
-    ("ScriptFunctionParameterNamingRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
-    ("ScriptVariableNamingRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
-    ("ScriptUnusedFunctionParametersRule", FixStrategy.CASCADING_RENAME, Category.SCRIPT),
-    # --- Script rules (design decision — incl. multi-step rewrites; inherit defaults) ---
-    ("ScriptFunctionReturnConsistencyRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptNestedArraySearchRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptComplexityRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptFunctionParameterCountRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptLongBlockRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptLongFunctionRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
-    ("ScriptNestingLevelRule", FixStrategy.DESIGN_DECISION, Category.SCRIPT),
+    # --- Script rules ---
+    ("ScriptConsoleLogRule", FixStrategy.ACTIONABLE, Category.SCRIPT),
+    ("ScriptStringConcatRule", FixStrategy.ACTIONABLE, Category.SCRIPT),
+    ("ScriptVarUsageRule", FixStrategy.ACTIONABLE, Category.SCRIPT),
+    ("ScriptVerboseBooleanCheckRule", FixStrategy.ACTIONABLE, Category.SCRIPT),
+    ("ScriptUnusedIncludesRule", FixStrategy.ACTIONABLE, Category.SCRIPT),
+
+    ("ScriptArrayMethodUsageRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptDeadCodeRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptEmptyFunctionRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptOnSendSelfDataRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptUnusedFunctionRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptUnusedVariableRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptDescriptiveParameterRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptMagicNumberRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptFunctionParameterNamingRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptVariableNamingRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptUnusedFunctionParametersRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptFunctionReturnConsistencyRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptNestedArraySearchRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptComplexityRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptFunctionParameterCountRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptLongBlockRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptLongFunctionRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
+    ("ScriptNestingLevelRule", FixStrategy.HUMAN_REVIEW, Category.SCRIPT),
 
     # --- Endpoint rules ---
-    ("EndpointBaseUrlTypeRule", FixStrategy.LOCALIZED, Category.ENDPOINT),
-    ("EndpointFailOnStatusCodesRule", FixStrategy.LOCALIZED, Category.ENDPOINT),
-    ("EndpointNameLowerCamelCaseRule", FixStrategy.CASCADING_RENAME, Category.ENDPOINT),
-    ("NoIsCollectionOnEndpointsRule", FixStrategy.MECHANICAL, Category.ENDPOINT),
-    ("NoPMDSessionVariablesRule", FixStrategy.LOCALIZED, Category.ENDPOINT),
-    ("OnlyMaximumEffortRule", FixStrategy.LOCALIZED, Category.ENDPOINT),
+    ("EndpointFailOnStatusCodesRule", FixStrategy.ACTIONABLE, Category.ENDPOINT),
+    ("OnlyMaximumEffortRule", FixStrategy.ACTIONABLE, Category.ENDPOINT),
+
+    ("EndpointBaseUrlTypeRule", FixStrategy.HUMAN_REVIEW, Category.ENDPOINT),
+    ("EndpointNameLowerCamelCaseRule", FixStrategy.HUMAN_REVIEW, Category.ENDPOINT),
+    ("NoIsCollectionOnEndpointsRule", FixStrategy.HUMAN_REVIEW, Category.ENDPOINT),
+    ("NoPMDSessionVariablesRule", FixStrategy.HUMAN_REVIEW, Category.ENDPOINT),
 
     # --- Widget rules ---
-    ("GridPagingWithSortableFilterableRule", FixStrategy.DESIGN_DECISION, Category.WIDGET),
-    ("WidgetIdLowerCamelCaseRule", FixStrategy.CASCADING_RENAME, Category.WIDGET),
-    ("WidgetIdRequiredRule", FixStrategy.NAMING_REQUIRED, Category.WIDGET),
+    ("GridPagingWithSortableFilterableRule", FixStrategy.HUMAN_REVIEW, Category.WIDGET),
+    ("WidgetIdLowerCamelCaseRule", FixStrategy.HUMAN_REVIEW, Category.WIDGET),
+    ("WidgetIdRequiredRule", FixStrategy.HUMAN_REVIEW, Category.WIDGET),
 
     # --- Orchestration rules ---
-    ("OrchestratePreferExplicitDefaultAccessor", FixStrategy.MECHANICAL, Category.ORCHESTRATION),
-    ("OrchestrationApiStepErrorHandlerRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationBranchOnConditionsNestingRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationGlobalErrorHandlerRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationSecurityDomainRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
-    ("OrchestrationVerboseBooleanCheckRule", FixStrategy.DESIGN_DECISION, Category.ORCHESTRATION),
+    ("OrchestratePreferExplicitDefaultAccessor", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
+    ("OrchestrationApiStepErrorHandlerRule", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
+    ("OrchestrationBranchOnConditionsNestingRule", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
+    ("OrchestrationGlobalErrorHandlerRule", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
+    ("OrchestrationSecurityDomainRule", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
+    ("OrchestrationVerboseBooleanCheckRule", FixStrategy.HUMAN_REVIEW, Category.ORCHESTRATION),
 
-    # --- Structure rules (mechanical) ---
-    ("HardcodedApplicationIdRule", FixStrategy.MECHANICAL, Category.STRUCTURE),
-    ("HardcodedWidRule", FixStrategy.MECHANICAL, Category.STRUCTURE),
-    ("HardcodedWorkdayAPIRule", FixStrategy.MECHANICAL, Category.STRUCTURE),
-    ("PMDSectionOrderingRule", FixStrategy.MECHANICAL, Category.STRUCTURE),
-    ("StringBooleanRule", FixStrategy.MECHANICAL, Category.STRUCTURE),
-    # --- Structure rules (localized) ---
-    ("FooterPodRequiredRule", FixStrategy.LOCALIZED, Category.STRUCTURE),
-    ("MultipleStringInterpolatorsRule", FixStrategy.LOCALIZED, Category.STRUCTURE),
-    # --- Structure rules (cascading rename) ---
-    ("FileNameLowerCamelCaseRule", FixStrategy.CASCADING_RENAME, Category.STRUCTURE),
-    # --- Structure rules (design decision) ---
-    ("EmbeddedImagesRule", FixStrategy.DESIGN_DECISION, Category.STRUCTURE),
-    ("PMDSecurityDomainRule", FixStrategy.DESIGN_DECISION, Category.STRUCTURE),
+    # --- Structure rules ---
+    ("HardcodedApplicationIdRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+    ("HardcodedWorkdayAPIRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+    ("PMDSectionOrderingRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+    ("StringBooleanRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+    ("MultipleStringInterpolatorsRule", FixStrategy.ACTIONABLE, Category.STRUCTURE),
+
+    ("HardcodedWidRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
+    ("FooterPodRequiredRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
+    ("FileNameLowerCamelCaseRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
+    ("EmbeddedImagesRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
+    ("PMDSecurityDomainRule", FixStrategy.HUMAN_REVIEW, Category.STRUCTURE),
 ]
 
 

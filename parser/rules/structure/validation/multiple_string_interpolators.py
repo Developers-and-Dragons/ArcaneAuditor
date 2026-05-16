@@ -30,7 +30,7 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     ID = "MultipleStringInterpolatorsRule"
     DESCRIPTION = "Detects multiple string interpolators in a single string which should use template literals instead"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

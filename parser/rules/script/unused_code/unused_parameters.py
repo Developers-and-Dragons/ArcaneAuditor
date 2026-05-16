@@ -10,7 +10,7 @@ class ScriptUnusedFunctionParametersRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures function parameters are actually used in the function body"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = UnusedParametersDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

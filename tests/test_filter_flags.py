@@ -104,23 +104,23 @@ class TestSeverityFilter:
 
 
 class TestFixStrategyFilter:
-    def test_mechanical_keeps_only_mechanical(self):
+    def test_actionable_keeps_only_actionable(self):
         path = _tmp_pmd_with_var()
         try:
-            result = _agent_output([path, "--fix-strategy", "mechanical"])
+            result = _agent_output([path, "--fix-strategy", "actionable"])
             data = json.loads(result.output)
-            assert data["findings"], "expected at least one mechanical finding"
-            assert all(f["fix_strategy"] == "mechanical" for f in data["findings"])
+            assert data["findings"], "expected at least one actionable finding"
+            assert all(f["fix_strategy"] == "actionable" for f in data["findings"])
         finally:
             os.unlink(path)
 
     def test_multiple_strategies_csv(self):
         path = _tmp_pmd_with_var()
         try:
-            result = _agent_output([path, "--fix-strategy", "mechanical,localized"])
+            result = _agent_output([path, "--fix-strategy", "actionable,human_review"])
             data = json.loads(result.output)
             assert all(
-                f["fix_strategy"] in {"mechanical", "localized"} for f in data["findings"]
+                f["fix_strategy"] in {"actionable", "human_review"} for f in data["findings"]
             )
         finally:
             os.unlink(path)

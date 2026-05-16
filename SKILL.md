@@ -1,6 +1,6 @@
 ---
 name: arcane-auditor
-description: Workday Extend code review CLI. Use when analyzing PMD, POD, AMD, SMD, script, or orchestration files for quality issues, or when an agent needs machine-readable findings to apply mechanical fixes.
+description: Workday Extend code review CLI. Use when analyzing PMD, POD, AMD, SMD, script, or orchestration files for quality issues, or when an agent needs machine-readable findings to triage and apply suggested fixes.
 ---
 
 # Arcane Auditor — Agent Usage
@@ -17,8 +17,8 @@ arcane-auditor review-app <path> --agent
 arcane-auditor list-rules --format json
 arcane-auditor describe-rule ScriptVarUsageRule
 
-# Filter to mechanical fixes only.
-arcane-auditor review-app <path> --agent --fix-strategy mechanical
+# Filter to actionable findings only (those carrying a suggested_replacement).
+arcane-auditor review-app <path> --agent --fix-strategy actionable
 ```
 
 ## v2 JSON output schema
@@ -37,7 +37,7 @@ arcane-auditor review-app <path> --agent --fix-strategy mechanical
       "rule_id": "ScriptVarUsageRule",
       "severity": "ADVICE",
       "category": "script",
-      "fix_strategy": "mechanical",
+      "fix_strategy": "actionable",
       "message": "...",
       "location": {
         "file_path": "presentation/foo.pmd",
@@ -57,10 +57,10 @@ arcane-auditor review-app <path> --agent --fix-strategy mechanical
 
 ### Key fields
 
-- **`fix_strategy`** — How safe this finding is to auto-fix. See decision table below.
+- **`fix_strategy`** — How an agent should handle this finding. See decision table below.
 - **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD). Stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
 - **`location.line`** — Always set. Use this for `.script` files; use it as a secondary locator for JSON-shaped files when re-reading after edits.
-- **`suggested_replacement`** — A single textual token (e.g. `"let"`, `"site.applicationId"`). Drop-in safe at the violation site. Wrapping/punctuation is the agent's responsibility.
+- **`suggested_replacement`** — Replacement text the agent should drop in at the violation site (e.g. `"let"`, `"site.applicationId"`, or a multi-line JSON snippet). May be `null` even on `actionable` findings when the fix is whole-document (e.g., reordering keys); in that case the `message` carries the spec. Wrapping/splice points are the agent's responsibility.
 - **`snippet`** — A few lines of source around the violation, for context. May be `null` if the analyzer didn't have source content (rare).
 - **`finding_id`** — Stable hash of `rule_id|file_path|path|message`. Line is excluded so re-runs after a fix still join.
 
@@ -68,11 +68,10 @@ arcane-auditor review-app <path> --agent --fix-strategy mechanical
 
 | Value | Meaning | Agent behavior |
 |---|---|---|
-| `mechanical` | Pure textual rewrite, narrow blast radius | Safe to auto-apply |
-| `localized` | Narrow rewrite, no cascade | Safe to auto-apply with verification |
-| `naming_required` | Agent must invent a meaningful identifier | Attempt; flag for human review |
-| `cascading_rename` | Touches multiple files / references | Attempt with caution; verify references |
-| `design_decision` | Requires human judgment (incl. multi-step rewrites) | Surface as comment; do not auto-fix |
+| `actionable` | Finding carries a deterministic fix; a `suggested_replacement` may be present (or, rarely, the spec is in `message`) | Agent may surface the suggestion; the user/agent applies it |
+| `human_review` | Resolution requires human judgment, multi-step rewrites, naming, cross-file work, or workflow that crosses systems | Surface for human review; do not attempt to auto-resolve |
+
+About 12 of 48 rules are `actionable`; the rest are `human_review`. The conservatism is intentional — false confidence in an auto-fix can damage proprietary code.
 
 ## Loop strategy
 
@@ -81,7 +80,7 @@ Re-running the analyzer after each fix is cheap and sidesteps line-drift bookkee
 ```
 loop:
   result = arcane-auditor review-app <path> --agent
-  fixable = [f for f in result.findings if f.fix_strategy in {mechanical, localized}]
+  fixable = [f for f in result.findings if f.fix_strategy == "actionable" and f.suggested_replacement]
   if not fixable: break
   pick one finding
   apply fix (prefer location.path; fall back to location.line)
@@ -101,7 +100,7 @@ loop:
 | `--rules R1,R2` | Run only these rules (faster) |
 | `--exclude-rules R3` | Skip these rules |
 | `--severity ACTION` | Keep only ACTION-severity findings |
-| `--fix-strategy mechanical,localized` | Keep only findings with these strategies |
+| `--fix-strategy actionable` | Keep only findings with this strategy (or `human_review`) |
 | `--files <glob>` | fnmatch glob limiting which input files are parsed |
 
 Unknown rule IDs or invalid filter values exit with code 2.

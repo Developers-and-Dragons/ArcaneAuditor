@@ -10,7 +10,7 @@ class ScriptArrayMethodUsageRule(ScriptRuleBase):
 
     DESCRIPTION = "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
     SEVERITY = "ADVICE"
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     DETECTOR = ArrayMethodUsageDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     

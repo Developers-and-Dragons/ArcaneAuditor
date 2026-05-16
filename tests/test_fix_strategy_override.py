@@ -1,9 +1,8 @@
 """Per-rule `fix_strategy_override` mirrors the existing `severity_override` pattern.
 
-A user (or team config) can re-classify a rule's fix_strategy — e.g. saying that
-a hardcoded-WID rule that ships as `mechanical` is actually `cascading_rename`
-for their codebase because they have many references. This gives the same
-agency users already have over severity.
+A user (or team config) can re-classify a rule's fix_strategy — e.g. changing a
+rule that ships as `actionable` to `human_review` for their codebase. This gives
+the same agency users already have over severity.
 """
 import json
 
@@ -19,33 +18,33 @@ class TestRuleConfigField:
         assert RuleConfig().fix_strategy_override is None
 
     def test_accepts_enum_value(self):
-        c = RuleConfig(fix_strategy_override="cascading_rename")
-        assert c.fix_strategy_override == FixStrategy.CASCADING_RENAME
+        c = RuleConfig(fix_strategy_override="human_review")
+        assert c.fix_strategy_override == FixStrategy.HUMAN_REVIEW
 
 
 class TestConfigResolver:
     def test_returns_default_when_no_override(self):
         cfg = ArcaneAuditorConfig()
-        result = cfg.get_rule_fix_strategy("ScriptVarUsageRule", FixStrategy.MECHANICAL)
-        assert result == FixStrategy.MECHANICAL
+        result = cfg.get_rule_fix_strategy("ScriptVarUsageRule", FixStrategy.ACTIONABLE)
+        assert result == FixStrategy.ACTIONABLE
 
     def test_returns_override_when_set(self):
         cfg = ArcaneAuditorConfig()
-        cfg.rules.ScriptVarUsageRule.fix_strategy_override = FixStrategy.LOCALIZED
-        result = cfg.get_rule_fix_strategy("ScriptVarUsageRule", FixStrategy.MECHANICAL)
-        assert result == FixStrategy.LOCALIZED
+        cfg.rules.ScriptVarUsageRule.fix_strategy_override = FixStrategy.HUMAN_REVIEW
+        result = cfg.get_rule_fix_strategy("ScriptVarUsageRule", FixStrategy.ACTIONABLE)
+        assert result == FixStrategy.HUMAN_REVIEW
 
 
 class TestRulesEngineAppliesOverride:
     def test_finding_picks_up_override(self):
         cfg = ArcaneAuditorConfig()
-        cfg.rules.ScriptVarUsageRule.fix_strategy_override = FixStrategy.LOCALIZED
+        cfg.rules.ScriptVarUsageRule.fix_strategy_override = FixStrategy.HUMAN_REVIEW
 
         engine = RulesEngine(cfg)
         # Replace discovered rules with just the one we care about.
         engine.rules = [r for r in engine.rules if r.__class__.__name__ == "ScriptVarUsageRule"]
         assert len(engine.rules) == 1
-        assert engine.rules[0].FIX_STRATEGY == FixStrategy.LOCALIZED
+        assert engine.rules[0].FIX_STRATEGY == FixStrategy.HUMAN_REVIEW
 
         context = ProjectContext()
         context.pmds["p"] = PMDModel(
@@ -54,7 +53,7 @@ class TestRulesEngineAppliesOverride:
         findings = engine.run(context)
         assert len(findings) == 1
         # str-Enum comparison.
-        assert findings[0].fix_strategy == FixStrategy.LOCALIZED
+        assert findings[0].fix_strategy == FixStrategy.HUMAN_REVIEW
 
 
 class TestJsonRoundtrip:
@@ -66,7 +65,7 @@ class TestJsonRoundtrip:
                     "ScriptVarUsageRule": {
                         "enabled": True,
                         "severity_override": None,
-                        "fix_strategy_override": "design_decision",
+                        "fix_strategy_override": "human_review",
                         "custom_settings": {},
                     }
                 }
@@ -74,7 +73,7 @@ class TestJsonRoundtrip:
             encoding="utf-8",
         )
         cfg = ArcaneAuditorConfig.from_file(str(cfg_path))
-        assert cfg.rules.ScriptVarUsageRule.fix_strategy_override == FixStrategy.DESIGN_DECISION
+        assert cfg.rules.ScriptVarUsageRule.fix_strategy_override == FixStrategy.HUMAN_REVIEW
 
     def test_unknown_strategy_value_raises(self, tmp_path):
         cfg_path = tmp_path / "cfg.json"

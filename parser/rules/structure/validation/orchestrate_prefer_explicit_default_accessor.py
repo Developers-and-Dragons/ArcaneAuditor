@@ -43,7 +43,7 @@ class OrchestratePreferExplicitDefaultAccessor(StructureRuleBase):
     DESCRIPTION = "Prefer default-capable functions over exception-throwing functions"
     SEVERITY = "ADVICE"
     CATEGORY = Category.ORCHESTRATION
-    FIX_STRATEGY = FixStrategy.MECHANICAL
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}
 
     DOCUMENTATION = {

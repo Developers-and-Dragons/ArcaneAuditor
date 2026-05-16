@@ -45,7 +45,7 @@ def review_app(
     rules_filter: Optional[str] = typer.Option(None, "--rules", help="Comma-separated list of rule IDs to run (others skipped). Unknown rule -> exit 2."),
     exclude_rules: Optional[str] = typer.Option(None, "--exclude-rules", help="Comma-separated list of rule IDs to skip. Unknown rule -> exit 2."),
     severity_filter: Optional[str] = typer.Option(None, "--severity", help="Filter findings by severity (ACTION or ADVICE)."),
-    fix_strategy_filter: Optional[str] = typer.Option(None, "--fix-strategy", help="Filter findings by fix_strategy (comma-separated: mechanical,localized,naming_required,cascading_rename,refactor,design_decision)."),
+    fix_strategy_filter: Optional[str] = typer.Option(None, "--fix-strategy", help="Filter findings by fix_strategy (comma-separated: actionable, human_review)."),
     files_glob: Optional[str] = typer.Option(None, "--files", help="Glob pattern (fnmatch) limiting which input files are parsed (e.g. '*.pmd', '**/foo*')."),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):

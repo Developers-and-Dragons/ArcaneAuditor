@@ -29,7 +29,7 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
     DESCRIPTION = "Detects outboundVariable endpoints with variableScope: session which can cause performance degradation"
     SEVERITY = "ACTION"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

@@ -13,7 +13,7 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "ADVICE"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.CASCADING_RENAME
+    FIX_STRATEGY = FixStrategy.HUMAN_REVIEW
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {

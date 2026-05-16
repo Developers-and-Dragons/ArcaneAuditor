@@ -8,15 +8,12 @@ import re
 
 
 class FixStrategy(str, Enum):
-    """How amenable a rule's violations are to automated fixing by an AI agent.
+    """How an AI agent should handle a rule's findings.
 
     Values are str-enums so they serialize cleanly to JSON.
     """
-    MECHANICAL = "mechanical"              # Pure textual rewrite, narrow blast radius
-    LOCALIZED = "localized"                # Narrow rewrite, no cascade
-    NAMING_REQUIRED = "naming_required"    # Agent must invent a meaningful identifier
-    CASCADING_RENAME = "cascading_rename"  # Touches multiple files / references
-    DESIGN_DECISION = "design_decision"    # Requires human judgment (incl. multi-step rewrites)
+    ACTIONABLE = "actionable"        # Finding carries a deterministic fix; agent may surface a suggested_replacement
+    HUMAN_REVIEW = "human_review"    # Surface to the human; agent must not attempt to auto-resolve
 
 
 class Category(str, Enum):
@@ -66,9 +63,9 @@ class Rule(ABC):
     # Broad category for filtering/grouping. Default STRUCTURE; ScriptRuleBase overrides to SCRIPT.
     CATEGORY: Category = Category.STRUCTURE
 
-    # How amenable this rule's violations are to AI-agent auto-fixing.
-    # Default DESIGN_DECISION (safest — agents should not auto-attempt).
-    FIX_STRATEGY: FixStrategy = FixStrategy.DESIGN_DECISION
+    # How an agent should handle this rule's findings.
+    # Default HUMAN_REVIEW (safest — agents should surface, not act).
+    FIX_STRATEGY: FixStrategy = FixStrategy.HUMAN_REVIEW
 
     # Dictionary defining available custom settings.
     # If empty, the rule does not support custom configuration.

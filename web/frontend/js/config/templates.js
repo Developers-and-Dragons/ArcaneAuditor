@@ -145,11 +145,8 @@ export const Templates = {
                     <strong>Agent Fix Strategy</strong> — how amenable a rule's findings are to automated fixing by an AI agent. Set per rule; agents read this to decide which findings are safe to auto-apply.
                 </div>
                 <ul class="fix-strategy-help-list">
-                    <li class="rule-fix-strategy-mechanical"><span class="fix-strategy-chip">mechanical</span> Pure textual rewrite, narrow blast radius. Safe to auto-apply.</li>
-                    <li class="rule-fix-strategy-localized"><span class="fix-strategy-chip">localized</span> Narrow rewrite, no cascade. Safe to auto-apply with verification.</li>
-                    <li class="rule-fix-strategy-naming_required"><span class="fix-strategy-chip">naming_required</span> Agent must invent a meaningful identifier. Attempt; flag for human review.</li>
-                    <li class="rule-fix-strategy-cascading_rename"><span class="fix-strategy-chip">cascading_rename</span> Touches multiple files / references. Attempt with caution; verify references.</li>
-                    <li class="rule-fix-strategy-design_decision"><span class="fix-strategy-chip">design_decision</span> Requires human judgment (incl. multi-step rewrites). Surface as comment; do not auto-fix.</li>
+                    <li class="rule-fix-strategy-actionable"><span class="fix-strategy-chip">actionable</span> Finding carries a deterministic fix; agent may surface a suggested replacement.</li>
+                    <li class="rule-fix-strategy-human_review"><span class="fix-strategy-chip">human_review</span> Surface to the human; agent must not attempt to auto-resolve.</li>
                 </ul>
             </div>
         `;
@@ -163,7 +160,7 @@ export const Templates = {
         // Use helper logic passed in or calculated here.
         // For simplicity, we assume severity override logic is handled before passing data or simple check here
         const severity = ruleConfig.severity_override || 'ADVICE';
-        const fixStrategy = ruleConfig.fix_strategy_override || 'design_decision';
+        const fixStrategy = ruleConfig.fix_strategy_override || 'human_review';
 
         const customSettings = ruleConfig.custom_settings || {};
         const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
@@ -197,12 +194,9 @@ export const Templates = {
                                 <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
                                 <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
                             </select>
-                            <select class="rule-fix-strategy-select rule-fix-strategy-${fixStrategy}" data-rule="${ruleName}" data-fix-strategy="${fixStrategy}" title="Fix strategy: how amenable this rule's findings are to automated fixing by an AI agent">
-                                <option value="mechanical" ${fixStrategy === 'mechanical' ? 'selected' : ''}>mechanical</option>
-                                <option value="localized" ${fixStrategy === 'localized' ? 'selected' : ''}>localized</option>
-                                <option value="naming_required" ${fixStrategy === 'naming_required' ? 'selected' : ''}>naming_required</option>
-                                <option value="cascading_rename" ${fixStrategy === 'cascading_rename' ? 'selected' : ''}>cascading_rename</option>
-                                <option value="design_decision" ${fixStrategy === 'design_decision' ? 'selected' : ''}>design_decision</option>
+                            <select class="rule-fix-strategy-select rule-fix-strategy-${fixStrategy}" data-rule="${ruleName}" data-fix-strategy="${fixStrategy}" title="Fix strategy: how an AI agent should handle this rule's findings">
+                                <option value="actionable" ${fixStrategy === 'actionable' ? 'selected' : ''}>actionable</option>
+                                <option value="human_review" ${fixStrategy === 'human_review' ? 'selected' : ''}>human_review</option>
                             </select>
                         ` : ''}
                         ${isBuiltIn ? `

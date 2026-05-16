@@ -27,7 +27,7 @@ class OnlyMaximumEffortRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoints do not use bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
     CATEGORY = Category.ENDPOINT
-    FIX_STRATEGY = FixStrategy.LOCALIZED
+    FIX_STRATEGY = FixStrategy.ACTIONABLE
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
