@@ -24,6 +24,14 @@ export const Templates = {
                     <option value="advice">Advice</option>
                 </select>
             </div>
+            <div class="config-filter-group">
+                <label for="config-modal-filter-fix-strategy">Fix strategy:</label>
+                <select id="config-modal-filter-fix-strategy" class="config-filter-select">
+                    <option value="all">All</option>
+                    <option value="actionable">actionable</option>
+                    <option value="human_review">human_review</option>
+                </select>
+            </div>
         `;
     },
 

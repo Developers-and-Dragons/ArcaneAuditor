@@ -18,7 +18,8 @@ export class ConfigBreakdownUI {
         this.savedFilterState = {
             search: '',
             status: 'all',
-            severity: 'all'
+            severity: 'all',
+            fixStrategy: 'all'
         };
         
         // Flag to track if we're reloading after a save (to persist filters)
@@ -60,7 +61,8 @@ export class ConfigBreakdownUI {
         this.savedFilterState = {
             search: '',
             status: 'all',
-            severity: 'all'
+            severity: 'all',
+            fixStrategy: 'all'
         };
         this.isReloadingAfterSave = false;
         
@@ -77,7 +79,8 @@ export class ConfigBreakdownUI {
             this.savedFilterState = {
                 search: '',
                 status: 'all',
-                severity: 'all'
+                severity: 'all',
+                fixStrategy: 'all'
             };
         }
         
@@ -257,9 +260,16 @@ export class ConfigBreakdownUI {
     }
 
     /**
+     * Get the effective fix strategy for a rule (checks override first, then defaults to human_review)
+     */
+    getRuleFixStrategy(ruleConfig) {
+        return ruleConfig.fix_strategy_override || 'human_review';
+    }
+
+    /**
      * Filter rules based on search and filter criteria
      */
-    filterRules(allRules, searchTerm, statusFilter, severityFilter) {
+    filterRules(allRules, searchTerm, statusFilter, severityFilter, fixStrategyFilter = 'all') {
         return allRules.filter(([ruleName, ruleConfig]) => {
             // Search filter
             if (searchTerm) {
@@ -280,6 +290,14 @@ export class ConfigBreakdownUI {
             if (severityFilter !== 'all') {
                 const severity = this.getRuleSeverity(ruleConfig);
                 if (severity.toLowerCase() !== severityFilter.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Fix strategy filter
+            if (fixStrategyFilter !== 'all') {
+                const fixStrategy = this.getRuleFixStrategy(ruleConfig);
+                if (fixStrategy !== fixStrategyFilter) {
                     return false;
                 }
             }
@@ -510,11 +528,13 @@ export class ConfigBreakdownUI {
         const searchInput = content.querySelector('#config-modal-search');
         const statusFilter = content.querySelector('#config-modal-filter-status');
         const severityFilter = content.querySelector('#config-modal-filter-severity');
+        const fixStrategyFilter = content.querySelector('#config-modal-filter-fix-strategy');
         
         this.savedFilterState = {
             search: searchInput ? searchInput.value.trim() : '',
             status: statusFilter ? statusFilter.value : 'all',
-            severity: severityFilter ? severityFilter.value : 'all'
+            severity: severityFilter ? severityFilter.value : 'all',
+            fixStrategy: fixStrategyFilter ? fixStrategyFilter.value : 'all'
         };
     }
 
@@ -527,6 +547,7 @@ export class ConfigBreakdownUI {
         const searchInput = content.querySelector('#config-modal-search');
         const statusFilter = content.querySelector('#config-modal-filter-status');
         const severityFilter = content.querySelector('#config-modal-filter-severity');
+        const fixStrategyFilter = content.querySelector('#config-modal-filter-fix-strategy');
         const ruleBreakdown = content.querySelector('.rule-breakdown');
         
         if (!ruleBreakdown) return;
@@ -541,16 +562,21 @@ export class ConfigBreakdownUI {
         if (severityFilter && this.savedFilterState.severity !== 'all') {
             severityFilter.value = this.savedFilterState.severity;
         }
+        if (fixStrategyFilter && this.savedFilterState.fixStrategy !== 'all') {
+            fixStrategyFilter.value = this.savedFilterState.fixStrategy;
+        }
         
         // Apply filters if any are active
         if (this.savedFilterState.search || 
             this.savedFilterState.status !== 'all' || 
-            this.savedFilterState.severity !== 'all') {
+            this.savedFilterState.severity !== 'all' ||
+            this.savedFilterState.fixStrategy !== 'all') {
             const filteredRules = this.filterRules(
                 this.allRules,
                 this.savedFilterState.search,
                 this.savedFilterState.status,
-                this.savedFilterState.severity
+                this.savedFilterState.severity,
+                this.savedFilterState.fixStrategy
             );
             this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
             
@@ -568,6 +594,7 @@ export class ConfigBreakdownUI {
         const searchInput = content.querySelector('#config-modal-search');
         const statusFilter = content.querySelector('#config-modal-filter-status');
         const severityFilter = content.querySelector('#config-modal-filter-severity');
+        const fixStrategyFilter = content.querySelector('#config-modal-filter-fix-strategy');
         const ruleBreakdown = content.querySelector('.rule-breakdown');
         
         if (!ruleBreakdown) return;
@@ -576,15 +603,19 @@ export class ConfigBreakdownUI {
             const searchTerm = searchInput ? searchInput.value.trim() : '';
             const statusValue = statusFilter ? statusFilter.value : 'all';
             const severityValue = severityFilter ? severityFilter.value : 'all';
+            const fixStrategyValue = fixStrategyFilter ? fixStrategyFilter.value : 'all';
             
             // Save filter state whenever it changes
             this.savedFilterState = {
                 search: searchTerm,
                 status: statusValue,
-                severity: severityValue
+                severity: severityValue,
+                fixStrategy: fixStrategyValue
             };
             
-            const filteredRules = this.filterRules(this.allRules, searchTerm, statusValue, severityValue);
+            const filteredRules = this.filterRules(
+                this.allRules, searchTerm, statusValue, severityValue, fixStrategyValue
+            );
             // Re-render the list (this clears and recreates elements, so we need to rebind)
             this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
             
@@ -604,6 +635,10 @@ export class ConfigBreakdownUI {
         
         if (severityFilter) {
             severityFilter.addEventListener('change', applyFilters);
+        }
+
+        if (fixStrategyFilter) {
+            fixStrategyFilter.addEventListener('change', applyFilters);
         }
     }
 
