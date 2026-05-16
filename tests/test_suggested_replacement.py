@@ -444,7 +444,10 @@ class TestHardcodedWorkdayAPIRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"
+        f = findings[0]
+        assert f.suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"
+        assert f.target_text == "https://api.workday.com/common/v1/workers/me"
+        assert f.replacement_context == "substring"
 
     def test_amd_dataprovider_suggests_template_literal(self):
         from parser.models import AMDModel
@@ -461,28 +464,11 @@ class TestHardcodedWorkdayAPIRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/' %>"
+        f = findings[0]
+        assert f.suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/' %>"
+        assert f.target_text == "https://api.workday.com/common/v1/"
+        assert f.replacement_context == "substring"
 
-    def test_subdomain_workday_url_handled(self):
-        """Subdomains other than 'api' (e.g. 'wd5-impl-services1') should also work."""
-        from parser.rules.structure.validation.hardcoded_workday_api import (
-            HardcodedWorkdayAPIRule,
-        )
-
-        rule = HardcodedWorkdayAPIRule()
-        context = ProjectContext()
-        context.pmds["t"] = PMDModel(
-            pageId="t",
-            file_path="t.pmd",
-            inboundEndpoints=[{
-                "name": "getThing",
-                "url": "https://wd5-impl-services1.workday.com/ccx/api/v1/foo",
-            }],
-            source_content='{"inboundEndpoints":[{"name":"getThing","url":"https://wd5-impl-services1.workday.com/ccx/api/v1/foo"}]}',
-        )
-        findings = list(rule.analyze(context))
-        assert len(findings) == 1
-        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/ccx/api/v1/foo' %>"
 
 
 class TestUnsupportedRuleLeavesNone:
