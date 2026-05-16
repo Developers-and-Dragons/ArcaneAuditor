@@ -189,6 +189,87 @@ class TestScriptUnusedIncludesRule:
         assert findings[0].suggested_replacement == ""
 
 
+class TestEndpointFailOnStatusCodesRule:
+    def _make_pmd(self, endpoint_json: str) -> PMDModel:
+        source = (
+            '{\n'
+            '  "inboundEndpoints": [\n'
+            f'    {endpoint_json}\n'
+            '  ]\n'
+            '}'
+        )
+        import json
+        endpoint = json.loads(endpoint_json)
+        return PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            inboundEndpoints=[endpoint],
+            source_content=source,
+        )
+
+    def test_missing_field_suggests_full_field_insert(self):
+        """No failOnStatusCodes at all → replacement is the whole key:value pair."""
+        from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import (
+            EndpointFailOnStatusCodesRule,
+        )
+
+        rule = EndpointFailOnStatusCodesRule()
+        context = ProjectContext()
+        context.pmds["t"] = self._make_pmd('{"name": "getUser", "url": "/u"}')
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == '"failOnStatusCodes": [{"code": 400}, {"code": 403}]'
+
+    def test_partial_missing_suggests_only_missing_entries(self):
+        """One required code missing → replacement is just that entry."""
+        from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import (
+            EndpointFailOnStatusCodesRule,
+        )
+
+        rule = EndpointFailOnStatusCodesRule()
+        context = ProjectContext()
+        context.pmds["t"] = self._make_pmd(
+            '{"name": "getUser", "url": "/u", "failOnStatusCodes": [{"code": 400}]}'
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == '{"code": 403}'
+
+    def test_both_missing_in_empty_array_suggests_both_entries(self):
+        """Empty array → both required entries, comma-separated, sorted."""
+        from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import (
+            EndpointFailOnStatusCodesRule,
+        )
+
+        rule = EndpointFailOnStatusCodesRule()
+        context = ProjectContext()
+        context.pmds["t"] = self._make_pmd(
+            '{"name": "getUser", "url": "/u", "failOnStatusCodes": []}'
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == '{"code": 400}, {"code": 403}'
+
+    def test_existing_non_required_code_is_not_in_replacement(self):
+        """Existing entries (e.g. 500) are NOT in the replacement — replacement
+        contains only the missing required codes. Agent must splice into the
+        existing array, not replace its contents."""
+        from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import (
+            EndpointFailOnStatusCodesRule,
+        )
+
+        rule = EndpointFailOnStatusCodesRule()
+        context = ProjectContext()
+        context.pmds["t"] = self._make_pmd(
+            '{"name": "getUser", "url": "/u", "failOnStatusCodes": [{"code": 500}]}'
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        # Agent splices these INTO the existing array; the 500 entry is preserved.
+        assert findings[0].suggested_replacement == '{"code": 400}, {"code": 403}'
+        assert "500" not in findings[0].suggested_replacement
+
+
 class TestUnsupportedRuleLeavesNone:
     """Rules without a wired replacement emit None — guards against
     accidentally setting a default everywhere. Uses a `human_review` rule

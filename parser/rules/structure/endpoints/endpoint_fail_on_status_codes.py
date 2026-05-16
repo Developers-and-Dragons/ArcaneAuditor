@@ -91,7 +91,8 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                suggested_replacement='"failOnStatusCodes": [{"code": 400}, {"code": 403}]',
             )
             return
 
@@ -124,11 +125,18 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
         # If there are missing codes, yield a finding
         if missing_codes:
             line_number = self._get_fail_on_status_codes_line_number(model, endpoint_name, endpoint_type)
-            missing_codes_str = ', '.join(map(str, sorted(missing_codes)))
+            sorted_missing = sorted(missing_codes)
+            missing_codes_str = ', '.join(map(str, sorted_missing))
+            # Replacement is the entries to ADD, not the full array. Agent splices
+            # into the existing array; any existing non-required codes (e.g. 500)
+            # are preserved. Distinguishable from the field-missing case (above)
+            # by the lack of the "failOnStatusCodes": and []  wrapper.
+            replacement = ', '.join(f'{{"code": {c}}}' for c in sorted_missing)
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                suggested_replacement=replacement,
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
