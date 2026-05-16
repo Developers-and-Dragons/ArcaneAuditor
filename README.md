@@ -32,7 +32,7 @@ It analyzes:
 
 **New in v2.0:**
 
-- 🤖 **Agent-friendly CLI** — a single `--agent` flag turns the CLI into a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, etc.). v2 JSON schema with stable `finding_id`, JSONPath locations, `suggested_replacement` text on 12 rules, and a bundled `SKILL.md` so agents know how to drive it. The desktop app is still the recommended experience for humans — agent mode is purely additive for teams that already work alongside an agent.
+- 🤖 **Agent-friendly CLI** — a single `--agent` flag turns the CLI into a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, etc.). v2 JSON schema with stable `finding_id`, JSONPath locations, `suggested_replacement` text on several (but not all!) rules, and a bundled `SKILL.md` so agents know how to drive it. The desktop app is still the recommended experience for humans — agent mode is purely additive for teams that already work alongside an agent.
 - 🛡️ **No auto-fix, no hosted LLM, no code leaves your machine.** The tool surfaces findings and (where deterministic) a suggested replacement string — your agent or you decide whether to splice it in.
 
 ## **Earlier highlights (v1.6):**
