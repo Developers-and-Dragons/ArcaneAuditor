@@ -54,6 +54,22 @@ class TestRulesEngineAppliesOverride:
         assert len(findings) == 1
         # str-Enum comparison.
         assert findings[0].fix_strategy == FixStrategy.HUMAN_REVIEW
+        # Agents read this flag to detect user-overridden findings before
+        # treating them as native actionable.
+        assert findings[0].fix_strategy_overridden is True
+
+    def test_finding_without_override_marks_default(self):
+        cfg = ArcaneAuditorConfig()
+        engine = RulesEngine(cfg)
+        engine.rules = [r for r in engine.rules if r.__class__.__name__ == "ScriptVarUsageRule"]
+
+        context = ProjectContext()
+        context.pmds["p"] = PMDModel(
+            pageId="p", onLoad="<% var x = 1; %>", file_path="p.pmd"
+        )
+        findings = engine.run(context)
+        assert len(findings) == 1
+        assert findings[0].fix_strategy_overridden is False
 
 
 class TestJsonRoundtrip:

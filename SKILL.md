@@ -58,6 +58,7 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
       "severity": "ADVICE",
       "category": "script",
       "fix_strategy": "actionable",
+      "fix_strategy_overridden": false,
       "message": "...",
       "location": {
         "file_path": "presentation/foo.pmd",
@@ -80,6 +81,7 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
 ### Key fields
 
 - `**fix_strategy**` — How an agent should handle this finding. See decision table below.
+- `**fix_strategy_overridden**` — `true` when the rule's effective `fix_strategy` came from user config rather than the rule author's default. Specifically: if this is `true` AND `fix_strategy` is `actionable`, the rule wasn't designed with a deterministic fix payload — see *When `human_review` has been overridden to `actionable`* below before acting. `false` (the common case) means the strategy is the rule author's default.
 - `**location.path**` — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD). Stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
 - `**location.line**` — Always set. Use this for `.script` files; use it as a secondary locator for JSON-shaped files when re-reading after edits.
 - `**location.column` / `end_line` / `end_column**` — Currently emitted as `null` across all rules; reserved for future use. Don't rely on them.
@@ -117,6 +119,21 @@ About 12 of 48 rules ship with `actionable` as the default; the rest default to 
 
 Before triaging a `human_review` finding, call `ArcaneAuditorCLI describe-rule <RuleId>` — it returns the full rule metadata including `why`, `catches`, `examples`, and `recommendation` to help the agent (or user) reason about the right response.
 
+### When `human_review` has been overridden to `actionable`
+
+Users can promote any rule from `human_review` to `actionable` in their tool config — e.g., a rule about naming conventions or refactoring that the user has decided they want their agent to handle. **Detect this explicitly:** the finding will have `fix_strategy = "actionable"` AND `fix_strategy_overridden = true`. When `fix_strategy_overridden` is `false`, the strategy is the rule author's choice and the natively-actionable rules carry their full fix payload as designed.
+
+Overridden findings typically arrive **without** the deterministic fix payload (`suggested_replacement`, `target_text`, `replacement_context`) that natively-actionable rules carry. The rule author didn't design a single-shot fix because the action was originally meant for humans.
+
+How to handle this case:
+
+1. **Don't skip the finding** just because `suggested_replacement` is missing. The user explicitly opted in to agent-handling for this rule.
+2. **Don't fall back to `full_field`** if both `target_text` and `replacement_context` are `null`. The default null/null → `full_field` rule applies only to rules natively designed for whole-field replacement, not to overridden human_review rules. Replacing the whole field/document for a missing-payload finding will destroy unrelated content.
+3. **Use the rule's documentation as the spec.** Call `ArcaneAuditorCLI describe-rule <RuleId>` to fetch `why`, `catches`, `examples`, and `recommendation`. The `recommendation` describes the mechanic; `examples` show the before/after shape. Combined with the finding's `message` (which usually names the specific offender), these are enough to plan the edit.
+4. **Confirm with the user before each fix in this mode.** The override means "I trust you to handle these," not "apply blindly." A one-line summary of the proposed change is appropriate even though native-actionable findings skip confirmation.
+
+If the override produces findings with `suggested_replacement` set but `target_text` and `replacement_context` both null, treat that as a *spec*, not a literal swap — same flow as above (read rule docs, propose, confirm).
+
 ## Loop strategy
 
 Re-running the analyzer after each fix is cheap and sidesteps line-drift bookkeeping. Apply `actionable` fixes without prompting — the user has already opted in via the rule's strategy. Summarize what changed at the end of the loop, not before each edit.
@@ -124,8 +141,14 @@ Re-running the analyzer after each fix is cheap and sidesteps line-drift bookkee
 ```
 loop:
   result = ArcaneAuditorCLI review-app <path> --agent
-  fixable = [f for f in result.findings if f.fix_strategy == "actionable" and f.suggested_replacement]
-  if not fixable: break
+  fixable = [f for f in result.findings
+              if f.fix_strategy == "actionable"
+                 and not f.fix_strategy_overridden
+                 and f.suggested_replacement]
+  if not fixable:
+    # Findings remain that are actionable-but-overridden (no native fix payload)
+    # — see "When `human_review` has been overridden to `actionable`" above.
+    break
   pick one finding
   read the field at f.location.path (or the line for .script files)
   apply fix per f.replacement_context (see table above):
@@ -135,6 +158,7 @@ loop:
   write the field back
   verify post-fix (see below)
   goto top
+# then handle override-actionable findings (use describe-rule, propose, confirm)
 # then surface remaining human_review findings to the user
 ```
 

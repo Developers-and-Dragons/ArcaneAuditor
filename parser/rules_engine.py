@@ -104,6 +104,10 @@ class RulesEngine:
             original_strategy = rule.FIX_STRATEGY
             configured_strategy = self.config.get_rule_fix_strategy(rule.__class__.__name__, original_strategy)
             if configured_strategy != original_strategy:
+                # Preserve the rule-author default so Finding can flag overrides
+                # in the agent JSON. Agents need this to know the rule wasn't
+                # designed with a deterministic fix payload in mind.
+                rule._fix_strategy_default = original_strategy
                 rule.FIX_STRATEGY = configured_strategy
                 info(f"[CONFIG] Override fix_strategy for {rule.__class__.__name__}: {original_strategy.value} -> {configured_strategy.value}")
 

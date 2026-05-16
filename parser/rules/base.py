@@ -49,6 +49,14 @@ class Finding:
         self.severity = self.rule.SEVERITY
         self.category = self.rule.CATEGORY
         self.fix_strategy = self.rule.FIX_STRATEGY
+        # True when the user's config promoted/demoted the rule's default
+        # strategy. RulesEngine stashes the original on `_fix_strategy_default`
+        # at override time; absence of that attr means the strategy is the
+        # rule-author default.
+        default_strategy = getattr(self.rule, '_fix_strategy_default', None)
+        self.fix_strategy_overridden = (
+            default_strategy is not None and default_strategy != self.fix_strategy
+        )
         # Line intentionally excluded so re-runs after a fix still join.
         import hashlib
         raw = f"{self.rule_id}|{self.file_path}|{self.path or ''}|{self.message}"

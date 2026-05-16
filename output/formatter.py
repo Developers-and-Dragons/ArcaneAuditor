@@ -160,6 +160,7 @@ class OutputFormatter:
                 # str-Enum members JSON-serialize as their string values.
                 "category": f.category.value if hasattr(f.category, "value") else f.category,
                 "fix_strategy": f.fix_strategy.value if hasattr(f.fix_strategy, "value") else f.fix_strategy,
+                "fix_strategy_overridden": f.fix_strategy_overridden,
                 "message": f.message,
                 "location": {
                     "file_path": clean_path,

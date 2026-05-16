@@ -61,6 +61,7 @@ class TestFindingShape:
             "severity",
             "category",
             "fix_strategy",
+            "fix_strategy_overridden",
             "message",
             "location",
             "snippet",
