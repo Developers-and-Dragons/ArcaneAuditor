@@ -1,12 +1,12 @@
-![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
+Arcane Auditor Logo
 
 *A mystical code review tool for Workday Extend applications.*
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue?style=for-the-badge)
-[![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-[![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
+Version
+[Download](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
+[Support](https://buymeacoffee.com/developersanddragons)
 
 ---
 
@@ -30,29 +30,29 @@ It analyzes:
 - ⚙️ Update-safe configuration layering
 - 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
-**New in v1.6:**
+**New in v2.0:**
+
+- 🤖 **Agent-friendly CLI** — a single `--agent` flag turns the CLI into a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, etc.). v2 JSON schema with stable `finding_id`, JSONPath locations, `suggested_replacement` text on 12 rules, and a bundled `SKILL.md` so agents know how to drive it. The desktop app is still the recommended experience for humans — agent mode is purely additive for teams that already work alongside an agent.
+- 🛡️ **No auto-fix, no hosted LLM, no code leaves your machine.** The tool surfaces findings and (where deterministic) a suggested replacement string — your agent or you decide whether to splice it in.
+
+## **Earlier highlights (v1.6):**
  * **Desktop: analyze a project folder** — pick a directory on disk for recursive analysis (same model as the CLI), with a Browse menu for ZIP, files, or folder.
 
-**Earlier highlights (v1.5):**
- * Orchestration support — additional validations for orchestrations.
- * Linux CLI builds (tar.gz + SHA-256).
- * Docker definition files for CI/container workflows.
----
-
 ## 🚀 Quick Start — Desktop App
-
 
 ### 1. Download
 
 Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
-| Platform                      | File                                | Description                                                        |
-| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
-| 🪟**Windows (Desktop)** | `ArcaneAuditor.exe`               | Full desktop app — double-click to launch                         |
-| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag **Arcane Auditor.app** to Applications |
-| ⚙️**Windows (CLI)**   | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                     |
-| ⚙️**macOS (CLI)**     | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                   |
-| 🐧**Linux (CLI)**     | `ArcaneAuditor_linux_CLI.tar.gz`                | CLI only; verify with included `ArcaneAuditor_linux_CLI.tar.gz.sha256` |
+
+| Platform                | File                              | Description                                                            |
+| ----------------------- | --------------------------------- | ---------------------------------------------------------------------- |
+| 🪟**Windows (Desktop)** | `ArcaneAuditor.exe`               | Full desktop app — double-click to launch                              |
+| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag **Arcane Auditor.app** to Applications          |
+| ⚙️**Windows (CLI)**     | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                         |
+| ⚙️**macOS (CLI)**       | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                         |
+| 🐧**Linux (CLI)**       | `ArcaneAuditor_linux_CLI.tar.gz`  | CLI only; verify with included `ArcaneAuditor_linux_CLI.tar.gz.sha256` |
+
 
 > 🧩 **Note for macOS users:**
 > The first time you open the app or CLI, macOS Gatekeeper may show
@@ -88,27 +88,29 @@ Results appear faster than a polymorph spell — download Excel reports as neede
 
 ## 🧩 Interfaces at a Glance
 
-| Interface             | Best For                    | Launch                                    | Highlights                             |
-| --------------------- | --------------------------- | ----------------------------------------- | -------------------------------------- |
-| 🖥️**Desktop** | Everyone                    | Native app (Windows/macOS)                 | Clean UI, drag-and-drop, fast analysis |
-| ⚔️**CLI**     | CI/CD, automation, Docker   | `ArcaneAuditorCLI review-app myapp.zip` | Windows, macOS, Linux; Excel/JSON     |
 
-<details>
-<summary>📸 Screenshots</summary>
+| Interface      | Best For                             | Launch                                          | Highlights                                                  |
+| -------------- | ------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
+| 🖥️**Desktop** | Everyone                             | Native app (Windows/macOS)                      | Clean UI, drag-and-drop, fast analysis                      |
+| ⚔️**CLI**      | CI/CD, automation, Docker            | `ArcaneAuditorCLI review-app myapp.zip`         | Windows, macOS, Linux; Excel/JSON                           |
+| 🤖**Agent**    | AI coding agents (Claude Code, etc.) | `ArcaneAuditorCLI review-app myapp.zip --agent` | v2 JSON, JSONPath locations, stable IDs, bundled `SKILL.md` |
+
+
+📸 Screenshots
 
 **Dark Mode:**
-![Desktop Interface - Dark Mode](assets/screenshots/results-dark.png)
+Desktop Interface - Dark Mode
 
 **Light Mode:**
-![Desktop Interface - Light Mode](assets/screenshots/results-light.png)
+Desktop Interface - Light Mode
 
 **Issues View:**
-![Issues View](assets/screenshots/issues-dark.png)
+Issues View
 
 **Issues Breakdown:**
-![Issues Breakdown](assets/screenshots/details-dark.png)
+Issues Breakdown
 
-</details>
+
 
 ---
 
@@ -154,12 +156,49 @@ ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
 
 **Exit Codes for CI/CD:**
 
-| Exit Code   | Meaning           | Use Case              |
-| ----------- | ----------------- | --------------------- |
-| **0** | ✅ Clean          | No ACTION issues      |
-| **1** | ⚠️ Issues Found | ACTION issues present |
-| **2** | ❌ Usage Error    | Invalid files/config  |
-| **3** | 💥 Runtime Error  | Analysis failure      |
+
+| Exit Code | Meaning          | Use Case              |
+| --------- | ---------------- | --------------------- |
+| **0**     | ✅ Clean          | No ACTION issues      |
+| **1**     | ⚠️ Issues Found  | ACTION issues present |
+| **2**     | ❌ Usage Error    | Invalid files/config  |
+| **3**     | 💥 Runtime Error | Analysis failure      |
+
+
+---
+
+## 🤖 Agent Mode
+
+The same CLI binary doubles as a clean tool-call surface for AI coding agents (Claude Code, Codex, Cursor, and friends). Run with `--agent` and the auditor behaves like a well-mannered MCP-style tool: quiet, JSON-on-stdout, schema-stable.
+
+> 🛡️ **What this is — and isn't.**
+> Arcane Auditor does **not** auto-apply fixes, and **no LLM is bundled or called**. Your code never leaves the machine. Agent mode just makes findings legible to the agent *you already use*, so it can decide what to do with them.
+
+**Quick try:**
+
+```bash
+ArcaneAuditorCLI review-app myapp.zip --agent
+```
+
+**What `--agent` gives you over `--ci`:**
+
+- 📐 **v2 JSON schema** — `schema_version: "2.0"`, nested `location`, and rule metadata (`category`, `fix_strategy`) on every finding.
+- 🪪 **Stable `finding_id`** — hash of rule + file + path + message (line excluded), so re-runs after a fix still join on the same identifier.
+- 🧭 **JSONPath `location.path`** — for PMD / POD / AMD / SMD findings, a JSONPath that survives line-drifting edits (e.g. `$.outboundEndpoints[?(@.name=='getWorker')].failOnStatusCodes`). Script-file findings use line/column.
+- ✏️ `**suggested_replacement**` — drop-in replacement text on 12 deterministic rules (e.g. `var`→`let`, hardcoded Workday API → `apiGatewayEndpoint + '<path>'`). The other 36 rules carry `fix_strategy: human_review` — the agent is told plainly when it should *not* assume a one-line patch.
+- 🔍 **Filter flags** — `--rules`, `--exclude-rules`, `--severity`, `--fix-strategy`, `--files <glob,glob>` so the agent can scope a focused pass without re-running the world.
+- 📚 **Rule introspection** — `list-rules --format json` for the catalog, `describe-rule <RuleId>` for full metadata (the `why` / `catches` / `examples` / `recommendation` an agent needs to reason about a finding).
+
+**Installing the skill once:**
+
+The CLI ships with a `SKILL.md` describing the contract (commands, schema, loop strategy). Install it into your agent of choice:
+
+```bash
+# Example: Claude Code
+ArcaneAuditorCLI agent-help > ~/.claude/skills/arcane-auditor/SKILL.md
+```
+
+The same file works for any agent that follows the cross-vendor `SKILL.md` convention (Claude Code, Codex, Cursor, etc.).
 
 ---
 
@@ -168,16 +207,16 @@ ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
 Arcane Auditor uses a **layered, update-safe configuration** system:
 
 1. **Built-in Presets**
-   - `development` — lenient, allows console logs / work-in-progress code
-   - `production-ready` — strict, deployment-grade validation
+  - `development` — lenient, allows console logs / work-in-progress code
+  - `production-ready` — strict, deployment-grade validation
 2. **Team Configuration**
-   - Windows: `%AppData%\ArcaneAuditor\config\rules\teams\`
-   - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`
-   - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/teams/`
+  - Windows: `%AppData%\ArcaneAuditor\config\rules\teams\`
+  - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`
+  - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/teams/`
 3. **Personal Configuration**
-   - Windows: `%AppData%\ArcaneAuditor\config\rules\personal\`
-   - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`
-   - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/personal/`
+  - Windows: `%AppData%\ArcaneAuditor\config\rules\personal\`
+  - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`
+  - Linux (CLI): `~/.config/ArcaneAuditor/config/rules/personal/`
 4. **Command-line overrides** (highest priority)
 
 **Example personal config:**
@@ -221,8 +260,7 @@ Widget IDs • endpoint failOnStatusCodes • naming conventions • file struct
 
 ## ⚡ Advanced Usage
 
-<details>
-<summary>🧩 Context Awareness</summary>
+🧩 Context Awareness
 
 Arcane Auditor detects missing files and adjusts validation scope automatically:
 
@@ -230,10 +268,9 @@ Arcane Auditor detects missing files and adjusts validation scope automatically:
 - **Partial** when some missing (rules skipped with clear indicators)
 - Reports list skipped or partial rules and suggest required files.
 
-</details>
 
-<details>
-<summary>🔧 Port Configuration (Desktop App)</summary>
+
+🔧 Port Configuration (Desktop App)
 
 The desktop app runs a local server (default port 8080).
 If you have a port conflict, edit:
@@ -249,7 +286,7 @@ If you have a port conflict, edit:
 }
 ```
 
-</details>
+
 
 ---
 
@@ -272,7 +309,7 @@ uv sync
 
 ## 🧙 Contributing
 
-Contributions are welcome! Submit pull requests against the **`develop`** branch.
+Contributions are welcome! Submit pull requests against the `**develop`** branch.
 
 > 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](docs/CUSTOM_RULES.md)
 
