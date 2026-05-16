@@ -171,6 +171,8 @@ class OutputFormatter:
                 },
                 "snippet": make_snippet(source, f.line) if source else None,
                 "suggested_replacement": f.suggested_replacement,
+                "target_text": f.target_text,
+                "replacement_context": f.replacement_context,
                 "finding_id": f.finding_id,
             }
 

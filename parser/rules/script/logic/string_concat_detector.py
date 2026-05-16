@@ -58,6 +58,8 @@ class StringConcatDetector(ScriptDetector):
                     message=message,
                     line=line_number,
                     suggested_replacement=self._to_template_literal(add_expr),
+                    target_text=concat_text,
+                    replacement_context="substring",
                 )
     
     def _to_template_literal(self, add_expr: Tree):

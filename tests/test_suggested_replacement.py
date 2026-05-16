@@ -64,7 +64,11 @@ class TestStringBooleanRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "true"
+        # suggested_replacement is the new substring that replaces target_text;
+        # applying it to the source via str.replace yields the desired edit.
+        assert findings[0].target_text == '"visible": "true"'
+        assert findings[0].suggested_replacement == '"visible": true'
+        assert findings[0].replacement_context == "substring"
 
     def test_string_false_finding_suggests_unquoted_false(self):
         rule = StringBooleanRule()
@@ -76,7 +80,9 @@ class TestStringBooleanRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "false"
+        assert findings[0].target_text == '"enabled": "false"'
+        assert findings[0].suggested_replacement == '"enabled": false'
+        assert findings[0].replacement_context == "substring"
 
 
 class TestScriptConsoleLogRule:
@@ -286,7 +292,10 @@ class TestOnlyMaximumEffortRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "false"
+        # New contract: target_text + suggested_replacement are the exact swap pair.
+        assert findings[0].target_text == '"bestEffort": true'
+        assert findings[0].suggested_replacement == '"bestEffort": false'
+        assert findings[0].replacement_context == "substring"
 
     def test_string_true_suggests_false(self):
         from parser.rules.structure.endpoints.only_maximum_effort import (
@@ -303,7 +312,11 @@ class TestOnlyMaximumEffortRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "false"
+        # String-quoted variant: replacement preserves quotes (StringBooleanRule
+        # will catch the redundant quoting on a subsequent pass).
+        assert findings[0].target_text == '"bestEffort": "true"'
+        assert findings[0].suggested_replacement == '"bestEffort": "false"'
+        assert findings[0].replacement_context == "substring"
 
 
 class TestMultipleStringInterpolatorsRule:

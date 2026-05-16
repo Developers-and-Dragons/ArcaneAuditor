@@ -65,6 +65,8 @@ class TestFindingShape:
             "location",
             "snippet",
             "suggested_replacement",
+            "target_text",
+            "replacement_context",
             "finding_id",
         }
 

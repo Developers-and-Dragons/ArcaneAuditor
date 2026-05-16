@@ -67,8 +67,28 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = 'd9e41a8c446
 ```javascript
 const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
 const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
-```''',
-        'recommendation': 'Store WID values in app attributes instead of hardcoding them. This makes your application portable across environments and allows meaningful naming that helps developers understand the code.',
+```
+
+**App attribute definition** lives in `attributes/default.attributes` (JSON array at the project root):
+
+```json
+[
+  { "name": "usaLocation", "type": "string",  "alias": "usaLocation" },
+  { "name": "retries",     "type": "numeric", "alias": "retries" },
+  { "name": "enableDebug?",    "type": "boolean", "alias": "enableDebug?" }
+]
+```
+
+Supported `type` values: `string`, `numeric`, `boolean`.''',
+        'recommendation': '''Store WID values in app attributes instead of hardcoding them. This makes the app portable across tenants and lets you name the value meaningfully.
+
+**Agent guidance:**
+
+1. App attribute **definitions** live in `attributes/default.attributes` (JSON array at the project root). If the file does not exist, it can be created.
+2. Each definition has shape `{"name": "...", "type": "string|numeric|boolean", "alias": "..."}`. Only those three types are supported.
+3. Per-tenant **values** for these attributes are set in the Workday tenant by an admin — there is no API and no project file an agent can edit to set them. The agent can add the *definition*, but the user must populate values in each tenant.
+4. Reference the attribute from script via `appAttr.<name>` (e.g., `appAttr.usaLocation`).
+5. Before adding a new definition, check `attributes/default.attributes` for an existing entry that fits — don't create duplicates.''',
         'configuration': 'allow_wid_in_task_report_link_fields (boolean, default false): When true, hardcoded WIDs in the "wid" field (task/report link values) are not reported. Use this if your app uses Workday\'s task/report link feature where wid is required in those fields.'
     }
     

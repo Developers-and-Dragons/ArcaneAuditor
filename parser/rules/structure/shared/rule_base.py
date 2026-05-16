@@ -88,12 +88,17 @@ class StructureRuleBase(Rule, ABC):
     
     def _create_finding(self, message: str, file_path: str, line: int = 1,
                         suggested_replacement: Optional[str] = None,
-                        path: Optional[str] = None) -> Finding:
+                        path: Optional[str] = None,
+                        target_text: Optional[str] = None,
+                        replacement_context: Optional[str] = None) -> Finding:
         """Create a finding with consistent formatting.
 
         ``path`` may be an internal dotted form (``body.children.0.id``); it is
         converted to JSONPath (``$.body.children[0].id``) here so rule code
         keeps its existing path conventions.
+
+        ``target_text`` and ``replacement_context`` are agent-only enrichment;
+        see Finding for semantics.
         """
         from utils.jsonpath import dotted_to_jsonpath
         return Finding(
@@ -103,6 +108,8 @@ class StructureRuleBase(Rule, ABC):
             file_path=file_path,
             suggested_replacement=suggested_replacement,
             path=dotted_to_jsonpath(path),
+            target_text=target_text,
+            replacement_context=replacement_context,
         )
     
     # Unified line calculation methods

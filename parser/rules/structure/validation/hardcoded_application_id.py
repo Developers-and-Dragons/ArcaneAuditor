@@ -107,7 +107,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
         """Check AMD file for hardcoded applicationId values in dataProviders."""
         if not amd_model.dataProviders:
             return  # No dataProviders to check
-        
+
         # Only check the dataProviders values
         for data_provider in amd_model.dataProviders:
             if isinstance(data_provider, dict) and 'value' in data_provider:
@@ -121,6 +121,12 @@ const appId = site.applicationId; // ✅ Use site.applicationId
                             line=1,  # AMD doesn't have line-level source tracking
                             suggested_replacement="site.applicationId",
                             path=data_provider_jsonpath(data_provider.get('key')),
+                            # The dataProvider value is a script expression; the
+                            # hardcoded app_id appears as a bare identifier
+                            # within it. Substring replace cleanly substitutes
+                            # it with the site.applicationId reference.
+                            target_text=app_id,
+                            replacement_context="substring",
                         )
     
     def _check_source_content_for_app_id(self, source_content: str, app_id: str, file_path: str) -> Generator[Finding, None, None]:
@@ -149,14 +155,44 @@ const appId = site.applicationId; // ✅ Use site.applicationId
             
             # Calculate line number from position in source content
             line_num = self.get_line_from_text_position(source_content, match.start())
-            
+
+            target_text, replacement_context = self._enrich_match(match.group(0))
+
             yield self._create_finding(
                 message=f"Hardcoded applicationId '{app_id}' found. Use site.applicationId instead.",
                 file_path=file_path,
                 line=line_num,
                 suggested_replacement="site.applicationId",
                 path="$",
+                target_text=target_text,
+                replacement_context=replacement_context,
             )
+
+    @staticmethod
+    def _enrich_match(match_text: str):
+        """Decide target_text + replacement_context for a regex match.
+
+        The rule's comprehensive_pattern matches three shapes:
+        1. ``"applicationId": "<id>"`` — JSON field assignment. Swapping the
+           quoted value for the unquoted ``site.applicationId`` would produce
+           invalid JSON, so we leave target_text=None and let the agent treat
+           ``suggested_replacement`` as the spec rather than a literal swap.
+        2. ``"<id>"`` / ``'<id>'`` — bare quoted string (script context).
+        3. ``<id>`` — bare identifier (script context).
+
+        For shapes 2 and 3, the match is exactly what should be replaced with
+        ``site.applicationId`` — a deterministic substring swap.
+        """
+        if re.match(r'["\']applicationId["\']', match_text):
+            return None, None
+        # Skip asymmetric quoting (regex can pick up a leading `"` from an
+        # escaped `\"` in JSON source without the matching trailing quote).
+        # Replacing such a fragment would corrupt the surrounding string.
+        starts_quoted = match_text[:1] in ('"', "'")
+        ends_quoted = match_text[-1:] in ('"', "'")
+        if starts_quoted != ends_quoted:
+            return None, None
+        return match_text, "substring"
     
     def _check_string_values_for_app_id(self, model: Any, app_id: str, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
         """Recursively check string values for hardcoded applicationId."""
@@ -199,11 +235,15 @@ const appId = site.applicationId; // ✅ Use site.applicationId
             
             # Calculate line number using the base class method
             line_num = self.get_line_from_text_position(text, match.start())
-            
+
+            target_text, replacement_context = self._enrich_match(match.group(0))
+
             yield self._create_finding(
                 message=f"Hardcoded applicationId '{app_id}' found in {field_name}. Use site.applicationId instead.",
                 file_path=file_path,
                 line=line_num,
                 suggested_replacement="site.applicationId",
                 path=field_name or None,
+                target_text=target_text,
+                replacement_context=replacement_context,
             )

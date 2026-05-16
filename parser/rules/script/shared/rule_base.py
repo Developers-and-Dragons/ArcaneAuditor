@@ -139,6 +139,8 @@ class ScriptRuleBase(Rule, ABC):
                     file_path=file_path,
                     suggested_replacement=violation.suggested_replacement,
                     path=dotted_to_jsonpath(dotted),
+                    target_text=violation.target_text,
+                    replacement_context=violation.replacement_context,
                 )
     
     def _extract_variable_from_empty_expression(self, node) -> str:

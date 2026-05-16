@@ -69,6 +69,8 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
       },
       "snippet": "...",
       "suggested_replacement": "let",
+      "target_text": "var",
+      "replacement_context": "substring",
       "finding_id": "sha1:<hash — yours will differ>"
     }
   ]
@@ -81,7 +83,9 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
 - `**location.path**` — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD). Stable across line-drifting edits. `null` for `.script` files and rules without a natural path.
 - `**location.line**` — Always set. Use this for `.script` files; use it as a secondary locator for JSON-shaped files when re-reading after edits.
 - `**location.column` / `end_line` / `end_column**` — Currently emitted as `null` across all rules; reserved for future use. Don't rely on them.
-- `**suggested_replacement**` — Replacement text the agent should drop in at the violation site (e.g. `"let"`, `"site.applicationId"`, or a multi-line JSON snippet). May be `null` even on `actionable` findings when the fix is whole-document (e.g., reordering keys); in that case the `message` carries the spec. Wrapping/splice points are the agent's responsibility.
+- `**suggested_replacement**` — The new text that goes in place of `target_text` (when `target_text` is set), or the new value of the field (when `target_text` is `null` — `full_field` context). It is the *post-edit substring*, not the bare new value — rules may include surrounding context (e.g. `"visible": true`, not just `true`) to make the swap unambiguous. May itself be `null` on `actionable` findings whose fix is whole-document (e.g., reordering keys); in that case the `message` carries the spec.
+- `**target_text**` — Exact original substring that `suggested_replacement` swaps in for. When present, the agent should locate this string within the field at `location.path` and replace it — do NOT replace the whole field. May be `null` when the rule emits a full-field/whole-document replacement.
+- `**replacement_context**` — How to apply `suggested_replacement`. See table below. May be `null` on older/un-enriched rules; treat `null` as `full_field` only when `target_text` is also `null`, otherwise default to `substring`.
 - `**snippet**` — A few lines of source around the violation, for context. May be `null` if the analyzer didn't have source content (rare).
 - `**finding_id**` — Stable hash of `rule_id|file_path|path|message`. Line is excluded so re-runs after a fix still join on the same identifier. The example value above is illustrative; real runs produce different hashes.
 
@@ -92,6 +96,19 @@ ArcaneAuditorCLI review-app <path> --agent --fix-strategy actionable
 | -------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `actionable`   | Finding carries a deterministic fix; a `suggested_replacement` may be present (or, rarely, the spec is in `message`) | **Apply the fix directly. Do not ask the user first.** Report what was changed afterward. |
 | `human_review` | Resolution requires human judgment, multi-step rewrites, naming, cross-file work, or workflow that crosses systems   | Surface for human review and ask before changing anything; do not auto-resolve.         |
+
+### `replacement_context` decision table
+
+
+| Value           | How to apply                                                                                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `substring`     | Read the field at `location.path`, replace the literal `target_text` with `suggested_replacement`, write the field back. **Never** overwrite the whole field.         |
+| `full_field`    | Replace the entire value at `location.path` with `suggested_replacement`.                                                                                             |
+| `array_splice`  | `suggested_replacement` is a comma-separated set of array elements; splice them into the existing array at `location.path` (preserve existing elements).              |
+| `field_insert`  | `suggested_replacement` is a `"key": value` pair; insert it into the object at `location.path`.                                                                       |
+
+
+**Common foot-gun:** for script bodies embedded in JSON (`<% ... %>`), `location.path` points at the *containing field*, and the rule's `target_text` is a fragment of the script — e.g., a `'a' + b` concat inside `<% const a = 'x'; return 'a' + b; %>`. Replacing the whole field deletes the surrounding script (variable declarations, control flow). Always honor `target_text` + `replacement_context` when they are present.
 
 `fix_strategy` is the user's standing instruction to the agent, not a suggestion to re-litigate. The rule author picks a sensible default, and users can override per rule in tool config — so by the time a finding reaches the agent with `actionable`, the user has already consented to the agent applying it. Asking again defeats the purpose. If you are unsure whether a specific fix is safe, the right response is to flag the rule's classification for review, not to prompt on every individual finding.
 
@@ -109,10 +126,26 @@ loop:
   fixable = [f for f in result.findings if f.fix_strategy == "actionable" and f.suggested_replacement]
   if not fixable: break
   pick one finding
-  apply fix (prefer location.path; fall back to location.line)  # no confirmation prompt
+  read the field at f.location.path (or the line for .script files)
+  apply fix per f.replacement_context (see table above):
+    - substring:    new_field = field.replace(f.target_text, f.suggested_replacement)
+    - full_field:   new_field = f.suggested_replacement
+    - array_splice / field_insert: splice/insert per table
+  write the field back
+  verify post-fix (see below)
   goto top
 # then surface remaining human_review findings to the user
 ```
+
+### Post-fix verification (required for `substring` and `array_splice`)
+
+After applying a fragment fix, **re-read the surrounding context** before continuing the loop. A clean re-run of the auditor proves the *targeted* rule is satisfied, but rules don't model cross-cutting effects of the edit. Specifically:
+
+- **Script bodies (`<% %>` in PMD/POD):** confirm the script still parses by eye — every identifier referenced in `suggested_replacement` (e.g., `{{name}}` in a template literal) must resolve to a `var`/`let`/`const` or parameter still present in scope. If the fix removed the last use of a previously-declared variable, that variable is now unused (a separate rule will catch it on the next pass — that's expected).
+- **JSON splices/inserts:** confirm the resulting field is still valid JSON (no trailing commas, balanced braces).
+- **`.script` files:** re-read the line and ±2 lines around it.
+
+If the re-read looks wrong, **revert the edit** and reclassify the finding as `human_review` for the user. Trusting "0 findings" alone is the foot-gun that motivates `target_text` in the first place.
 
 Re-reading the target field after each fix matters especially for script bodies embedded in PMD/POD JSON — see the next section.
 

@@ -93,8 +93,11 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
                 file_path=model.file_path,
                 line=line_number,
+                # `field_insert`: location.path points to the endpoint object;
+                # suggested_replacement is the new "key": value pair to add.
                 suggested_replacement='"failOnStatusCodes": [{"code": 400}, {"code": 403}]',
                 path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index),
+                replacement_context="field_insert",
             )
             return
 
@@ -138,8 +141,12 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
                 file_path=model.file_path,
                 line=line_number,
+                # `array_splice`: location.path points to the failOnStatusCodes
+                # array; suggested_replacement is the comma-separated elements
+                # to insert. Existing entries (e.g., {"code": 500}) are preserved.
                 suggested_replacement=replacement,
                 path=endpoint_jsonpath(endpoint_type, endpoint_name, index=index, subkey='failOnStatusCodes'),
+                replacement_context="array_splice",
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

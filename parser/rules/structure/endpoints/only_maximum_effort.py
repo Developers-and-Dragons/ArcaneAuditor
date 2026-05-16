@@ -83,30 +83,62 @@ class OnlyMaximumEffortRule(StructureRuleBase):
                 if isinstance(endpoint, dict):
                     yield from self._check_endpoint_best_effort(endpoint, pod_model, 'pod', i)
     
+    # Matches: "bestEffort": true | "bestEffort":true | "bestEffort": "true" | "bestEffort":"true"
+    _BEST_EFFORT_TRUE_RE = r'"bestEffort"\s*:\s*"?true"?'
+    _NAME_FIELD_RE = r'"name"\s*:\s*"{name}"'
+
     def _check_endpoint_best_effort(self, endpoint, model, endpoint_type, index):
         """Check if an endpoint has bestEffort: true."""
         if not isinstance(endpoint, dict):
             return
-        
+
         endpoint_name = endpoint.get('name', f'endpoint[{index}]')
         best_effort = endpoint.get('bestEffort')
-        
+
         # Check if bestEffort is set to true (handle both boolean and string)
-        if best_effort is True or (isinstance(best_effort, str) and best_effort.lower() == 'true'):
-            line_number = self._get_endpoint_line_number(model, endpoint_name, endpoint_type)
-            
-            yield self._create_finding(
-                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has bestEffort: true which can mask API failures. It is advised to avoid using bestEffort.",
-                file_path=model.file_path,
-                line=line_number,
-                suggested_replacement="false",
-                path=endpoint_jsonpath(endpoint_type, endpoint.get('name'), index=index, subkey='bestEffort'),
-            )
-    
-    def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
-        """Get line number for the bestEffort field."""
-        if hasattr(model, 'source_content'):
-            # Use pattern search to find the bestEffort field
-            return self.find_pattern_line_number(model, '"bestEffort": true')
-        return 1
+        if not (best_effort is True or (isinstance(best_effort, str) and best_effort.lower() == 'true')):
+            return
+
+        line_number, target_text, replacement = self._locate_best_effort(model, endpoint.get('name'))
+
+        yield self._create_finding(
+            message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has bestEffort: true which can mask API failures. It is advised to avoid using bestEffort.",
+            file_path=model.file_path,
+            line=line_number,
+            suggested_replacement=replacement if replacement is not None else "false",
+            path=endpoint_jsonpath(endpoint_type, endpoint.get('name'), index=index, subkey='bestEffort'),
+            target_text=target_text,
+            replacement_context="substring" if target_text else None,
+        )
+
+    def _locate_best_effort(self, model, endpoint_name):
+        """Locate the bestEffort assignment for a named endpoint in the source.
+
+        Strategy: find the endpoint's `"name": "<endpoint_name>"` occurrence in
+        the source, then search forward for the next `bestEffort: true` match.
+        This avoids the multi-match collision that occurs when several endpoints
+        share the same bestEffort spelling.
+
+        Returns ``(line_number, target_text, replacement)``. When source-based
+        location fails, falls back to ``(1, None, None)`` so the agent receives
+        the bare ``"false"`` suggestion and the human still sees a finding.
+        """
+        import re
+        source = getattr(model, 'source_content', None)
+        if not source or not endpoint_name:
+            return 1, None, None
+
+        # Find the endpoint's name field occurrence.
+        name_match = re.search(self._NAME_FIELD_RE.format(name=re.escape(endpoint_name)), source)
+        search_start = name_match.end() if name_match else 0
+
+        be_match = re.search(self._BEST_EFFORT_TRUE_RE, source[search_start:], re.IGNORECASE)
+        if not be_match:
+            return 1, None, None
+
+        absolute_pos = search_start + be_match.start()
+        line_number = source.count('\n', 0, absolute_pos) + 1
+        target = be_match.group(0)
+        replacement = re.sub(r'true', 'false', target, count=1, flags=re.IGNORECASE)
+        return line_number, target, replacement
 

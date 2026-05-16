@@ -36,6 +36,11 @@ class Finding:
     snippet: Optional[str] = None
     suggested_replacement: Optional[str] = None
     path: Optional[str] = None
+    # Agent-only enrichment for deterministic fix application.
+    # See Violation for semantics. Surfaced in agent JSON output only;
+    # console / Excel / summary formats ignore these fields.
+    target_text: Optional[str] = None
+    replacement_context: Optional[str] = None
 
     def __post_init__(self):
         # Set derived fields automatically
