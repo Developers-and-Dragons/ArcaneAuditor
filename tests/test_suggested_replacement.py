@@ -356,6 +356,66 @@ class TestMultipleStringInterpolatorsRule:
         assert findings[0].suggested_replacement == "<% `x={{x}} y={{y}}` %>"
 
 
+class TestHardcodedWorkdayAPIRule:
+    def test_pmd_endpoint_url_suggests_template_literal(self):
+        from parser.rules.structure.validation.hardcoded_workday_api import (
+            HardcodedWorkdayAPIRule,
+        )
+
+        rule = HardcodedWorkdayAPIRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            inboundEndpoints=[{
+                "name": "getWorker",
+                "url": "https://api.workday.com/common/v1/workers/me",
+            }],
+            source_content='{"inboundEndpoints":[{"name":"getWorker","url":"https://api.workday.com/common/v1/workers/me"}]}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"
+
+    def test_amd_dataprovider_suggests_template_literal(self):
+        from parser.models import AMDModel
+        from parser.rules.structure.validation.hardcoded_workday_api import (
+            HardcodedWorkdayAPIRule,
+        )
+
+        rule = HardcodedWorkdayAPIRule()
+        context = ProjectContext()
+        context.amd = AMDModel(
+            routes={},
+            dataProviders=[{"key": "workday-common", "value": "https://api.workday.com/common/v1/"}],
+            file_path="test.amd",
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/common/v1/' %>"
+
+    def test_subdomain_workday_url_handled(self):
+        """Subdomains other than 'api' (e.g. 'wd5-impl-services1') should also work."""
+        from parser.rules.structure.validation.hardcoded_workday_api import (
+            HardcodedWorkdayAPIRule,
+        )
+
+        rule = HardcodedWorkdayAPIRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            file_path="t.pmd",
+            inboundEndpoints=[{
+                "name": "getThing",
+                "url": "https://wd5-impl-services1.workday.com/ccx/api/v1/foo",
+            }],
+            source_content='{"inboundEndpoints":[{"name":"getThing","url":"https://wd5-impl-services1.workday.com/ccx/api/v1/foo"}]}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == "<% apiGatewayEndpoint + '/ccx/api/v1/foo' %>"
+
+
 class TestUnsupportedRuleLeavesNone:
     """Rules without a wired replacement emit None — guards against
     accidentally setting a default everywhere. Uses a `human_review` rule

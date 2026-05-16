@@ -75,6 +75,19 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
             r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com[^\s\'"]*',
             re.IGNORECASE
         )
+        # Same pattern with the path captured, for building the replacement.
+        self._workday_with_path = re.compile(
+            r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com([^\s\'"]*)',
+            re.IGNORECASE
+        )
+
+    def _build_replacement(self, url: str):
+        """Strip the workday.com host and wrap the remaining path in apiGatewayEndpoint."""
+        m = self._workday_with_path.search(url)
+        if not m:
+            return None
+        path = m.group(1)
+        return f"<% apiGatewayEndpoint + '{path}' %>"
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
@@ -139,7 +152,8 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
                     message=f"AMD dataProvider '{key}' uses hardcoded *.workday.com URL: '{value}'. "
                            f"Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
                     line=line_number,
-                    file_path=amd_model.file_path
+                    file_path=amd_model.file_path,
+                    suggested_replacement=self._build_replacement(value),
                 )
                 yield finding
 
@@ -158,12 +172,13 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
         # Check for hardcoded *.workday.com URLs
         if self.workday_url_pattern.search(url):
             line_number = self._get_endpoint_url_line_number(model, endpoint_name, endpoint_type)
-            
+
             yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' uses hardcoded *.workday.com URL: '{url}'. "
                        f"Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
                 file_path=model.file_path,
-                line=line_number
+                line=line_number,
+                suggested_replacement=self._build_replacement(url),
             )
 
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
