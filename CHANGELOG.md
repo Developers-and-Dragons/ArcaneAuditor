@@ -7,35 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v2.0.0] - 2026-05-13
+## [v2.0.0] - 2026-05-16
 
-**Breaking schema change.** The JSON output format is now v2, with nested `location` and several new per-finding fields. Tools consuming the v1 JSON shape will need to update.
+**Breaking schema change.** JSON output is now v2: nested `location`, new per-finding fields. v1 consumers must update.
 
-### Added
+### Added — agent-facing JSON
 
-- **`--agent` CLI preset** — Single flag for AI agents: implies quiet, JSON to stdout, no default output file. Mutually exclusive with `--ci`; rejects non-JSON `--format`.
-- **v2 JSON schema** — Top-level `schema_version: "2.0"`. Each finding now carries `category`, `fix_strategy`, `snippet`, `suggested_replacement`, `finding_id`, and a nested `location` object (`file_path`, `line`, `column`, `end_line`, `end_column`, `path`).
-- **`location.path`** — JSONPath for JSON-shaped files (PMD/POD/AMD/SMD), stable across line-drifting edits. Every structure rule emit site now carries a `path` except two (`PMDSectionOrderingRule`, `FileNameLowerCamelCaseRule`) where no node-level path makes sense. Endpoint findings use `$.{inbound|outbound}Endpoints[?(@.name=='X')].subkey`; AMD findings use `$.dataProviders[?(@.key=='X')].value`; orchestration findings use a tuple-derived path or `$..nodes[?(@.name=='X')]` descendant selector when traversal doesn't track a stable index. `null` for `.script` files and a small number of file-level findings.
-- **`suggested_replacement`** — Drop-in replacement text the agent can splice at the violation site. Wired on 12 of 48 rules: `ScriptVarUsageRule` (`let`), `ScriptConsoleLogRule` (commented line), `ScriptStringConcatRule` (PMD template literal), `ScriptVerboseBooleanCheckRule` (the boolean expression), `ScriptUnusedIncludesRule` (`""` to signal deletion), `HardcodedApplicationIdRule` (`site.applicationId`), `HardcodedWorkdayAPIRule` (`<% apiGatewayEndpoint + '<path>' %>`), `StringBooleanRule` (unquoted boolean), `EndpointFailOnStatusCodesRule` (the missing `{"code": N}` entries or full field), `OnlyMaximumEffortRule` (`false`), `MultipleStringInterpolatorsRule` (single template literal), `PMDSectionOrderingRule` (spec carried in message — whole-document reorder doesn't fit a per-finding string).
-- **`finding_id`** — Stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix still join on the same identifier.
-- **`fix_strategy` rule metadata** — Every concrete rule declares one of two values: `actionable` (finding carries a deterministic fix; agent may surface a suggested replacement) or `human_review` (resolution requires human judgment, multi-step rewrites, naming, cross-file work, or workflow that crosses systems). 12 rules are `actionable`; the rest are `human_review`. Conservatism is intentional — false confidence in an auto-fix can damage proprietary code.
-- **`category` rule metadata** — Broad classification for filtering: `script`, `structure`, `endpoint`, `widget`, `orchestration`, `custom`.
-- **`list-rules --format json`** — Machine-readable rule catalog. Default text format unchanged.
-- **`describe-rule <RuleId>`** — Full machine-readable metadata for one rule, including the four `DOCUMENTATION` keys (`why`, `catches`, `examples`, `recommendation`).
-- **Filter flags on `review-app`** — `--rules R1,R2`, `--exclude-rules R3`, `--severity ACTION|ADVICE`, `--fix-strategy actionable,human_review`, `--files <glob>`. Rule filters narrow the rules list before running; severity/fix-strategy filter findings post-run; `--files` filters input before parsing. Unknown values exit with code 2.
-- **`SKILL.md`** — Agent-facing usage doc at the repo root. Cross-vendor convention (Claude Code, Codex, Cursor).
-- **`agent-help` command** — Prints `SKILL.md` so frozen-binary distributions can install the skill via `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`. Install hint shown only on TTY, never piped into the file.
-- **Deterministic finding order** — All output is sorted by `(file_path, line, rule_id, message)` for reproducible runs.
+- `**--agent` CLI flag** — quiet, JSON to stdout, no default output file. Mutually exclusive with `--ci`; rejects non-JSON `--format`.
+- **v2 schema** — top-level `schema_version: "2.0"`. Findings carry `category`, `fix_strategy`, `fix_strategy_overridden`, `snippet`, `suggested_replacement`, `target_text`, `replacement_context`, `finding_id`, and a nested `location` (`file_path`, `line`, `column`, `end_line`, `end_column`, `path`).
+- `**location.path`** — JSONPath into PMD/POD/AMD/SMD files; stable across line-drifting edits. Endpoint findings use `$.{inbound|outbound}Endpoints[?(@.name=='X')].subkey`, AMD uses `$.dataProviders[?(@.key=='X')].value`, orchestration uses tuple-derived or `$..nodes[?(@.name=='X')]` selectors. `null` for `.script` files and a few file-level findings.
+- **Deterministic agent fix payload** — `suggested_replacement` + `target_text` + `replacement_context` together let agents apply fixes as substring swaps rather than full-field overwrites. `replacement_context` is one of `substring`, `full_field`, `array_splice`, `array_remove`, `field_insert`. Wired on all 12 `actionable` rules.
+- `**fix_strategy_overridden`** — `true` when the effective strategy came from user config rather than the rule author's default. Agents check this to detect user-promoted `human_review→actionable` findings, which lack a deterministic fix payload.
+- `**finding_id**` — stable hash of `rule_id|file_path|path|message` (line excluded) so re-runs after a fix join on the same id.
+- `**fix_strategy` and `category` rule metadata** — `actionable` vs `human_review`; `script` / `structure` / `endpoint` / `widget` / `orchestration` / `custom`. User config can override per rule.
+
+### Added — CLI & docs
+
+- `**list-rules --format json`**, `**describe-rule <RuleId>**` — machine-readable rule catalog + per-rule docs (`why`, `catches`, `examples`, `recommendation`).
+- **Filter flags on `review-app`** — `--rules`, `--exclude-rules`, `--severity`, `--fix-strategy`, `--files <glob>`. Unknown values exit `2`.
+- `**SKILL.md**` + `**agent-help` command** — agent-facing skill doc, installable from frozen binaries via `arcane-auditor agent-help > ~/.claude/skills/arcane-auditor/SKILL.md`.
+- **Deterministic finding order** — sorted by `(file_path, line, rule_id, message)`.
 
 ### Changed
 
-- **JSON output schema (BREAKING)** — `file_path` and `line` are no longer top-level on each finding; they're nested inside `location`. Top-level adds `schema_version`. Update consumers accordingly.
-- **Individual-file mode `location.file_path`** — when invoked with one or more file paths (not a directory or ZIP), `location.file_path` now shows the path as supplied rather than just the basename. Matches the behavior of directory/ZIP mode. Substring matching consumers are unaffected; exact-match consumers may need to adjust.
+- **Breaking:** `file_path` and `line` moved from top-level into nested `location`; top-level gains `schema_version`.
+- **Individual-file mode** — `location.file_path` now reflects the path as supplied (matches directory/ZIP mode).
+- `**PMDSectionOrderingRule`** — reclassified to `human_review`; whole-document key reorder isn't a single deterministic edit.
 
 ### Fixed
 
-- **Silent file loss when two files shared an internal id** — Previously, `context.pmds` / `context.pods` were keyed by `pageId` / `podId`, so two files with the same internal id collapsed to one entry and only the last-parsed file was analyzed. Both maps are now keyed by `file_path`. Direct callers of the unused `get_pmd_by_id` / `get_pod_by_id` accessors are unaffected — those accessors had no production callers and have been removed.
-- **Awkward `"Pod_seed endpoint"` message** — `EndpointNameLowerCamelCaseRule` was the only POD-handling rule using `'pod_seed'` as the internal endpoint-type label, which leaked into the finding message. Normalized to `'pod'` to match the other 4 endpoint rules.
+- **Silent file loss on duplicate ids** — `context.pmds` / `context.pods` are now keyed by `file_path` instead of `pageId` / `podId`. Unused `get_pmd_by_id` / `get_pod_by_id` accessors removed.
+- `**"Pod_seed endpoint"` finding message** — normalized `'pod_seed'` label to `'pod'` in `EndpointNameLowerCamelCaseRule`.
 
 ---
 
@@ -62,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Dockerfile.cli-src` - Run CLI from source with `uv` (development/CI experimentation).
   - `Dockerfile.cli-binary` - Run the built Linux CLI binary (minimal runtime, CI/production-style).
   - See [docker/README.md](docker/README.md) for build and run examples.
-- **`--ci` CLI Preset** - One flag for CI/CD: quiet output, JSON format, and default output file (`arcane-auditor-results.json`); overridable with `--format` and `--output`.
+- `**--ci` CLI Preset** - One flag for CI/CD: quiet output, JSON format, and default output file (`arcane-auditor-results.json`); overridable with `--format` and `--output`.
 - **Orchestration Support** - Validation for `.orchestration` and `.suborchestration` files; rule count increased to 48 with orchestration-specific rules (security domains, error handlers, branching, expression best practices).
 - **Linux Configuration Paths** - Documented config locations for Linux CLI: `~/.config/ArcaneAuditor/config/rules/teams/` and `~/.config/ArcaneAuditor/config/rules/personal/`.
 
@@ -72,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release Workflow** - Added Linux CLI job; release artifact naming: `ArcaneAuditor_linux_CLI.tar.gz` and `ArcaneAuditor_linux_CLI.tar.gz.sha256`.
 
 ### Fixed
+
 - **Closes #53** - Finding text fix
 - **Closes #52** - Control character (tab) not escaped properly
 - **Closes #19** - CLI quiet flag...noisy
@@ -95,8 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration UI Refactoring** - Split large CSS files into feature-specific modules and extracted configuration logic into dedicated JavaScript modules.
 - **Light Mode Polish** - Enhanced visual depth, shadows, and hover effects for Grimoire cards and modal interfaces.
 - **Modal Ergonomics** - Optimized modal dimensions with shrink-wrap behavior and fixed desktop width for consistent experience across screen sizes.
-- **Configuration Cards** - Gone are the huge configuration cards, in favor of a less dominant presence. 
-
+- **Configuration Cards** - Gone are the huge configuration cards, in favor of a less dominant presence.
 
 ### Fixed
 
@@ -159,8 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows-Only Messaging** - Now fully cross-platform
 - **Confusing Installation Options** - Streamlined to Desktop → CLI → Source
 
-**Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
----------------------------------------------------------------------------------------------------------------
+## **Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
 
 ## [v1.1.0] - 2025-10-24
 
