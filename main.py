@@ -46,7 +46,7 @@ def review_app(
     exclude_rules: Optional[str] = typer.Option(None, "--exclude-rules", help="Comma-separated list of rule IDs to skip. Unknown rule -> exit 2."),
     severity_filter: Optional[str] = typer.Option(None, "--severity", help="Filter findings by severity (ACTION or ADVICE)."),
     fix_strategy_filter: Optional[str] = typer.Option(None, "--fix-strategy", help="Filter findings by fix_strategy (comma-separated: actionable, human_review)."),
-    files_glob: Optional[str] = typer.Option(None, "--files", help="Glob pattern (fnmatch) limiting which input files are parsed (e.g. '*.pmd', '**/foo*')."),
+    files_glob: Optional[str] = typer.Option(None, "--files", help="Comma-separated glob patterns (fnmatch) limiting which input files are parsed (e.g. '*.pmd', '*.pod,*.script'). A file is kept if ANY pattern matches."),
     single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
@@ -151,10 +151,14 @@ def review_app(
 
     if files_glob:
         import fnmatch
+        patterns = [p.strip() for p in files_glob.split(",") if p.strip()]
         before = len(source_files_map)
         source_files_map = {
             k: v for k, v in source_files_map.items()
-            if fnmatch.fnmatch(k, files_glob) or fnmatch.fnmatch(os.path.basename(k), files_glob)
+            if any(
+                fnmatch.fnmatch(k, p) or fnmatch.fnmatch(os.path.basename(k), p)
+                for p in patterns
+            )
         }
         info(f"--files '{files_glob}' kept {len(source_files_map)}/{before} files")
 

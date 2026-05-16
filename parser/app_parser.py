@@ -298,7 +298,7 @@ class ModelParser:
                 pmd_model.set_line_mappings(line_mappings)
                 pmd_model.set_hash_to_lines_mapping(hash_to_lines)
                 
-                context.pmds[pmd_model.pageId] = pmd_model
+                context.pmds[file_path] = pmd_model
                 # Show cleaned filename for consistency with "Parsed Script" messages
                 from utils.file_path_utils import strip_uuid_prefix
                 cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
@@ -391,7 +391,7 @@ class ModelParser:
                 # Set hash-based line mappings for POD files too
                 pod_model.set_hash_to_lines_mapping(hash_to_lines)
                 
-                context.pods[pod_model.podId] = pod_model
+                context.pods[file_path] = pod_model
                 info(f"Parsed Pod: {pod_model.podId}")
                 
             except json.JSONDecodeError as e:

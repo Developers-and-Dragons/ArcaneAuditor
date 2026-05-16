@@ -536,14 +536,6 @@ class ProjectContext:
         if self.analysis_context:
             self.analysis_context.register_skipped_check(rule_name, check_name, reason)
 
-    def get_pmd_by_id(self, page_id: str) -> Optional[PMDModel]:
-        """Retrieves a PMD model by its pageId."""
-        return self.pmds.get(page_id)
-    
-    def get_pod_by_id(self, pod_id: str) -> Optional[PodModel]:
-        """Retrieves a Pod model by its podId."""
-        return self.pods.get(pod_id)
-    
     def get_smd(self) -> Optional[SMDModel]:
         """Retrieves the SMD model."""
         return self.smd

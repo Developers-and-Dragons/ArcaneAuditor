@@ -168,9 +168,9 @@ class TestPMDFileFiltering:
         self.parser._parse_single_file("test.pmd", source_file, context)
         
         # Verify the PMD was parsed
-        assert "testPage" in context.pmds
-        pmd_model = context.pmds["testPage"]
-        
+        assert "test.pmd" in context.pmds
+        pmd_model = context.pmds["test.pmd"]
+
         # Verify the widget was parsed but underscore keys were filtered out
         widgets = pmd_model.presentation.body["widgets"]
         widget = widgets[0]
@@ -204,9 +204,9 @@ class TestPMDFileFiltering:
         self.parser._parse_single_file("test.pmd", source_file, context)
         
         # Verify the PMD was parsed
-        assert "testPage" in context.pmds
-        pmd_model = context.pmds["testPage"]
-        
+        assert "test.pmd" in context.pmds
+        pmd_model = context.pmds["test.pmd"]
+
         # Verify underscore keys were filtered out
         assert "_tempConfig" not in pmd_model.presentation.model_dump()
         assert "_globalTemp" not in pmd_model.model_dump()
@@ -244,8 +244,8 @@ class TestPODFileFiltering:
         self.parser._parse_single_file("test.pod", source_file, context)
         
         # Verify the POD was parsed
-        assert "testPod" in context.pods
-        pod_model = context.pods["testPod"]
+        assert "test.pod" in context.pods
+        pod_model = context.pods["test.pod"]
         
         # Verify underscore keys were filtered out
         seed_data = pod_model.seed.model_dump()

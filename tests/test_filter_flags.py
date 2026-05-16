@@ -152,3 +152,58 @@ class TestFilesFilter:
         finally:
             os.unlink(keep_path)
             os.unlink(drop_path)
+
+    def test_files_csv_keeps_union(self):
+        """Comma-separated patterns: a file is kept if ANY pattern matches."""
+        d = tempfile.mkdtemp()
+        try:
+            for name, pid in (("alpha.pmd", "a"), ("beta.pmd", "b"), ("gamma.pmd", "g")):
+                with open(os.path.join(d, name), "w") as fh:
+                    fh.write(
+                        '{"id": "' + pid + '", "script": "<% var x = 1; %>", "presentation": {"body": {}}}'
+                    )
+            result = runner.invoke(
+                app,
+                ["review-app", d, "--files", "alpha.pmd,beta.pmd", "--agent"],
+            )
+            assert result.exit_code in (0, 1), result.output
+            data = json.loads(result.output)
+            file_paths = {f["location"]["file_path"] for f in data["findings"]}
+            assert any("alpha.pmd" in p for p in file_paths), f"got {file_paths}"
+            assert any("beta.pmd" in p for p in file_paths), f"got {file_paths}"
+            assert not any("gamma.pmd" in p for p in file_paths), f"got {file_paths}"
+        finally:
+            import shutil
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_distinct_files_with_duplicate_pmd_id_all_analyzed(self):
+        """Regression: PMDs sharing pageId across different files must not collide."""
+        d = tempfile.mkdtemp()
+        try:
+            for name in ("alpha.pmd", "beta.pmd", "gamma.pmd"):
+                with open(os.path.join(d, name), "w") as fh:
+                    fh.write(
+                        '{"id": "samePage", "script": "<% var x = 1; %>", "presentation": {"body": {}}}'
+                    )
+            result = _agent_output([d])
+            assert result.exit_code in (0, 1), result.output
+            data = json.loads(result.output)
+            file_paths = {f["location"]["file_path"] for f in data["findings"]}
+            assert any("alpha.pmd" in p for p in file_paths), f"got {file_paths}"
+            assert any("beta.pmd" in p for p in file_paths), f"got {file_paths}"
+            assert any("gamma.pmd" in p for p in file_paths), f"got {file_paths}"
+        finally:
+            import shutil
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_files_csv_whitespace_tolerated(self):
+        """Whitespace around CSV entries is stripped, mirroring --rules."""
+        keep_path = _tmp_pmd_with_var(suffix="_keep.pmd")
+        try:
+            result = _agent_output([keep_path, "--files", " *_keep.pmd , *_nope.pmd "])
+            assert result.exit_code in (0, 1), result.output
+            data = json.loads(result.output)
+            for finding in data["findings"]:
+                assert "_keep.pmd" in finding["location"]["file_path"]
+        finally:
+            os.unlink(keep_path)
