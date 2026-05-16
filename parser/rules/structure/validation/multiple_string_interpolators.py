@@ -122,5 +122,12 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
                     line=line_num,
                     suggested_replacement=replacement,
                     path="$",
+                    # The regex's char class excludes ``"`` and ``'``, so
+                    # ``string_value`` is guaranteed not to contain a quote —
+                    # safe to substring-swap inside the source file. The
+                    # surrounding quotes are preserved by leaving them out of
+                    # both ``target_text`` and ``suggested_replacement``.
+                    target_text=string_value,
+                    replacement_context="substring",
                 )
 

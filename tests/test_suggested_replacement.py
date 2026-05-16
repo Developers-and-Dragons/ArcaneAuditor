@@ -390,7 +390,10 @@ class TestMultipleStringInterpolatorsRule:
         )
         findings = list(rule.analyze(context))
         assert len(findings) == 1
-        assert findings[0].suggested_replacement == "<% `My name is {{name}} and I like {{food}}` %>"
+        f = findings[0]
+        assert f.suggested_replacement == "<% `My name is {{name}} and I like {{food}}` %>"
+        assert f.target_text == "My name is <% name %> and I like <% food %>"
+        assert f.replacement_context == "substring"
 
     def test_three_interpolators(self):
         from parser.rules.structure.validation.multiple_string_interpolators import (
