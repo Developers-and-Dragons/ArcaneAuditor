@@ -4,9 +4,9 @@ Arcane Auditor Logo
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-Version
-[Download](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-[Support](https://buymeacoffee.com/developersanddragons)
+![Version](https://img.shields.io/badge/version-2.0.0-blue?style=for-the-badge)
+[![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
+[![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
 ---
 
