@@ -184,7 +184,7 @@ ArcaneAuditorCLI review-app myapp.zip --agent
 - 📐 **v2 JSON schema** — `schema_version: "2.0"`, nested `location`, and rule metadata (`category`, `fix_strategy`) on every finding.
 - 🪪 **Stable `finding_id`** — hash of rule + file + path + message (line excluded), so re-runs after a fix still join on the same identifier.
 - 🧭 **JSONPath `location.path`** — for PMD / POD / AMD / SMD findings, a JSONPath that survives line-drifting edits (e.g. `$.outboundEndpoints[?(@.name=='getWorker')].failOnStatusCodes`). Script-file findings use line/column.
-- ✏️ **suggested_replacement** — drop-in replacement text on 12 deterministic rules (e.g. `var`→`let`, hardcoded Workday API → `apiGatewayEndpoint + '<path>'`). The other 36 rules carry `fix_strategy: human_review` — the agent is told plainly when it should *not* assume a one-line patch.
+- ✏️ **suggested_replacement** — drop-in replacement text on many deterministic rules (e.g. `var`→`let`, hardcoded Workday API → `apiGatewayEndpoint + '<path>'`). All other rules carry `fix_strategy: human_review` — the agent is told plainly when it should *not* assume a one-line patch.
 - 🔍 **Filter flags** — `--rules`, `--exclude-rules`, `--severity`, `--fix-strategy`, `--files <glob,glob>` so the agent can scope a focused pass without re-running the world.
 - 📚 **Rule introspection** — `list-rules --format json` for the catalog, `describe-rule <RuleId>` for full metadata (the `why` / `catches` / `examples` / `recommendation` an agent needs to reason about a finding).
 
