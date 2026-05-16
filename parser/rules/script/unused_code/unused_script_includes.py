@@ -84,7 +84,10 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
                     rule=self,
                     message=violation.message,
                     line=self._get_include_line_number(pmd_model, violation.metadata.get('script_name', '')),
-                    file_path=pmd_model.file_path
+                    file_path=pmd_model.file_path,
+                    # Empty string signals "delete this include entry"; agent handles
+                    # comma normalization in the surrounding JSON array.
+                    suggested_replacement="",
                 )
                 
         except Exception as e:

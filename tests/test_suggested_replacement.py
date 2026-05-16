@@ -169,6 +169,26 @@ class TestScriptVerboseBooleanCheckRule:
         assert findings[0].suggested_replacement == "!x"
 
 
+class TestScriptUnusedIncludesRule:
+    def test_unused_include_suggests_deletion(self):
+        """Unused include emits empty-string replacement signaling 'remove this entry'."""
+        from parser.rules.script.unused_code.unused_script_includes import ScriptUnusedIncludesRule
+        from parser.models import PMDIncludes
+
+        rule = ScriptUnusedIncludesRule()
+        context = ProjectContext()
+        context.pmds["t"] = PMDModel(
+            pageId="t",
+            includes=PMDIncludes(scripts=["unused.script"]),
+            script="<% let x = 1; %>",
+            file_path="t.pmd",
+            source_content='{"include": ["unused.script"], "script": "<% let x = 1; %>"}',
+        )
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert findings[0].suggested_replacement == ""
+
+
 class TestUnsupportedRuleLeavesNone:
     """Rules without a wired replacement emit None — guards against
     accidentally setting a default everywhere. Uses a `human_review` rule
