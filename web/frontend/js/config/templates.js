@@ -114,7 +114,8 @@ export const Templates = {
         // Strategy, and Enabled are rendered as read-only badges below.
         const settingsCol = isBuiltIn ? '' : `<div class="rule-list-header-col rule-list-header-configure">Settings</div>`;
         return `
-            <div class="rule-list-header" aria-hidden="false">
+            <div class="rule-list-header-sticky">
+                <div class="rule-list-header" aria-hidden="false">
                 <div class="rule-list-header-name">Rule</div>
                 <div class="rule-list-header-controls">
                     ${settingsCol}
@@ -125,8 +126,9 @@ export const Templates = {
                     </div>
                     <div class="rule-list-header-col rule-list-header-toggle">Enabled</div>
                 </div>
+                </div>
+                ${this.fixStrategyHelp()}
             </div>
-            ${this.fixStrategyHelp()}
         `;
     },
 
@@ -145,8 +147,14 @@ export const Templates = {
                     <strong>Agent Fix Strategy</strong> — how amenable a rule's findings are to automated fixing by an AI agent. Set per rule; agents read this to decide which findings are safe to auto-apply.
                 </div>
                 <ul class="fix-strategy-help-list">
-                    <li class="rule-fix-strategy-actionable"><span class="fix-strategy-chip">actionable</span> Finding carries a deterministic fix. You are telling the agent: <strong>apply the suggested replacement directly, without asking first.</strong> Use this for rules where you trust the fix and want the agent to just do it.</li>
-                    <li class="rule-fix-strategy-human_review"><span class="fix-strategy-chip">human_review</span> Surface the finding and wait for your call. The agent must not auto-resolve. Use this for rules that need judgment, naming decisions, or cross-file thinking.</li>
+                    <li class="rule-fix-strategy-actionable">
+                        <span class="fix-strategy-chip">actionable</span>
+                        <span class="fix-strategy-help-desc">Finding carries a deterministic fix. You are telling the agent: <strong>apply the suggested replacement directly, without asking first.</strong> Use this for rules where you trust the fix and want the agent to just do it.</span>
+                    </li>
+                    <li class="rule-fix-strategy-human_review">
+                        <span class="fix-strategy-chip">human_review</span>
+                        <span class="fix-strategy-help-desc">Surface the finding and wait for your call. The agent must not auto-resolve. Use this for rules that need judgment, naming decisions, or cross-file thinking.</span>
+                    </li>
                 </ul>
             </div>
         `;

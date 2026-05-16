@@ -286,6 +286,12 @@
     }
 }
 
+/* Groups column header + optional help card; scrolls with the rule list (not pinned). */
+.rule-list-header-sticky {
+    flex-shrink: 0;
+    margin-bottom: 4px;
+}
+
 /* Column header strip above the list of rule rows.
    Layout mirrors `.rule-row-header` so each label sits over its control:
    - .rule-list-header-name: takes flex:1 like .rule-name-container
@@ -299,16 +305,12 @@
     gap: 16px;
     padding: 8px 16px;
     border-bottom: 2px solid var(--border-color);
-    margin-bottom: 8px;
+    margin-bottom: 0;
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
-    position: sticky;
-    top: 0;
-    background: var(--bg-secondary);
-    z-index: 1;
 }
 
 .rule-list-header-name {
@@ -410,7 +412,7 @@
    Visible by default (first time), dismissible to localStorage. */
 .fix-strategy-help {
     position: relative;
-    margin: 0 0 12px 0;
+    margin: 8px 0 0 0;
     padding: 12px 36px 12px 14px;
     border-left: 3px solid #9333ea; /* purple-600 */
     background: var(--bg-tertiary);
@@ -433,14 +435,16 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 6px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 .fix-strategy-help-list li {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 8.75rem 1fr;
+    gap: 8px 12px;
+    align-items: start;
+    line-height: 1.5;
     /* Color is set by the `rule-fix-strategy-*` class on the <li>; the chip
        and the description text both inherit via currentColor, matching the
        dropdown row's color in each row. */
@@ -448,8 +452,8 @@
 
 .fix-strategy-chip {
     display: inline-block;
-    flex-shrink: 0;
-    min-width: 130px;
+    box-sizing: border-box;
+    width: 100%;
     text-align: center;
     padding: 2px 8px;
     border-radius: 4px;
@@ -457,6 +461,11 @@
     font-weight: 700;
     border: 1px solid currentColor;
     background: transparent;
+    white-space: nowrap;
+}
+
+.fix-strategy-help-desc {
+    min-width: 0;
 }
 
 .fix-strategy-help-close {
