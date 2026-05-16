@@ -25,6 +25,9 @@ def main_callback(
     if version:
         typer.echo(f"Arcane Auditor v{__version__}")
         raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(2)
 
 # Ensure sample rule config is seeded
 ensure_sample_rule_config()
